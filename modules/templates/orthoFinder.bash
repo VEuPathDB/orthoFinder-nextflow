@@ -15,8 +15,9 @@ rm -r */
 
 for f in *; do mv "\$f" "\$f.fasta"; done
 
-mkdir data
-mv *.fasta data
-orthofinder -f data -o ./results
-mv results/Results*/* results
-rm -rf results/Results_*
+mkdir input
+mv *.fasta input
+orthofinder -f input -op > commands
+mv input/OrthoFinder/**/WorkingDirectory/*.txt .
+cp input/OrthoFinder/**/WorkingDirectory/*.fa .
+
