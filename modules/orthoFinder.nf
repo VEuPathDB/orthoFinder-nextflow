@@ -20,7 +20,7 @@ process orthoFinder {
 }
 
 process filterBlastCommands {
-  container = 'ortho'
+  container = 'rdemko2332/orthofinder'
 
   input:
     path commandFile
@@ -33,7 +33,7 @@ process filterBlastCommands {
 }
 
 process retrieveFilePaths {
-  container = 'ortho'
+  container = 'rdemko2332/orthofinder'
 
   input:
     path filteredCommand
