@@ -2,6 +2,6 @@
 
 set -euo pipefail
 
-echo "${params.outputDir}/blastOutput/" > output.txt
+echo "${params.outputDir}" > output.txt
 
 export blastOutputPath=\$(cat output.txt)

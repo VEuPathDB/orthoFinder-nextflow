@@ -4,8 +4,8 @@ nextflow.enable.dsl=2
 process orthoFinder {
   container = 'davidemms/orthofinder:2.5.5.1'
 
-  publishDir "$params.outputDir/blastOutput", mode: "copy", pattern: "*.txt"
-  publishDir "$params.outputDir/blastOutput", mode: "copy", pattern: "*.fa"
+  publishDir "$params.outputDir", mode: "copy", pattern: "*.txt"
+  publishDir "$params.outputDir", mode: "copy", pattern: "*.fa"
 
   input:
     path tarfile
@@ -51,7 +51,7 @@ process retrieveFilePaths {
 process diamond {
   container = 'veupathdb/diamondsimilarity'
 
-  publishDir "$params.outputDir/blastOutput", mode: "copy", pattern: "*.gz"
+  publishDir "$params.outputDir", mode: "copy", pattern: "*.gz"
 
   input:
     path dataFile
