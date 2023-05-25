@@ -5,11 +5,11 @@ nextflow.enable.dsl=2
 // Param Checking 
 //---------------------------------------------------------------
 
-if(params.tarFile) {
-  tarFile = Channel.fromPath( params.tarFile )
+if(params.inputFile) {
+  inputFile = Channel.fromPath( params.inputFile )
 }
 else {
-  throw new Exception("Missing params.tarFile")
+  throw new Exception("Missing params.inputFile")
 }
 
 //--------------------------------------------------------------------------
@@ -24,7 +24,7 @@ include { OrthoFinder } from './modules/orthoFinder.nf'
 
 workflow {
   
-  OrthoFinder(tarFile)
+  OrthoFinder(inputFile)
 
 }
 

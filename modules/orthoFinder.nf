@@ -1,6 +1,22 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
+
+process createCompressedFastaDir {
+  container = 'rdemko2332/orthofinder'
+
+  input:
+    path inputFasta
+    val fastaSubsetSize
+
+  output:
+    path '*.tar.gz'
+
+  script:
+    template 'createCompressedFastaDir.bash'
+}
+
+
 process orthoFinder {
   container = 'davidemms/orthofinder:2.5.5.1'
 
@@ -91,10 +107,11 @@ process computeGroups {
 
 workflow OrthoFinder {
   take:
-    tarFile
+    inputFile
 
   main:
-    orthoFinderResults = orthoFinder(tarFile)
+    createCompressedFastaDirResults = createCompressedFastaDir(inputFile, params.fastaSubsetSize)
+    orthoFinderResults = orthoFinder(createCompressedFastaDirResults)
     filterBlastCommandsResults = filterBlastCommands(orthoFinderResults.commandFile).flatten()
     retrieveFilePathResults = retrieveFilePaths(filterBlastCommandsResults)
     diamondResults = diamond(retrieveFilePathResults.datapath, retrieveFilePathResults.querypath,retrieveFilePathResults.outputpath)

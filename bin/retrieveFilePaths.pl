@@ -12,7 +12,7 @@ my ($input,$outputDir);
 open(my $data, '<', $input) || die "Could not open file $input: $!";
 
 while (<$data>) {
-    if (/^diamond\sblastp\s--ignore-warnings\s-d\s(.+)\s-q\s(.+)\s-o\s(.+)\/(Blast\d_\d.txt)\s--more-sensitive\s-p\s1\s--quiet\s-e\s0.001\s--compress/) {    
+    if (/^diamond\sblastp\s--ignore-warnings\s-d\s(.+)\s-q\s(.+)\s-o\s(.+)\/(Blast\d+_\d+.txt)\s--more-sensitive\s-p\s1\s--quiet\s-e\s0.001\s--compress/) {    
         my $dataPath = $1;
 	my $queryPath = $2;
 	my $outputFull = $3;
