@@ -7,7 +7,6 @@ process createCompressedFastaDir {
 
   input:
     path inputFasta
-    val fastaSubsetSize
 
   output:
     path '*.tar.gz'
@@ -110,7 +109,7 @@ workflow OrthoFinder {
     inputFile
 
   main:
-    createCompressedFastaDirResults = createCompressedFastaDir(inputFile, params.fastaSubsetSize)
+    createCompressedFastaDirResults = createCompressedFastaDir(inputFile)
     orthoFinderResults = orthoFinder(createCompressedFastaDirResults)
     filterBlastCommandsResults = filterBlastCommands(orthoFinderResults.commandFile).flatten()
     retrieveFilePathResults = retrieveFilePaths(filterBlastCommandsResults)
