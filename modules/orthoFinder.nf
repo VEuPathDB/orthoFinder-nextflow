@@ -17,7 +17,7 @@ process createCompressedFastaDir {
 
 
 process orthoFinder {
-  container = 'davidemms/orthofinder:2.5.5.1'
+  container = 'rdemko2332/orthofix'
 
   publishDir "$params.outputDir", mode: "copy", pattern: "*.txt"
   publishDir "$params.outputDir", mode: "copy", pattern: "*.fa"
@@ -82,7 +82,7 @@ process diamond {
 }
 
 process returnBlastOutputPath {
-  container = 'davidemms/orthofinder:2.5.5.1'
+  container = 'rdemko2332/orthofix'
 
   input:
     path doneFile
@@ -95,7 +95,7 @@ process returnBlastOutputPath {
 }
 
 process computeGroups {
-  container = 'davidemms/orthofinder:2.5.5.1'
+  container = 'rdemko2332/orthofix'
 
   input:
     path diamondResultsDir
