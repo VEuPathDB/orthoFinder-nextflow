@@ -4,6 +4,6 @@ set -euo pipefail
 
 mkdir fastas
 
-perl /usr/bin/seperateFastaFile.pl --input $inputFasta --outputDir fastas --fastaSubsetSize $fastaSubsetSize
+perl /usr/bin/organismSeperateFastaFile.pl --input $inputFasta --outputDir fastas
 
 tar czvf fasta.tar.gz fastas 
