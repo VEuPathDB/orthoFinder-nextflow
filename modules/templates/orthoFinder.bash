@@ -10,14 +10,17 @@ else
     rm *.tar
 fi
 
-mv **/* .
+for f in **/*; do mv "\$f" .; done
+
 rm -r */
 
 for f in *; do mv "\$f" "\$f.fasta"; done
 
 mkdir input
-mv *.fasta input
+for f in *.fasta; do mv "\$f" ./input; done
+
 orthofinder -f input -op
-mv input/OrthoFinder/**/WorkingDirectory/*.txt .
-mv input/OrthoFinder/**/WorkingDirectory/*.fa .
-mv input/OrthoFinder/**/WorkingDirectory/*.dmnd .
+
+for f in input/OrthoFinder/**/WorkingDirectory/*.txt; do mv "\$f" .; done
+for f in input/OrthoFinder/**/WorkingDirectory/*.fa; do mv "\$f" .; done
+for f in input/OrthoFinder/**/WorkingDirectory/*.dmnd; do mv "\$f" .; done
