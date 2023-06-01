@@ -17,7 +17,7 @@ for f in *; do mv "\$f" "\$f.fasta"; done
 
 mkdir input
 mv *.fasta input
-orthofinder -f input -op > commands
+orthofinder -f input -op
 mv input/OrthoFinder/**/WorkingDirectory/*.txt .
-cp input/OrthoFinder/**/WorkingDirectory/*.fa .
-
+mv input/OrthoFinder/**/WorkingDirectory/*.fa .
+mv input/OrthoFinder/**/WorkingDirectory/*.dmnd .

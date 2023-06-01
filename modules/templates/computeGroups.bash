@@ -2,10 +2,12 @@
 
 set -euo pipefail
 
-orthofinder -b $diamondResultsDir
+orthofinder -b .
 
-rm **/*.txt.gz
-rm **/*.txt
-rm **/*.fa
+rm *.txt.gz
+rm *.txt
+rm *.fa
 
+mv OrthoFinder/**/* .
+rm -rf OrthoFinder
 
