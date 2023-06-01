@@ -24,6 +24,7 @@ process orthoFinder {
 
   output:
     path '*.fa', emit: fastaList
+    path '*.dmnd', emit: databaseList
     tuple path('SequenceIDs.txt'), path('SpeciesIDs.txt'), emit: speciesInfo
 
   script:
@@ -36,6 +37,7 @@ process diamond {
 
   input:
     val pair
+    path databases
 
   output:
     path 'Blast*.txt.gz', emit: blast
@@ -72,7 +74,8 @@ workflow OrthoFinder {
     orthoFinderResults = orthoFinder(createCompressedFastaDirResults)
     pairs = orthoFinderResults.fastaList.map { it -> [it,it].combinations().findAll(); }
     pairsChannel = pairs.flatten().collate(2)
-    diamondResults = diamond(pairsChannel)
+    databases = orthoFinderResults.databaseList.collect()
+    diamondResults = diamond(pairsChannel, databases)
     blasts = diamondResults.blast.collect()
     computeGroups(blasts,orthoFinderResults.speciesInfo,orthoFinderResults.fastaList)
 }
