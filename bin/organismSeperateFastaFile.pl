@@ -15,7 +15,7 @@ open(my $data, '<', $input) || die "Could not open file $input: $!";
 my $counter = 0;
 my $organism;
 while (my $line = <$data>) {
-    if ($line =~ /^>(.+)\|/) {
+    if ($line =~ /^>(.{4})\|/) {
 	if ($counter == 0) {
 	    $counter +=1;
 	    $organism = $1;

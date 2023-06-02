@@ -1,7 +1,12 @@
-FROM davidemms/orthofinder:2.5.5.1
+FROM ubuntu:22.04
 
 Label maintainer="rdemko2332@gmail.com"
 
-ADD /bin/orthologues.py /opt/OrthoFinder_source/scripts_of/orthologues.py
+WORKDIR /usr/bin/
+
+ADD /bin/*.pl /usr/bin/
+
+# Making all tools executable
+RUN chmod +x *
 
 WORKDIR /work
