@@ -2,8 +2,8 @@
 
 set -euo pipefail
 
-mkdir fastas
+mkdir hold
 
-perl /usr/bin/organismSeperateFastaFile.pl --input $inputFasta --outputDir fastas
+perl /usr/bin/organismSeperateFastaFile.pl --input $inputFasta --outputDir hold
 
-tar czvf fasta.tar.gz fastas 
+mv hold fastas

@@ -15,20 +15,24 @@ open(my $data, '<', $input) || die "Could not open file $input: $!";
 my $counter = 0;
 my $organism;
 while (my $line = <$data>) {
-    if ($line =~ /^>(.{4})\|/) {
+    if ($line =~ /^(>\w{4}\|)(.+)/ || $line =~ /^(>\w{4}-old\|)(.+)/) {
+	my $fixOrganism = $1;
+	$fixOrganism =~ s/>//g;
+	$fixOrganism =~ s/\|//g;
+	print $fixOrganism;
 	if ($counter == 0) {
 	    $counter +=1;
-	    $organism = $1;
-            open(OUT,">$outputDir/$1");
+	    $organism = $fixOrganism;
+            open(OUT,">$outputDir/$organism");
 	    print OUT $line;
         }
-        elsif ($organism eq $1) {
+        elsif ($organism eq $fixOrganism) {
 	    print OUT $line;
 	}
 	else {
-	    $organism = $1;
+	    $organism = $fixOrganism;
             close OUT;
-	    open(OUT,">$outputDir/$1");
+	    open(OUT,">$outputDir/$organism");
 	    print OUT $line;
 	}
     }

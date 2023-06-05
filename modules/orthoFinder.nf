@@ -9,12 +9,24 @@ process createCompressedFastaDir {
     path inputFasta
 
   output:
-    path '*.tar.gz'
+    path './fastas'
 
   script:
     template 'createCompressedFastaDir.bash'
 }
 
+process arrangeSequences {
+  container = 'rdemko2332/orthofinder'
+
+  input:
+    path fastaDir
+
+  output:
+    path '*.tar.gz'
+
+  script:
+    template 'arrangeSequences.bash'
+}
 
 process orthoFinder {
   container = 'rdemko2332/orthofix'
@@ -71,7 +83,8 @@ workflow OrthoFinder {
 
   main:
     createCompressedFastaDirResults = createCompressedFastaDir(inputFile)
-    orthoFinderResults = orthoFinder(createCompressedFastaDirResults)
+    arrangeSequencesResults = arrangeSequences(createCompressedFastaDirResults)
+    orthoFinderResults = orthoFinder(arrangeSequencesResults)
     pairs = orthoFinderResults.fastaList.map { it -> [it,it].combinations().findAll(); }
     pairsChannel = pairs.flatten().collate(2)
     databases = orthoFinderResults.databaseList.collect()
