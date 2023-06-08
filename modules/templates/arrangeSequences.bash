@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-mv $fastaDir hold
+cp -r $fastaDir hold
+rm -rf $fastaDir
 
 for f in hold/*; do mv "\$f" .; done
 rm -r hold
