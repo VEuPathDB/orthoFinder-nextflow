@@ -18,6 +18,8 @@ process createCompressedFastaDir {
 process arrangeSequences {
   container = 'rdemko2332/orthofinder'
 
+  cache 'lenient'
+
   input:
     path fastaDir
 

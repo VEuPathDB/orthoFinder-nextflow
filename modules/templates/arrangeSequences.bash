@@ -3,12 +3,13 @@
 set -euo pipefail
 
 cp -r $fastaDir hold
-rm -rf $fastaDir
 
-for f in hold/*; do mv "\$f" .; done
-rm -r hold
-for f in *; do mv "\$f" "\$f.fasta"; done
-mkdir fastas
-for f in *.fasta; do perl /usr/bin/arrangeSequences.pl --input "\$f" --output "./fastas/\$f"; done
+for f in hold/*; do mv "\$f" ./\$f.fasta; done
 
-tar czvf fasta.tar.gz fastas 
+for f in hold/*.fasta; do cp "\$f" .; done
+
+mkdir newFastas
+
+for f in *.fasta; do perl /usr/bin/arrangeSequences.pl --input "\$f" --output "./newFastas/\$f"; done
+
+tar czvf fasta.tar.gz newFastas 
