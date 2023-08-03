@@ -18,8 +18,6 @@ process createCompressedFastaDir {
 process arrangeSequences {
   container = 'rdemko2332/orthofinder'
 
-  cache 'lenient'
-
   input:
     path fastaDir
 
@@ -30,11 +28,25 @@ process arrangeSequences {
     template 'arrangeSequences.bash'
 }
 
+process removeOutdatedBlasts {
+  container = 'test'
+
+  input:
+    path outdated
+
+  output:
+    path 'cleaned.txt'
+
+  script:
+    template 'removeOutdatedBlasts.bash'
+}
+
 process orthoFinder {
   container = 'rdemko2332/orthofix'
 
   input:
     path tarfile
+    path updated
 
   output:
     path '*.fa', emit: fastaList
@@ -46,11 +58,12 @@ process orthoFinder {
 }
 
 process diamond {
-  container = 'veupathdb/diamondsimilarity'
+  container = 'diamondtest'
 
   input:
     val pair
     path databases
+    tuple path(sequenceIDs), path(speciesIDs)
 
   output:
     path 'Blast*.txt.gz', emit: blast
@@ -58,6 +71,22 @@ process diamond {
 
   script:
     template 'diamond.bash'
+}
+
+
+process renameDiamondFiles {
+  container = 'test'
+  publishDir "$params.outputDir/newPreviousBlasts", mode: "copy", pattern: "*.txt.gz"
+  
+  input:
+    path blasts
+    path speciesInfo
+
+  output:
+    path '*.txt.gz'
+
+  script:
+    template 'renameDiamondFiles.bash'
 }
 
 
@@ -72,7 +101,9 @@ process computeGroups {
     path fastas
 
   output:
-    path '*'
+    path 'Results*', emit: results
+    path 'SpeciesIDs.txt', emit: species
+    path 'SequenceIDs.txt', emit: sequences
 
   script:
     template 'computeGroups.bash'
@@ -129,6 +160,24 @@ process sortSimSeqs {
     """
 }
 
+process astral {
+  container = 'rdemko2332/orthofinderlinear'
+
+  publishDir params.outputDir, mode: "copy"
+  
+  input:
+    path outputDir
+    path species
+    path sequences
+    path peripheralDir
+        
+  output:
+    path '*'
+
+  script:
+    template 'astral.bash'
+}
+
 workflow OrthoFinder { 
   take:
     inputFile
@@ -136,14 +185,18 @@ workflow OrthoFinder {
   main:
     createCompressedFastaDirResults = createCompressedFastaDir(inputFile)
     arrangeSequencesResults = arrangeSequences(createCompressedFastaDirResults)
-    orthoFinderResults = orthoFinder(arrangeSequencesResults)
+    removeOutdatedBlastsResults = removeOutdatedBlasts(params.outdated)
+    orthoFinderResults = orthoFinder(arrangeSequencesResults, removeOutdatedBlastsResults)
     pairs = orthoFinderResults.fastaList.map { it -> [it,it].combinations().findAll(); }
     pairsChannel = pairs.flatten().collate(2)
     databases = orthoFinderResults.databaseList.collect()
-    diamondResults = diamond(pairsChannel, databases)
+    speciesInfo = orthoFinderResults.speciesInfo.collect()
+    diamondResults = diamond(pairsChannel, databases, speciesInfo)
     allBlastResults = diamondResults.uncompressed | collectFile()
     reformattedBlastOutputResults = reformatBlastOutput(allBlastResults, orthoFinderResults.speciesInfo)
     printSimSeqs(reformattedBlastOutputResults, params.pValCutoff, params.lengthCutoff, params.percentCutoff, params.adjustMatchLength) | sortSimSeqs
     blasts = diamondResults.blast.collect()
-    computeGroups(blasts,orthoFinderResults.speciesInfo,orthoFinderResults.fastaList)
+    renameDiamondFiles(blasts, orthoFinderResults.speciesInfo)
+    computeGroupResults = computeGroups(blasts,orthoFinderResults.speciesInfo,orthoFinderResults.fastaList)
+    //astral(computeGroupResults.results, computeGroupResults.species, computeGroupResults.sequences, params.peripheralDir)
 }

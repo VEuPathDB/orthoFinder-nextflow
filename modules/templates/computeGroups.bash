@@ -2,11 +2,10 @@
 
 set -euo pipefail
 
-orthofinder -b . -a 1
+orthofinder -b .
 
 rm *.txt.gz
-rm *.txt
 rm *.fa
 
-mv OrthoFinder/**/* .
-rm -rf OrthoFinder
+mv OrthoFinder/Results* .
+
