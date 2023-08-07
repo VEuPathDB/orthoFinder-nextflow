@@ -29,7 +29,7 @@ process arrangeSequences {
 }
 
 process removeOutdatedBlasts {
-  container = 'test'
+  container = 'rdemko2332/orthofinder'
 
   input:
     path outdated
@@ -58,7 +58,7 @@ process orthoFinder {
 }
 
 process diamond {
-  container = 'diamondtest'
+  container = 'veupathdb/diamondsimilarity'
 
   input:
     val pair
@@ -75,7 +75,7 @@ process diamond {
 
 
 process renameDiamondFiles {
-  container = 'test'
+  container = 'rdemko2332/orthofinder'
   publishDir "$params.outputDir/newPreviousBlasts", mode: "copy", pattern: "*.txt.gz"
   
   input:
