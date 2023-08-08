@@ -58,7 +58,7 @@ process orthoFinder {
 }
 
 process diamond {
-  container = 'diamondtest'
+  container = 'veupathdb/diamondsimilarity'
 
   input:
     val pair
