@@ -58,7 +58,7 @@ process orthoFinder {
 }
 
 process diamond {
-  container = 'veupathdb/diamondsimilarity'
+  container = 'diamondtest'
 
   input:
     val pair
@@ -83,7 +83,7 @@ process renameDiamondFiles {
     path speciesInfo
 
   output:
-    path '*.txt.gz'
+    path '*.txt.gz', emit: renamed
 
   script:
     template 'renameDiamondFiles.bash'
@@ -178,6 +178,53 @@ process astral {
     template 'astral.bash'
 }
 
+process makeOrthogroupSpecificFiles {
+  container = 'rdemko2332/orthofinder'
+
+  //publishDir "$params.outputDir", mode: "copy"
+
+  input:
+    path results
+    path diamondFiles
+
+  output:
+    path 'OrthoGroup*', emit: orthogroups
+
+  script:
+    template 'makeOrthogroupSpecificFiles.bash'
+}
+
+process orthogroupCalculations {
+  container = 'rdemko2332/orthofinder'
+
+  //publishDir "$params.outputDir", mode: "copy"
+
+  input:
+    path groupData
+
+  output:
+    path '*.final', emit: groupCalcs
+
+  script:
+    template 'orthogroupCalculations.bash'
+}
+
+process makeBestRepresentativesFasta {
+  container = 'rdemko2332/orthofinder'
+
+  publishDir "$params.outputDir", mode: "copy"
+
+  input:
+    path bestReps
+    path fasta
+
+  output:
+    path 'bestReps.fasta'
+
+  script:
+    template 'makeBestRepresentativesFasta.bash'
+}
+
 workflow OrthoFinder { 
   take:
     inputFile
@@ -196,7 +243,12 @@ workflow OrthoFinder {
     reformattedBlastOutputResults = reformatBlastOutput(allBlastResults, orthoFinderResults.speciesInfo)
     printSimSeqs(reformattedBlastOutputResults, params.pValCutoff, params.lengthCutoff, params.percentCutoff, params.adjustMatchLength) | sortSimSeqs
     blasts = diamondResults.blast.collect()
-    renameDiamondFiles(blasts, orthoFinderResults.speciesInfo)
-    computeGroupResults = computeGroups(blasts,orthoFinderResults.speciesInfo,orthoFinderResults.fastaList)
-    //astral(computeGroupResults.results, computeGroupResults.species, computeGroupResults.sequences, params.peripheralDir)
+    renameDiamondFilesResults = renameDiamondFiles(blasts, orthoFinderResults.speciesInfo)
+    computeGroupsResults = computeGroups(blasts,orthoFinderResults.speciesInfo,orthoFinderResults.fastaList)
+    makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(computeGroupsResults.results, renameDiamondFilesResults)
+    orthogroupCalculationsResults = orthogroupCalculations(makeOrthogroupSpecificFilesResults.orthogroups.flatten())
+    bestRepresentatives = orthogroupCalculationsResults.collectFile(name: 'bestReps.txt')
+    makeBestRepresentativesFasta(bestRepresentatives, inputFile)
+
+  //astral(computeGroupResults.results, computeGroupResults.species, computeGroupResults.sequences, params.peripheralDir)
 }
