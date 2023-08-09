@@ -178,17 +178,30 @@ process astral {
     template 'astral.bash'
 }
 
+process splitOrthogroupsFile {
+  container = 'rdemko2332/orthofinder'
+
+  input:
+    path results
+
+  output:
+    path 'OG*', emit: orthoGroupsFiles
+
+  script:
+    template 'splitOrthogroupsFile.bash'
+}
+
 process makeOrthogroupSpecificFiles {
   container = 'rdemko2332/orthofinder'
 
   //publishDir "$params.outputDir", mode: "copy"
 
   input:
-    path results
+    path orthoGroupsFile
     path diamondFiles
 
   output:
-    path 'GroupFiles/OrthoGroup*', emit: orthogroups
+    path 'GroupFiles/OrthoGroup*', emit: orthogroups, optional: true
     path 'GroupFiles/Singletons.dat', emit: singletons
 
   script:
@@ -245,9 +258,10 @@ workflow OrthoFinder {
     reformattedBlastOutputResults = reformatBlastOutput(allBlastResults, orthoFinderResults.speciesInfo)
     printSimSeqs(reformattedBlastOutputResults, params.pValCutoff, params.lengthCutoff, params.percentCutoff, params.adjustMatchLength) | sortSimSeqs
     blasts = diamondResults.blast.collect()
-    renameDiamondFilesResults = renameDiamondFiles(blasts, orthoFinderResults.speciesInfo)
+    renameDiamondFilesResults = renameDiamondFiles(blasts, orthoFinderResults.speciesInfo).collect()
     computeGroupsResults = computeGroups(blasts,orthoFinderResults.speciesInfo,orthoFinderResults.fastaList)
-    makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(computeGroupsResults.results, renameDiamondFilesResults)
+    splitOrthoGroupsFilesResults = splitOrthogroupsFile(computeGroupsResults.results)
+    makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(splitOrthoGroupsFilesResults.orthoGroupsFiles.flatten(), renameDiamondFilesResults)
     orthogroupCalculationsResults = orthogroupCalculations(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250))
     bestRepresentatives = orthogroupCalculationsResults.collectFile(name: 'bestReps.txt')
     makeBestRepresentativesFasta(bestRepresentatives, inputFile, makeOrthogroupSpecificFilesResults.singletons)
