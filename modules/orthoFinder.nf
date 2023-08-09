@@ -202,7 +202,7 @@ process makeOrthogroupSpecificFiles {
 
   output:
     path 'GroupFiles/OrthoGroup*', emit: orthogroups, optional: true
-    path 'GroupFiles/Singletons.dat', emit: singletons
+    path 'GroupFiles/Singletons.dat', emit: singletons, optional: true
 
   script:
     template 'makeOrthogroupSpecificFiles.bash'
