@@ -248,7 +248,7 @@ workflow OrthoFinder {
     renameDiamondFilesResults = renameDiamondFiles(blasts, orthoFinderResults.speciesInfo)
     computeGroupsResults = computeGroups(blasts,orthoFinderResults.speciesInfo,orthoFinderResults.fastaList)
     makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(computeGroupsResults.results, renameDiamondFilesResults)
-    orthogroupCalculationsResults = orthogroupCalculations(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(100))
+    orthogroupCalculationsResults = orthogroupCalculations(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250))
     bestRepresentatives = orthogroupCalculationsResults.collectFile(name: 'bestReps.txt')
     makeBestRepresentativesFasta(bestRepresentatives, inputFile, makeOrthogroupSpecificFilesResults.singletons)
 
