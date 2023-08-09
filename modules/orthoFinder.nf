@@ -188,7 +188,8 @@ process makeOrthogroupSpecificFiles {
     path diamondFiles
 
   output:
-    path 'OrthoGroup*', emit: orthogroups
+    path 'GroupFiles/OrthoGroup*', emit: orthogroups
+    path 'GroupFiles/Singletons.dat', emit: singletons
 
   script:
     template 'makeOrthogroupSpecificFiles.bash'
@@ -217,6 +218,7 @@ process makeBestRepresentativesFasta {
   input:
     path bestReps
     path fasta
+    path singletons
 
   output:
     path 'bestReps.fasta'
@@ -248,7 +250,7 @@ workflow OrthoFinder {
     makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(computeGroupsResults.results, renameDiamondFilesResults)
     orthogroupCalculationsResults = orthogroupCalculations(makeOrthogroupSpecificFilesResults.orthogroups.flatten())
     bestRepresentatives = orthogroupCalculationsResults.collectFile(name: 'bestReps.txt')
-    makeBestRepresentativesFasta(bestRepresentatives, inputFile)
+    makeBestRepresentativesFasta(bestRepresentatives, inputFile, makeOrthogroupSpecificFilesResults.singletons)
 
   //astral(computeGroupResults.results, computeGroupResults.species, computeGroupResults.sequences, params.peripheralDir)
 }
