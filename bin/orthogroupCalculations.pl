@@ -9,6 +9,7 @@ my ($groupFile);
 
 &GetOptions("groupFile=s"=> \$groupFile);
 
+
 open(my $data, '<', $groupFile) || die "Could not open file $groupFile: $!";
 
 my $group = $groupFile;
@@ -19,7 +20,7 @@ my %values;
 
 while (my $line = <$data>) {
     chomp $line;
-    if ($line =~ /^(.*)\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t(.+)\t.+\t.+\t.+\t.+\t.+\t.+\t.+\t\w+$/) {
+    if ($line =~  /^([^\t]+)\t(?:[^\t]+\t){10}([^\t]+)\t(?:[^\t]+\t){7}\w+$/) {
         my ($qseq, $bitscore) = ($1, $2);
 	if (exists($values{$qseq}[0])) {
 	    	    push( @{ $values{$qseq} }, $bitscore); 
@@ -45,6 +46,6 @@ foreach my $key (keys %values) {
     $seqSum{$key} = $sum;
 }
 
-my $bestRepresentative = reduce { $seqSum{$a} <= $seqSum{$b} ? $a : $b } keys %seqSum;
+my $bestRepresentative = reduce { $seqSum{$a} > $seqSum{$b} ? $a : $b } keys %seqSum;
 
 system("echo \"${group}:${bestRepresentative}\" > ${group}.final");
