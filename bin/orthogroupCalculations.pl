@@ -20,14 +20,15 @@ my %values;
 
 while (my $line = <$data>) {
     chomp $line;
-    if ($line =~  /^([^\t]+)\t(?:[^\t]+\t){10}([^\t]+)\t(?:[^\t]+\t){7}\w+$/) {
-        my ($qseq, $bitscore) = ($1, $2);
+    if ($line =~  /^([^\t]+)\t(?:[^\t]+\t){9}([^\t]+)\t(?:[^\t]+\t){8}\w+$/) {
+        my ($qseq, $evalue) = ($1, $2);
+	print "$qseq\t$evalue\n";
 	if (exists($values{$qseq}[0])) {
-	    	    push( @{ $values{$qseq} }, $bitscore); 
+	    	    push( @{ $values{$qseq} }, $evalue); 
 	}
 	else {
             @values{$qseq} = [];
-	    push( @{ $values{$qseq} }, $bitscore); 
+	    push( @{ $values{$qseq} }, $evalue); 
 	}
     }
     else {
@@ -46,6 +47,6 @@ foreach my $key (keys %values) {
     $seqSum{$key} = $sum;
 }
 
-my $bestRepresentative = reduce { $seqSum{$a} > $seqSum{$b} ? $a : $b } keys %seqSum;
+my $bestRepresentative = reduce { $seqSum{$a} < $seqSum{$b} ? $a : $b } keys %seqSum;
 
 system("echo \"${group}:${bestRepresentative}\" > ${group}.final");
