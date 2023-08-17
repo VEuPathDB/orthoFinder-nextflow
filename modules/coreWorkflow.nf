@@ -240,7 +240,7 @@ process makeBestRepresentativesFasta {
     template 'makeBestRepresentativesFasta.bash'
 }
 
-workflow OrthoFinder { 
+workflow coreWorkflow { 
   take:
     inputFile
 

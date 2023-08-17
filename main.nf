@@ -2,29 +2,59 @@
 nextflow.enable.dsl=2
 
 //---------------------------------------------------------------
-// Param Checking 
+// Including Workflows
 //---------------------------------------------------------------
 
-if(params.inputFile) {
-  inputFile = Channel.fromPath( params.inputFile )
+include { coreWorkflow } from './modules/coreWorkflow.nf'
+include { residualWorkflow } from './modules/residualWorkflow.nf'
+
+//---------------------------------------------------------------
+// core
+//---------------------------------------------------------------
+
+workflow core {
+
+  if(params.inputFile) {
+    inputFile = Channel.fromPath( params.inputFile )
+  }
+  else {
+    throw new Exception("Missing params.inputFile")
+  }
+
+  coreWorkflow(inputFile)
+
 }
-else {
-  throw new Exception("Missing params.inputFile")
+
+//---------------------------------------------------------------
+// residual
+//---------------------------------------------------------------
+
+workflow residual {
+
+  if(params.inputFile) {
+    inputFile = Channel.fromPath( params.inputFile )
+  }
+  else {
+    throw new Exception("Missing params.inputFile")
+  }
+
+  residualWorkflow(inputFile)
+   
 }
 
-//--------------------------------------------------------------------------
-// Includes
-//--------------------------------------------------------------------------
-
-include { OrthoFinder } from './modules/orthoFinder.nf'
-
-//--------------------------------------------------------------------------
-// Main Workflow
-//--------------------------------------------------------------------------
+//---------------------------------------------------------------
+// DEFAULT - core
+//---------------------------------------------------------------
 
 workflow {
-  
-  OrthoFinder(inputFile)
+
+  if(params.inputFile) {
+    inputFile = Channel.fromPath( params.inputFile )
+  }
+  else {
+    throw new Exception("Missing params.inputFile")
+  }
+
+  coreWorkflow(inputFile)
 
 }
-
