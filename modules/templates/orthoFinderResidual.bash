@@ -2,8 +2,6 @@
 
 set -euo pipefail
 
-rm -f cleaned.txt
-
 if [[ "$tarfile" == *".gz"* ]];then
     tar xzf $tarfile
     rm *.tar.gz
