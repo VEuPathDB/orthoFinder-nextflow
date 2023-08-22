@@ -129,6 +129,78 @@ process sortSimSeqs {
     """
 }
 
+process renameDiamondFiles {
+  container = 'rdemko2332/orthofinder'
+  
+  input:
+    path blasts
+    path speciesInfo
+
+  output:
+    path '*.txt.gz', emit: renamed
+
+  script:
+    template 'renameDiamondFiles.bash'
+}
+
+process splitOrthogroupsFile {
+  container = 'rdemko2332/orthofinder'
+
+  input:
+    path results
+
+  output:
+    path 'OG*', emit: orthoGroupsFiles
+
+  script:
+    template 'splitOrthogroupsFile.bash'
+}
+
+process makeOrthogroupSpecificFiles {
+  container = 'rdemko2332/orthofinder'
+
+  input:
+    path orthoGroupsFile
+    path diamondFiles
+
+  output:
+    path 'GroupFiles/OrthoGroup*', emit: orthogroups, optional: true
+    path 'GroupFiles/Singletons.dat', emit: singletons, optional: true
+
+  script:
+    template 'makeOrthogroupSpecificFiles.bash'
+}
+
+process orthogroupCalculations {
+  container = 'rdemko2332/orthofinder'
+
+  input:
+    path groupData
+
+  output:
+    path '*.final', emit: groupCalcs
+
+  script:
+    template 'orthogroupCalculations.bash'
+}
+
+process makeBestRepresentativesFasta {
+  container = 'rdemko2332/orthofinder'
+
+  publishDir "$params.outputDir", mode: "copy"
+
+  input:
+    path bestReps
+    path fasta
+    path singletons
+
+  output:
+    path 'bestReps.fasta'
+
+  script:
+    template 'makeBestRepresentativesFasta.bash'
+}
+
 workflow residualWorkflow { 
   take:
     inputFile
@@ -144,8 +216,13 @@ workflow residualWorkflow {
     diamondResults = diamond(pairsChannel, databases)
     allBlastResults = diamondResults.uncompressed | collectFile()
     reformattedBlastOutputResults = reformatBlastOutput(allBlastResults, orthoFinderResults.speciesInfo)
-    printSimSeqs(reformattedBlastOutputResults, params.pValCutoff, params.lengthCutoff, params.percentCutoff, params.adjustMatchLength) | sortSimSeqs
     blasts = diamondResults.blast.collect()
-    computeGroups(blasts,orthoFinderResults.speciesInfo,orthoFinderResults.fastaList)
-
+    renameDiamondFilesResults = renameDiamondFiles(blasts, orthoFinderResults.speciesInfo).collect()
+    computeGroupsResults = computeGroups(blasts,orthoFinderResults.speciesInfo,orthoFinderResults.fastaList)
+    splitOrthoGroupsFilesResults = splitOrthogroupsFile(computeGroupsResults.results)
+    makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(splitOrthoGroupsFilesResults.orthoGroupsFiles.flatten(), renameDiamondFilesResults)
+    orthogroupCalculationsResults = orthogroupCalculations(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250))
+    bestRepresentatives = orthogroupCalculationsResults.collectFile(name: 'bestReps.txt')
+    makeBestRepresentativesFasta(bestRepresentatives, inputFile, makeOrthogroupSpecificFilesResults.singletons)
+    
 }
