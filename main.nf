@@ -7,6 +7,7 @@ nextflow.enable.dsl=2
 
 include { coreWorkflow } from './modules/coreWorkflow.nf'
 include { residualWorkflow } from './modules/residualWorkflow.nf'
+include { groupSelfWorkflow } from './modules/groupSelfWorkflow.nf'
 
 //---------------------------------------------------------------
 // core
@@ -39,6 +40,22 @@ workflow residual {
   }
 
   residualWorkflow(inputFile)
+   
+}
+
+//---------------------------------------------------------------
+// groups
+//---------------------------------------------------------------
+
+workflow group {
+  if(params.coreProteome) {
+    inputFile = Channel.fromPath( params.coreProteome )
+  }
+  else {
+    throw new Exception("Missing params.coreProteome")
+  }
+
+  groupSelfWorkflow(inputFile)
    
 }
 

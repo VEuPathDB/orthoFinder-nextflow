@@ -309,7 +309,7 @@ class DendroBLASTTrees(object):
             unfinished = []
             while True:
                 # get process alive/dead
-                time.sleep(1)
+                os.system("sleep .1")
                 alive = [proc.is_alive() for proc in runningProcesses]
                 # read latest updates from queue, update rota
                 try:
