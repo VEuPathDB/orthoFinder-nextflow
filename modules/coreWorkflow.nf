@@ -5,6 +5,8 @@ nextflow.enable.dsl=2
 process createCompressedFastaDir {
   container = 'rdemko2332/orthofinder'
 
+  cache 'lenient'
+
   input:
     path inputFasta
 
@@ -17,6 +19,8 @@ process createCompressedFastaDir {
 
 process arrangeSequences {
   container = 'rdemko2332/orthofinder'
+
+  cache 'lenient'
 
   input:
     path fastaDir
@@ -31,6 +35,8 @@ process arrangeSequences {
 process removeOutdatedBlasts {
   container = 'rdemko2332/orthofinder'
 
+  cache 'lenient'
+
   input:
     path outdated
 
@@ -43,6 +49,8 @@ process removeOutdatedBlasts {
 
 process orthoFinder {
   container = 'rdemko2332/orthofix'
+
+  cache 'lenient'
 
   input:
     path tarfile
@@ -59,6 +67,8 @@ process orthoFinder {
 
 process diamond {
   container = 'veupathdb/diamondsimilarity'
+
+  cache 'lenient'
 
   input:
     val pair

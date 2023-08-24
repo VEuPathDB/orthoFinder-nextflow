@@ -1540,7 +1540,7 @@ def RunSearch(options, speciessInfoObj, seqsInfo, prog_caller):
                     try:
                         shutil.rmtree(tmp_dir)
                     except OSError:
-                        time.sleep(1)
+                        os.system("sleep .1") 
                         shutil.rmtree(tmp_dir, True)  # shutil / NFS bug - ignore errors, it's less crucial that the files are deleted
 
 # 9
@@ -1669,7 +1669,7 @@ def DeleteDirectoryTree(d):
         try:
             shutil.rmtree(d)
         except OSError:
-            time.sleep(1)
+            os.system("sleep .1")
             shutil.rmtree(d, True)   
 
 def CheckOptions(options, speciesToUse):
