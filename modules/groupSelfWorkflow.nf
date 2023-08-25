@@ -1,12 +1,26 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
+process cleanCache {
+  container = 'rdemko2332/orthofinder'
+
+  input:
+    path updateList
+
+  output:
+    path 'done.txt'
+
+  script:
+    template 'cleanCache.bash'
+}
+
 process combineProteomes {
   container = 'rdemko2332/orthofinder'
 
   input:
     path coreProteome
-    path peripheralProteome    
+    path peripheralProteome
+    path cleanCache
 
   output:
     path 'fullProteome.fasta'
@@ -39,6 +53,7 @@ process splitProteomeByGroup {
   input:
     path proteome
     path groups
+    path outdated
 
   output:
     path '*.fasta'
@@ -47,14 +62,33 @@ process splitProteomeByGroup {
     template 'splitProteomeByGroup.bash'
 }
 
+process groupSelfDiamond {
+  container = 'rdemko2332/diamondsimilarity'
+
+  publishDir "$params.outputDir/groupResults", mode: "copy", pattern: "*.out"
+  publishDir "$params.outputDir/fastas", mode: "copy", pattern: "*.fasta"
+
+  input:
+    path groupFasta
+    val blastArgs
+
+  output:
+    path '*.out'
+
+  script:
+    template 'groupSelfDiamond.bash'
+}
+
 workflow groupSelfWorkflow { 
   take:
     inputFile
 
   main:
 
-    combinedProteome = combineProteomes(inputFile, params.peripheralProteome)
+    cleanCacheResults = cleanCache(params.updateList)
+    combinedProteome = combineProteomes(inputFile, params.peripheralProteome, cleanCacheResults)
     makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, params.peripheralGroupsFile)
-    splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults)
+    splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults, params.updateList)
+    groupSelfDiamond(splitProteomesByGroupResults.collect().flatten(), params.blastArgs)
     
 }
