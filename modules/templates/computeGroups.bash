@@ -7,5 +7,6 @@ orthofinder -b .
 rm *.txt.gz
 rm *.fa
 
-mv OrthoFinder/Results* .
+mkdir Results
+mv OrthoFinder/Results*/* Results
 

@@ -111,7 +111,7 @@ process computeGroups {
     path fastas
 
   output:
-    path 'Results*', emit: results
+    path 'Results', emit: results
     path 'SpeciesIDs.txt', emit: species
     path 'SequenceIDs.txt', emit: sequences
 
