@@ -201,6 +201,40 @@ process makeBestRepresentativesFasta {
     template 'makeBestRepresentativesFasta.bash'
 }
 
+process splitProteomeByGroup {
+  container = 'rdemko2332/orthofinder'
+
+  publishDir "$params.outputDir/fastas", mode: "copy"
+
+  input:
+    path proteome
+    path groups
+
+  output:
+    path '*.fasta'
+
+  script:
+    template 'splitProteomeByGroupResidual.bash'
+}
+
+process groupSelfDiamond {
+  container = 'rdemko2332/diamondsimilarity'
+
+  publishDir "$params.outputDir/groupResults", mode: "copy", pattern: "*.out"
+  publishDir "$params.outputDir/fastas", mode: "copy", pattern: "*.fasta"
+
+  input:
+    path groupFasta
+    val blastArgs
+
+  output:
+    path '*.out'
+
+  script:
+    template 'groupSelfDiamond.bash'
+}
+
+
 workflow residualWorkflow { 
   take:
     inputFile
@@ -225,5 +259,7 @@ workflow residualWorkflow {
     orthogroupCalculationsResults = orthogroupCalculations(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250))
     bestRepresentatives = orthogroupCalculationsResults.collectFile(name: 'bestReps.txt')
     makeBestRepresentativesFasta(bestRepresentatives, inputFile, makeOrthogroupSpecificFilesResults.singletons)
+    splitProteomesByGroupResults = splitProteomeByGroup(inputFile, computeGroupsResults.results)
+    groupSelfDiamond(splitProteomesByGroupResults.collect().flatten(), params.blastArgs)
     
 }
