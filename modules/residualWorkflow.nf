@@ -5,6 +5,8 @@ nextflow.enable.dsl=2
 process createCompressedFastaDir {
   container = 'rdemko2332/orthofinder'
 
+  cache 'lenient'
+
   input:
     path inputFasta
 
@@ -18,6 +20,8 @@ process createCompressedFastaDir {
 process arrangeSequences {
   container = 'rdemko2332/orthofinder'
 
+  cache 'lenient'
+
   input:
     path fastaDir
 
@@ -30,6 +34,8 @@ process arrangeSequences {
 
 process orthoFinder {
   container = 'rdemko2332/orthofix'
+
+  cache 'lenient'
 
   input:
     path tarfile
@@ -46,6 +52,8 @@ process orthoFinder {
 process diamond {
   container = 'veupathdb/diamondsimilarity'
 
+  cache 'lenient'
+
   input:
     val pair
     path databases
@@ -61,6 +69,8 @@ process diamond {
 
 process computeGroups {
   container = 'rdemko2332/orthofix'
+
+  cache 'lenient'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -82,6 +92,8 @@ process computeGroups {
 process reformatBlastOutput {
   container = 'rdemko2332/orthofinder'
 
+  cache 'lenient'
+
   input:
     path blastOutput
     tuple path(sequenceIDs), path(speciesIDs)
@@ -96,6 +108,8 @@ process reformatBlastOutput {
 
 process printSimSeqs {
   container = 'veupathdb/diamondsimilarity'
+
+  cache 'lenient'
 
   input:
     path reformattedBlastOutput
@@ -115,6 +129,8 @@ process printSimSeqs {
 process sortSimSeqs {
   container = 'veupathdb/diamondsimilarity'
 
+  cache 'lenient'
+
   publishDir params.outputDir, mode: "copy"
   
   input:
@@ -131,7 +147,9 @@ process sortSimSeqs {
 
 process renameDiamondFiles {
   container = 'rdemko2332/orthofinder'
-  
+
+  cache 'lenient'
+
   input:
     path blasts
     path speciesInfo
@@ -146,6 +164,8 @@ process renameDiamondFiles {
 process splitOrthogroupsFile {
   container = 'rdemko2332/orthofinder'
 
+  cache 'lenient'
+
   input:
     path results
 
@@ -158,6 +178,8 @@ process splitOrthogroupsFile {
 
 process makeOrthogroupSpecificFiles {
   container = 'rdemko2332/orthofinder'
+
+  cache 'lenient'
 
   input:
     path orthoGroupsFile
@@ -174,6 +196,8 @@ process makeOrthogroupSpecificFiles {
 process orthogroupCalculations {
   container = 'rdemko2332/orthofinder'
 
+  cache 'lenient'
+
   input:
     path groupData
 
@@ -186,6 +210,8 @@ process orthogroupCalculations {
 
 process makeBestRepresentativesFasta {
   container = 'rdemko2332/orthofinder'
+
+  cache 'lenient'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -204,6 +230,8 @@ process makeBestRepresentativesFasta {
 process splitProteomeByGroup {
   container = 'rdemko2332/orthofinder'
 
+  cache 'lenient'
+
   publishDir "$params.outputDir/fastas", mode: "copy"
 
   input:
@@ -219,6 +247,8 @@ process splitProteomeByGroup {
 
 process groupSelfDiamond {
   container = 'rdemko2332/diamondsimilarity'
+
+  cache 'lenient'
 
   publishDir "$params.outputDir/groupResults", mode: "copy", pattern: "*.out"
   publishDir "$params.outputDir/fastas", mode: "copy", pattern: "*.fasta"
