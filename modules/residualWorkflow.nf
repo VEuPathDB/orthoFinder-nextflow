@@ -231,7 +231,7 @@ process groupSelfDiamond {
     path '*.out'
 
   script:
-    template 'groupSelfDiamond.bash'
+    template 'groupSelfDiamondResidual.bash'
 }
 
 
