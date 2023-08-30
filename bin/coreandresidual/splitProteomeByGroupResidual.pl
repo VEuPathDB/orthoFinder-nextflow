@@ -15,7 +15,9 @@ while (my $line = <$data>) {
     chomp $line;
     if ($line =~ /^(OG\S+)\t(.+)/) {
 	my $groupId = $1;
-        my @seqs = split(/,/, $2);
+	my $sequences = $2;
+	$sequences =~ s/\s//g;
+        my @seqs = split(/,/, $sequences);
         `touch ${groupId}.temp`;
         `touch ${groupId}.fasta`;
 	open(TEMP,">${groupId}.temp");
