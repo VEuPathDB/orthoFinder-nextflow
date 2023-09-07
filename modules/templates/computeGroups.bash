@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-orthofinder -b .
+orthofinder -a 5 -b .
 
 rm *.txt.gz
 rm *.fa

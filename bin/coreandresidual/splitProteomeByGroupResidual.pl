@@ -13,9 +13,11 @@ open(my $data, '<', $groups) || die "Could not open file $groups: $!";
 
 while (my $line = <$data>) {
     chomp $line;
-    if ($line =~ /^(OG\S+)\t(.+)/) {
+    if ($line =~ /^(OG\S+)\s+(\S.+)/) {
 	my $groupId = $1;
 	my $sequences = $2;
+	$sequences =~ s/\s\s\s\s\s/\t/g;
+	$sequences =~ s/\t/,/g;
 	$sequences =~ s/\s//g;
         my @seqs = split(/,/, $sequences);
         `touch ${groupId}.temp`;
