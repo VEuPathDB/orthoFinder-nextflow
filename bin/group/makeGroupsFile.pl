@@ -16,22 +16,29 @@ open(OUT,">$output");
 
 while (my $line = <$core>) {
     chomp $line;
-    if ($line =~ /^(\S+):\s(.+)/) {
+    if ($line =~ /^Orthogroup/) {
+	next;
+    }
+    elsif ($line =~ /^(OG\S+)\t(.+)/) {
 	my $groupId = $1;
 	my $groupSeqs = $2;
+	$groupSeqs =~ s/\t//g;
+	$groupSeqs =~ s/,//g;
+	my @sequences = split(/\s/, $groupSeqs);
 	`grep "${groupId}" $peripheralGroup > ${groupId}.txt`;
 	open(my $idFile, "<${groupId}.txt") || die "Could not open file ${groupId}.txt: $!";
 	while (my $idLine = <$idFile>) {
 	    chomp $idLine;
 	    if ($idLine =~ /^(\S+)\t(\S+)/) {
 		my $peripheralSeq = $1;
-		$groupSeqs = $groupSeqs . " $peripheralSeq";
+	        push(@sequences,$peripheralSeq);
 	    }
 	    else {
 		die "Improper peripheralFile format\n";
 	    }	
         }
-        print OUT "$groupId: $groupSeqs\n";
+	my $sequenceString = join(' ', @sequences);
+        print OUT "$groupId: $sequenceString\n";
 	`rm ${groupId}.txt`;
     }
     else {
