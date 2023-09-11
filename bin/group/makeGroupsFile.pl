@@ -22,7 +22,7 @@ while (my $line = <$core>) {
     elsif ($line =~ /^(OG\S+)\t(.+)/) {
 	my $groupId = $1;
 	my $groupSeqs = $2;
-	$groupSeqs =~ s/\t//g;
+	$groupSeqs =~ s/\t/ /g;
 	$groupSeqs =~ s/,//g;
 	my @sequences = split(/\s/, $groupSeqs);
 	`grep "${groupId}" $peripheralGroup > ${groupId}.txt`;

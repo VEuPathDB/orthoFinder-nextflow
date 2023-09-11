@@ -250,6 +250,22 @@ process makeBestRepresentativesFasta {
     template 'makeBestRepresentativesFasta.bash'
 }
 
+process bestRepsSelfDiamond {
+  container = 'rdemko2332/diamondsimilarity'
+
+  publishDir "$params.outputDir/SimilarOrthogroups", mode: "copy", pattern: "*.out"
+
+  input:
+    path bestRepsFasta
+    val blastArgs
+
+  output:
+    path '*.out'
+
+  script:
+    template 'bestRepsSelfDiamond.bash'
+}
+
 workflow coreWorkflow { 
   take:
     inputFile
@@ -274,7 +290,7 @@ workflow coreWorkflow {
     makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(splitOrthoGroupsFilesResults.orthoGroupsFiles.flatten(), renameDiamondFilesResults)
     orthogroupCalculationsResults = orthogroupCalculations(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250))
     bestRepresentatives = orthogroupCalculationsResults.collectFile(name: 'bestReps.txt')
-    makeBestRepresentativesFasta(bestRepresentatives, inputFile, makeOrthogroupSpecificFilesResults.singletons)
-
+    makeBestRepresentativesFastaResults = makeBestRepresentativesFasta(bestRepresentatives, inputFile, makeOrthogroupSpecificFilesResults.singletons)
+    bestRepsSelfDiamond(makeBestRepresentativesFastaResults, params.blastArgs)
   //astral(computeGroupResults.results, computeGroupResults.species, computeGroupResults.sequences, params.peripheralDir)
 }
