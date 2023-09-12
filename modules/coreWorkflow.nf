@@ -103,7 +103,7 @@ process renameDiamondFiles {
 process computeGroups {
   container = 'rdemko2332/orthofix'
 
-  publishDir "$params.outputDir", mode: "copy"
+  publishDir "$params.outputDir", mode: "copy", pattern: "Results"
 
   input:
     path blasts
@@ -135,59 +135,6 @@ process reformatBlastOutput {
 }
 
 
-process printSimSeqs {
-  container = 'veupathdb/diamondsimilarity'
-
-  input:
-    path reformattedBlastOutput
-    val pValCutoff
-    val lengthCutoff
-    val percentCutoff
-    val adjustMatchLength
-
-  output:
-    path 'printSimSeqs.out'
-
-  script:
-    template 'printSimSeqs.bash'
-}
-
-
-process sortSimSeqs {
-  container = 'veupathdb/diamondsimilarity'
-
-  publishDir params.outputDir, mode: "copy"
-  
-  input:
-    path output
-        
-  output:
-    path 'diamondSimilarity.out'
-
-  script:
-    """
-    cat $output | sort -k 1 > diamondSimilarity.out
-    """
-}
-
-process astral {
-  container = 'rdemko2332/orthofinderlinear'
-
-  publishDir params.outputDir, mode: "copy"
-  
-  input:
-    path outputDir
-    path species
-    path sequences
-    path peripheralDir
-        
-  output:
-    path '*'
-
-  script:
-    template 'astral.bash'
-}
-
 process splitOrthogroupsFile {
   container = 'rdemko2332/orthofinder'
 
@@ -204,15 +151,15 @@ process splitOrthogroupsFile {
 process makeOrthogroupSpecificFiles {
   container = 'rdemko2332/orthofinder'
 
-  //publishDir "$params.outputDir", mode: "copy"
+  publishDir "$params.outputDir/GroupResults", mode: "copy"
 
   input:
     path orthoGroupsFile
     path diamondFiles
 
   output:
-    path 'GroupFiles/OrthoGroup*', emit: orthogroups, optional: true
-    path 'GroupFiles/Singletons.dat', emit: singletons, optional: true
+    path 'OrthoGroup*', emit: orthogroups, optional: true
+    path 'Singletons.dat', emit: singletons, optional: true
 
   script:
     template 'makeOrthogroupSpecificFiles.bash'
@@ -267,7 +214,7 @@ process bestRepsSelfDiamond {
 process formatSimilarOrthogroups {
   container = 'rdemko2332/orthofinder'
 
-  publishDir "$params.outputDir/SimilarOrthogroups", mode: "copy"
+  publishDir "$params.outputDir", mode: "copy"
 
   input:
     path bestRepsBlast
@@ -295,7 +242,6 @@ workflow coreWorkflow {
     diamondResults = diamond(pairsChannel, databases, speciesInfo)
     allBlastResults = diamondResults.uncompressed | collectFile()
     reformattedBlastOutputResults = reformatBlastOutput(allBlastResults, orthoFinderResults.speciesInfo)
-    printSimSeqs(reformattedBlastOutputResults, params.pValCutoff, params.lengthCutoff, params.percentCutoff, params.adjustMatchLength) | sortSimSeqs
     blasts = diamondResults.blast.collect()
     renameDiamondFilesResults = renameDiamondFiles(blasts, orthoFinderResults.speciesInfo).collect()
     computeGroupsResults = computeGroups(blasts,orthoFinderResults.speciesInfo,orthoFinderResults.fastaList)
@@ -306,5 +252,4 @@ workflow coreWorkflow {
     makeBestRepresentativesFastaResults = makeBestRepresentativesFasta(bestRepresentatives, inputFile, makeOrthogroupSpecificFilesResults.singletons)
     bestRepsSelfDiamondResults = bestRepsSelfDiamond(makeBestRepresentativesFastaResults, params.blastArgs)
     formatSimilarOrthogroups(bestRepsSelfDiamondResults)
-  //astral(computeGroupResults.results, computeGroupResults.species, computeGroupResults.sequences, params.peripheralDir)
 }

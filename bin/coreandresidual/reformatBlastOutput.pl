@@ -30,10 +30,10 @@ open(OUT,">$output");
 
 while (my $line = <$data>) {
     chomp $line;
-    my ($qseqid,$sseqid,$pident,$length,$mismatch,$gapopen,$qstart,$qend,$sstart,$send,$evalue,$bitscore,$qlen,$slen,$nident,$positive,$qframe,$qstrand,$gaps,$qseq) = split(/\t/, $line);
+    my ($qseqid,$sseqid,$pident,$length,$mismatch,$gapopen,$qstart,$qend,$sstart,$send,$evalue,$bitscore,$qlen,$slen,$nident,$positive,$qframe,$qstrand,$gaps,$qcovhsp,$scovhsp,$qseq) = split(/\t/, $line);
     $realQSeqId = $seqIdList{"$qseqid"};
     $realSSeqId = $seqIdList{"$sseqid"};
-    print OUT "$realQSeqId\t$qlen\t$realSSeqId\t$slen\t$qstart\t$qend\t$sstart\t$send\t$evalue\t$bitscore\t$length\t$nident\t$pident\t$positive\t$qframe\t$qstrand\t$gaps\t$qseq\n";
+    print OUT "$realQSeqId\t$qlen\t$realSSeqId\t$slen\t$qstart\t$qend\t$sstart\t$send\t$evalue\t$bitscore\t$length\t$nident\t$pident\t$positive\t$qframe\t$qstrand\t$gaps\t$qcovhsp\t$scovhsp\t$qseq\n";
 }
 
 close $data;

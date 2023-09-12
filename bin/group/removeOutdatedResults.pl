@@ -23,7 +23,7 @@ open my $fh_oldResults, '<', $oldBlastResults or die "Cannot open $oldBlastResul
 open(OUT,">${oldBlastResults}.temp");
 while (my $line = <$fh_oldResults>) {
     chomp $line;
-    my ($qseqid,$qlen,$sseqid,$slen,$qstart,$qend,$sstart,$send,$evalue,$bitscore,$length,$nident,$pident,$positive,$qframe,$qstrand,$gaps,$qseq) = split(/\t/, $line);
+    my ($qseqid,$qlen,$sseqid,$slen,$qstart,$qend,$sstart,$send,$evalue,$bitscore,$length,$nident,$pident,$positive,$qframe,$qstrand,$gaps,$qcovhsp,$scovhsp,$qseq) = split(/\t/, $line);
     $qseqid =~ s/\|\S+//g;	
     if (grep( /^$qseqid/, @outdated)) {
         next;

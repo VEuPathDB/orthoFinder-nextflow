@@ -8,8 +8,9 @@ if [ -s ${groupFasta} ]; then
 	-d newdb.dmnd \
 	-q $groupFasta \
 	-o ${groupFasta}.out \
-	-f 6 qseqid qlen sseqid slen qstart qend sstart send evalue bitscore length nident pident positive qframe qstrand gaps qseq \
-	--comp-based-stats 0 \
+	-f 6 qseqid qlen sseqid slen qstart qend sstart send evalue bitscore length nident pident positive qframe qstrand gaps qcovhsp scovhsp qseq \
+        --comp-based-stats 0 \
+	--no-self-hits \
 	$blastArgs
 fi 
 

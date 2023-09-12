@@ -20,7 +20,7 @@ my %values;
 
 while (my $line = <$data>) {
     chomp $line;
-    if ($line =~  /^([^\t]+)\t(?:[^\t]+\t){9}([^\t]+)\t(?:[^\t]+\t){8}\w+$/) {
+    if ($line =~  /^([^\t]+)\t(?:[^\t]+\t){9}([^\t]+)\t(?:[^\t]+\t){10}\w+$/) {
         my ($qseq, $evalue) = ($1, $2);
 	print "$qseq\t$evalue\n";
 	if (exists($values{$qseq}[0])) {

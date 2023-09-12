@@ -72,7 +72,7 @@ process computeGroups {
 
   cache 'lenient'
 
-  publishDir "$params.outputDir", mode: "copy"
+  publishDir "$params.outputDir", mode: "copy", pattern: "Results"
 
   input:
     path blasts
@@ -80,7 +80,7 @@ process computeGroups {
     path fastas
 
   output:
-    path 'Results*', emit: results
+    path 'Results', emit: results
     path 'SpeciesIDs.txt', emit: species
     path 'SequenceIDs.txt', emit: sequences
 
@@ -105,45 +105,6 @@ process reformatBlastOutput {
     template 'reformatBlastOutput.bash'
 }
 
-
-process printSimSeqs {
-  container = 'veupathdb/diamondsimilarity'
-
-  cache 'lenient'
-
-  input:
-    path reformattedBlastOutput
-    val pValCutoff
-    val lengthCutoff
-    val percentCutoff
-    val adjustMatchLength
-
-  output:
-    path 'printSimSeqs.out'
-
-  script:
-    template 'printSimSeqs.bash'
-}
-
-
-process sortSimSeqs {
-  container = 'veupathdb/diamondsimilarity'
-
-  cache 'lenient'
-
-  publishDir params.outputDir, mode: "copy"
-  
-  input:
-    path output
-        
-  output:
-    path 'diamondSimilarity.out'
-
-  script:
-    """
-    cat $output | sort -k 1 > diamondSimilarity.out
-    """
-}
 
 process renameDiamondFiles {
   container = 'rdemko2332/orthofinder'
@@ -179,6 +140,8 @@ process splitOrthogroupsFile {
 process makeOrthogroupSpecificFiles {
   container = 'rdemko2332/orthofinder'
 
+  publishDir "$params.outputDir/GroupResults", mode: "copy"
+
   cache 'lenient'
 
   input:
@@ -186,8 +149,8 @@ process makeOrthogroupSpecificFiles {
     path diamondFiles
 
   output:
-    path 'GroupFiles/OrthoGroup*', emit: orthogroups, optional: true
-    path 'GroupFiles/Singletons.dat', emit: singletons, optional: true
+    path 'OrthoGroup*', emit: orthogroups, optional: true
+    path 'Singletons.dat', emit: singletons, optional: true
 
   script:
     template 'makeOrthogroupSpecificFiles.bash'
@@ -280,7 +243,6 @@ workflow residualWorkflow {
     diamondResults = diamond(pairsChannel, databases)
     allBlastResults = diamondResults.uncompressed | collectFile()
     reformattedBlastOutputResults = reformatBlastOutput(allBlastResults, orthoFinderResults.speciesInfo)
-    printSimSeqs(reformattedBlastOutputResults, params.pValCutoff, params.lengthCutoff, params.percentCutoff, params.adjustMatchLength) | sortSimSeqs
     blasts = diamondResults.blast.collect()
     renameDiamondFilesResults = renameDiamondFiles(blasts, orthoFinderResults.speciesInfo).collect()
     computeGroupsResults = computeGroups(blasts,orthoFinderResults.speciesInfo,orthoFinderResults.fastaList)
@@ -290,6 +252,5 @@ workflow residualWorkflow {
     bestRepresentatives = orthogroupCalculationsResults.collectFile(name: 'bestReps.txt')
     makeBestRepresentativesFasta(bestRepresentatives, inputFile, makeOrthogroupSpecificFilesResults.singletons)
     splitProteomesByGroupResults = splitProteomeByGroup(inputFile, computeGroupsResults.results)
-    groupSelfDiamond(splitProteomesByGroupResults.collect().flatten(), params.blastArgs)
     
 }

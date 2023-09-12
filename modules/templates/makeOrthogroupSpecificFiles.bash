@@ -5,3 +5,5 @@ gunzip -d --force *.gz
 mkdir GroupFiles
 perl /usr/bin/makeOrthogroupSpecificFiles.pl --groupsFile $orthoGroupsFile
 rm *.txt
+mv GroupFiles/* .
+rm -rf GroupFiles
