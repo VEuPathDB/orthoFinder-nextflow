@@ -165,10 +165,24 @@ process makeOrthogroupSpecificFiles {
     template 'makeOrthogroupSpecificFiles.bash'
 }
 
-process orthogroupCalculations {
+process orthogroupStatistics {
   container = 'rdemko2332/orthofinder'
 
-  //publishDir "$params.outputDir", mode: "copy"
+  publishDir "$params.outputDir", mode: "copy"
+
+  input:
+    path groupData
+    path results
+
+  output:
+    path '*.tsv', emit: groupStats
+
+  script:
+    template 'orthogroupStatistics.bash'
+}
+
+process orthogroupCalculations {
+  container = 'rdemko2332/orthofinder'
 
   input:
     path groupData
@@ -247,6 +261,7 @@ workflow coreWorkflow {
     computeGroupsResults = computeGroups(blasts,orthoFinderResults.speciesInfo,orthoFinderResults.fastaList)
     splitOrthoGroupsFilesResults = splitOrthogroupsFile(computeGroupsResults.results)
     makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(splitOrthoGroupsFilesResults.orthoGroupsFiles.flatten(), renameDiamondFilesResults)
+    orthogroupStatisticsResults = orthogroupStatistics(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250), computeGroupsResults.results)
     orthogroupCalculationsResults = orthogroupCalculations(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250))
     bestRepresentatives = orthogroupCalculationsResults.collectFile(name: 'bestReps.txt')
     makeBestRepresentativesFastaResults = makeBestRepresentativesFasta(bestRepresentatives, inputFile, makeOrthogroupSpecificFilesResults.singletons)

@@ -73,10 +73,26 @@ process groupSelfDiamond {
     val blastArgs
 
   output:
-    path '*.out'
+    path '*.out', emit: groupResults
 
   script:
     template 'groupSelfDiamond.bash'
+}
+
+process orthogroupStatistics {
+  container = 'rdemko2332/orthofinder'
+
+  publishDir "$params.outputDir", mode: "copy"
+
+  input:
+    path groupData
+    path results
+
+  output:
+    path '*.tsv'
+
+  script:
+    template 'orthogroupStatisticsGroup.bash'
 }
 
 workflow groupSelfWorkflow { 
@@ -89,6 +105,6 @@ workflow groupSelfWorkflow {
     combinedProteome = combineProteomes(inputFile, params.peripheralProteome, cleanCacheResults)
     makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, params.peripheralGroupsFile)
     splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults, params.updateList)
-    groupSelfDiamond(splitProteomesByGroupResults.collect().flatten(), params.blastArgs)
-    
+    groupSelfDiamondResults = groupSelfDiamond(splitProteomesByGroupResults.collect().flatten(), params.blastArgs)
+    orthogroupStatistics(groupSelfDiamondResults.collect(),makeGroupsFileResults)   
 }
