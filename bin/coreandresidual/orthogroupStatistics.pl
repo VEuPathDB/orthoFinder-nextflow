@@ -28,29 +28,30 @@ while (my $line = <$groups>) {
 	my @evalueArray = ();
         my @pidentArray = ();
 	my @matchPercentArray = ();
-	open(my $results, "<OrthoGroup${groupId}.dat") || die "Could not open file OrthoGroup${groupId}.dat: $!";
-	while (my $resultLine = <$results>) {
-	    chomp $resultLine;
-	    my ($qseqid,$sseqid,$pident,$length,$mismatch,$gapopen,$qstart,$qend,$sstart,$send,$evalue,$bitscore,$qlen,$slen,$nident,$positive,$qframe,$qstrand,$gaps,$qcovhsp,$scovhsp,$qseq) = split(/\t/, $resultLine);
-	    next if ($qseqid eq $sseqid);
-	    $similarityPairCount += 1;
-	    push(@evalueArray,$evalue);
-    	    push(@pidentArray,$pident);
-	    ($qcovhsp >= $scovhsp) ? push(@matchPercentArray,$scovhsp) : push(@matchPercentArray,$qcovhsp);
-        }
-	close $results; 
-	my $numberOfProteins = scalar @sequences;
-	my $maxPossiblePairsWithSimilarity = ($numberOfProteins - 1) * $numberOfProteins;
-	my $percentPairsWithSimilarity = $similarityPairCount / $maxPossiblePairsWithSimilarity;
-	my $avgEValue = sum(@evalueArray) / $similarityPairCount;
-	my $avgPIdent = sum(@pidentArray) / $similarityPairCount;
-	my $avgMatchPercent = sum(@matchPercentArray) / $similarityPairCount;
-        print OUT "$groupId\t$numberOfProteins\t$avgMatchPercent\t$avgPIdent\t$similarityPairCount\t$maxPossiblePairsWithSimilarity\t$percentPairsWithSimilarity\t$avgEValue\n";
-	# of proteins, Avg % match, Avg % identity, Number of pairs with similarity, Max possible pairs with similarity, % Protein Pairs with Similarity, % homology, Average E-value
+	if (-e "OrthoGroup${groupId}.dat") {
+	    open(my $results, "<OrthoGroup${groupId}.dat") || die "Could not open file OrthoGroup${groupId}.dat: $!";
+	    while (my $resultLine = <$results>) {
+	        chomp $resultLine;
+	        my ($qseqid,$sseqid,$pident,$length,$mismatch,$gapopen,$qstart,$qend,$sstart,$send,$evalue,$bitscore,$qlen,$slen,$nident,$positive,$qframe,$qstrand,$gaps,$qcovhsp,$scovhsp,$qseq) = split(/\t/, $resultLine);
+	        next if ($qseqid eq $sseqid);
+	        $similarityPairCount += 1;
+	        push(@evalueArray,$evalue);
+    	        push(@pidentArray,$pident);
+	        ($qcovhsp >= $scovhsp) ? push(@matchPercentArray,$scovhsp) : push(@matchPercentArray,$qcovhsp);
+            }
+	    close $results; 
+	    my $numberOfProteins = scalar @sequences;
+	    my $maxPossiblePairsWithSimilarity = ($numberOfProteins - 1) * $numberOfProteins;
+	    my $percentPairsWithSimilarity = $similarityPairCount / $maxPossiblePairsWithSimilarity;
+	    my $avgEValue = sum(@evalueArray) / $similarityPairCount;
+	    my $avgPIdent = sum(@pidentArray) / $similarityPairCount;
+	    my $avgMatchPercent = sum(@matchPercentArray) / $similarityPairCount;
+            print OUT "$groupId\t$numberOfProteins\t$avgMatchPercent\t$avgPIdent\t$similarityPairCount\t$maxPossiblePairsWithSimilarity\t$percentPairsWithSimilarity\t$avgEValue\n";
+	}
     }
     else {
-	die "Improper groupFile format\n";
-    }   
+        die "Improper groupFile format\n";
+    }
 }	
 close OUT;
 close $groups;
