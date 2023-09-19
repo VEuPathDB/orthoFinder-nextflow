@@ -63,7 +63,7 @@ process splitProteomeByGroup {
 }
 
 process groupSelfDiamond {
-  container = 'rdemko2332/diamondsimilarity'
+  container = 'veupathdb/diamondsimilarity'
 
   publishDir "$params.outputDir/groupResults", mode: "copy", pattern: "*.out"
   publishDir "$params.outputDir/fastas", mode: "copy", pattern: "*.fasta"

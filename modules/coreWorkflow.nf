@@ -212,7 +212,7 @@ process makeBestRepresentativesFasta {
 }
 
 process bestRepsSelfDiamond {
-  container = 'rdemko2332/diamondsimilarity'
+  container = 'veupathdb/diamondsimilarity'
 
   input:
     path bestRepsFasta

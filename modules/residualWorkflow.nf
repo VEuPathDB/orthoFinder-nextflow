@@ -225,7 +225,7 @@ process splitProteomeByGroup {
 }
 
 process groupSelfDiamond {
-  container = 'rdemko2332/diamondsimilarity'
+  container = 'veupathdb/diamondsimilarity'
 
   cache 'lenient'
 
