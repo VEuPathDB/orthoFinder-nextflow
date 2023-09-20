@@ -22,7 +22,6 @@ while (my $line = <$data>) {
     chomp $line;
     if ($line =~  /^([^\t]+)\t(?:[^\t]+\t){9}([^\t]+)\t(?:[^\t]+\t){10}\w+$/) {
         my ($qseq, $evalue) = ($1, $2);
-	print "$qseq\t$evalue\n";
 	if (exists($values{$qseq}[0])) {
 	    	    push( @{ $values{$qseq} }, $evalue); 
 	}
@@ -49,4 +48,7 @@ foreach my $key (keys %values) {
 
 my $bestRepresentative = reduce { $seqSum{$a} < $seqSum{$b} ? $a : $b } keys %seqSum;
 
-system("echo \"${group}:${bestRepresentative}\" > ${group}.final");
+open(OUT,">${group}.final");
+print OUT "${group}:${bestRepresentative}\n";
+close OUT;
+
