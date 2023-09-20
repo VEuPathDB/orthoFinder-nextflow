@@ -2,5 +2,6 @@
 
 set -euo pipefail
 
-perl /usr/bin/removeOutdatedBlasts.pl $outdated
-cat $outdated > cleaned.txt
+# pass the location of previous blasts dir to this script
+
+removeOutdatedBlasts.pl $outdated $previousBlastDir

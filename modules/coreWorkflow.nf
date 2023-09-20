@@ -5,8 +5,6 @@ nextflow.enable.dsl=2
 process createCompressedFastaDir {
   container = 'rdemko2332/orthofinder'
 
-  cache 'lenient'
-
   input:
     path inputFasta
 
@@ -17,16 +15,15 @@ process createCompressedFastaDir {
     template 'createCompressedFastaDir.bash'
 }
 
+// JB: rename this to "cleanup" or "unpack" sequences
 process arrangeSequences {
   container = 'rdemko2332/orthofinder'
-
-  cache 'lenient'
 
   input:
     path fastaDir
 
   output:
-    path '*.tar.gz'
+    path 'arrangedFastas'
 
   script:
     template 'arrangeSequences.bash'
@@ -35,13 +32,12 @@ process arrangeSequences {
 process removeOutdatedBlasts {
   container = 'rdemko2332/orthofinder'
 
-  cache 'lenient'
-
   input:
-    path outdated
+    path outdatedOrganisms
+    path previousBlastDir
 
   output:
-    path 'cleaned.txt'
+    stdout
 
   script:
     template 'removeOutdatedBlasts.bash'
@@ -50,11 +46,9 @@ process removeOutdatedBlasts {
 process orthoFinder {
   container = 'rdemko2332/orthofinder'
 
-  cache 'lenient'
-
   input:
-    path tarfile
-    path updated
+    path fastas
+    stdin
 
   output:
     path '*.fa', emit: fastaList
@@ -68,7 +62,7 @@ process orthoFinder {
 process diamond {
   container = 'veupathdb/diamondsimilarity'
 
-  cache 'lenient'
+  //cache 'lenient'
 
   input:
     val pair
@@ -247,7 +241,7 @@ workflow coreWorkflow {
   main:
     createCompressedFastaDirResults = createCompressedFastaDir(inputFile)
     arrangeSequencesResults = arrangeSequences(createCompressedFastaDirResults)
-    removeOutdatedBlastsResults = removeOutdatedBlasts(params.outdated)
+    removeOutdatedBlastsResults = removeOutdatedBlasts(params.outdated, params.previousBlastDir)
     orthoFinderResults = orthoFinder(arrangeSequencesResults, removeOutdatedBlastsResults)
     pairs = orthoFinderResults.fastaList.map { it -> [it,it].combinations().findAll(); }
     pairsChannel = pairs.flatten().collate(2)

@@ -3,26 +3,28 @@
 use strict;
 use warnings;
 
+use File::Basename;
+
 # Input species ID file
 my $outdatedFile = $ARGV[0];
+my $previousBlastDir  = $ARGV[1];
+
+my @files = map { basename $_ } glob "$previousBlastDir/*";
+
 
 # Open Outdated file
 open my $fh_outdated, '<', $outdatedFile or die "Cannot open $outdatedFile: $!";
-my @outdated;
-while (my $line = <$fh_outdated>) {
-    chomp $line;
-    if ($line =~ /^(.+)/) {
-        my ($outdatedSpecies) = ($1);
-        push(@outdated, $outdatedSpecies);
+
+while (my $orgAbbrev = <$fh_outdated>) {
+
+    foreach my $file(@files) {
+        if($file =~ /^${orgAbbrev}_/ || $file =~ /_${orgAbbrev}$/) {
+
+            # JB: if this doesn't work, use the system command
+            unlink "$previousBlastDir/$file";
+        }
     }
 }
 close $fh_outdated;
 
-# Read files in the previous blasts directory
-opendir(my $dh, "/previousBlasts/") or die "Cannot open directory /previousBlasts/: $!";
-while (my $file = readdir($dh)) {
-    if (grep( /^$file$/, @outdated)) {
-        system("rm /previousBlasts/${file}");
-    }
-}
-closedir($dh);
+1;
