@@ -48,7 +48,7 @@ process removeOutdatedBlasts {
 }
 
 process orthoFinder {
-  container = 'rdemko2332/orthofix'
+  container = 'rdemko2332/orthofinder'
 
   cache 'lenient'
 
@@ -101,7 +101,7 @@ process renameDiamondFiles {
 
 
 process computeGroups {
-  container = 'rdemko2332/orthofix'
+  container = 'rdemko2332/orthofinder'
 
   publishDir "$params.outputDir", mode: "copy", pattern: "Results"
 

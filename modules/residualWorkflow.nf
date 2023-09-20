@@ -33,7 +33,7 @@ process arrangeSequences {
 }
 
 process orthoFinder {
-  container = 'rdemko2332/orthofix'
+  container = 'rdemko2332/orthofinder'
 
   cache 'lenient'
 
@@ -68,7 +68,7 @@ process diamond {
 
 
 process computeGroups {
-  container = 'rdemko2332/orthofix'
+  container = 'rdemko2332/orthofinder'
 
   cache 'lenient'
 
