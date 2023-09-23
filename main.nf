@@ -15,11 +15,11 @@ include { groupSelfWorkflow } from './modules/groupSelfWorkflow.nf'
 
 workflow core {
 
-  if(params.inputFile) {
-    inputFile = Channel.fromPath( params.inputFile )
+  if(params.proteomes) {
+    inputFile = Channel.fromPath( params.proteomes )
   }
   else {
-    throw new Exception("Missing params.inputFile")
+    throw new Exception("Missing params.proteomes")
   }
 
   coreWorkflow(inputFile)

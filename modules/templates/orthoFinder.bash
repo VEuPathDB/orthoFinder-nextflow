@@ -2,8 +2,14 @@
 
 set -euo pipefail
 
-orthofinder -f $fastas -op
+ln -s $fastas/* ./
 
-for f in input/OrthoFinder/**/WorkingDirectory/*.txt; do mv "\$f" .; done
-for f in input/OrthoFinder/**/WorkingDirectory/*.fa; do mv "\$f" .; done
-for f in input/OrthoFinder/**/WorkingDirectory/*.dmnd; do mv "\$f" .; done
+mkdir orthofinderSetup
+
+orthofinder -f . -op
+
+mv OrthoFinder/**/WorkingDirectory/*.txt ./orthofinderSetup/
+mv OrthoFinder/**/WorkingDirectory/*.fa ./orthofinderSetup/
+mv OrthoFinder/**/WorkingDirectory/*.dmnd ./orthofinderSetup/
+
+cp orthofinderSetup/S*.txt ./

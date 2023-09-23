@@ -1,0 +1,2 @@
+0: ccin-old.fasta
+1: lafr.fasta

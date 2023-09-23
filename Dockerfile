@@ -2,7 +2,7 @@ FROM davidemms/orthofinder:2.5.5.1
 
 Label maintainer="rdemko2332@gmail.com"
 
-RUN apt-get update && apt-get install -y samtools seqtk procps && apt-get clean && apt-get purge && rm -rf /var/lib/apt/lists/* /tmp/*
+RUN apt-get update && apt-get install -y bioperl samtools seqtk procps && apt-get clean && apt-get purge && rm -rf /var/lib/apt/lists/* /tmp/*
 
 WORKDIR /usr/bin/
 

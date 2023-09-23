@@ -2,12 +2,6 @@
 
 set -euo pipefail
 
-perl /usr/bin/orthoFinderBlast.pl --database ${pair[0]} --query ${pair[1]} --sequences_id_file SequenceIDs.txt --species_id_file SpeciesIDs.txt
-
-cp Blast*.txt.gz hold.txt.gz
-gunzip hold.txt.gz
-rm *.dmnd
-rm -rf previousBlasts
-
-echo "Testing"
-ls /previousBlasts
+# TODO:  Review the command line options here!
+diamond blastp --ignore-warnings -d ${orthofinderSetup}/diamondDBSpecies${pair[0]}.dmnd -q ${orthofinderSetup}/Species${pair[1]}.fa -o Blast${pair[1]}_${pair[0]}.txt.gz -f 6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen nident positive qframe qstrand gaps qcovhsp scovhsp qseq --more-sensitive -p 1 --quiet -e 0.001 --compress 1
+gunzip Blast*.gz

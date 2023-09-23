@@ -2,10 +2,9 @@
 
 set -euo pipefail
 
-orthofinder -a 5 -b .
+ln -s orthofinderSetup/* ./
 
-rm *.txt.gz
-rm *.fa
+orthofinder -a 5 -b .
 
 mkdir Results
 mv OrthoFinder/Results*/* Results
