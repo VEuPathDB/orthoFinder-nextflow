@@ -2,6 +2,37 @@
 nextflow.enable.dsl=2
 
 
+process createCompressedFastaDir {
+  container = 'jbrestel/orthofinder'
+
+  input:
+    path inputFasta
+
+  output:
+    path 'fastas.tar.gz', emit: fastaDir
+    stdout emit: complete
+
+  script:
+    template 'createCompressedFastaDir.bash'
+}
+
+
+process createEmptyBlastDir {
+  container = 'jbrestel/orthofinder'
+
+  input:
+    val stdin
+
+  output:
+    path 'emptyBlastDir'
+
+  script:
+    """
+    mkdir emptyBlastDir
+    """
+}
+
+
 /**
  * ortho finder looks for unambiguous amino acid sequences first sequences of fasta
  * ensure the first sequence in each fasta file has unambigous amino acids
@@ -73,6 +104,21 @@ process diamond {
 
   script:
     template 'diamond.bash'
+}
+
+
+process diamondResidual {
+  container = 'veupathdb/diamondsimilarity'
+
+  input:
+    val pair
+    path orthofinderWorkingDir
+
+  output:
+    path 'Blast*.txt', emit: blast
+
+  script:
+    template 'diamondResidual.bash'
 }
 
 
@@ -267,4 +313,30 @@ workflow coreWorkflow {
 
 //     formatSimilarOrthogroups(bestRepsSelfDiamondResults)
 
+}
+
+workflow residualWorkflow { 
+  take:
+    inputFile
+
+  main:
+
+    compressedFastaDir = createCompressedFastaDir(inputFile)
+    emptyBlastDir = createEmptyBlastDir(compressedFastaDir.complete)
+    emptyDir = emptyBlastDir.collect()
+    proteomesForOrthofinder = moveUnambiguousAminoAcidSequencesFirst(compressedFastaDir.fastaDir)
+    setup = orthoFinderSetup(proteomesForOrthofinder)
+    // // get all pairwise combinations of organisms
+    pairsChannel = setup.speciesMapping.splitText(){it.tokenize(':')[0]}.toList().map { it -> [it,it].combinations().findAll(); }.flatten().collate(2)
+    diamondResults = diamond(pairsChannel, setup.orthofinderWorkingDir.collect(), emptyDir)
+    blasts = diamondResults.blast.collect()
+    computeGroupResults = computeGroups(blasts, setup.orthofinderWorkingDir)
+
+    // splitOrthoGroupsFilesResults = splitOrthogroupsFile(computeGroupsResults.results)
+    // makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(splitOrthoGroupsFilesResults.orthoGroupsFiles.flatten(), renameDiamondFilesResults)
+    // orthogroupStatisticsResults = orthogroupStatistics(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250), computeGroupsResults.results)
+    // orthogroupCalculationsResults = orthogroupCalculations(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250))
+    // makeBestRepresentativesFasta(orthogroupCalculationsResults, inputFile, makeOrthogroupSpecificFilesResults.singletons)
+    // splitProteomesByGroupResults = splitProteomeByGroup(inputFile, computeGroupsResults.results)
+    
 }

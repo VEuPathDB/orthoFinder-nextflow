@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y bioperl samtools seqtk procps && apt-ge
 
 WORKDIR /usr/bin/
 
-ADD /bin/**/*.pl /usr/bin/
+ADD /bin/*.pl /usr/bin/
 
 # Making all tools executable
 RUN chmod +x *

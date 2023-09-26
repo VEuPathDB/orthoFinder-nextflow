@@ -2,8 +2,6 @@
 
 set -euo pipefail
 
-
-# if the Blast file is in the mapped cache use it, otherwise make new with diamond
 BLAST_FILE=$mappedBlastCache/Blast${pair[1]}_${pair[0]}.txt
 if [ -f "\$BLAST_FILE" ]; then
     echo "Taking from Cache for \$BLAST_FILE"

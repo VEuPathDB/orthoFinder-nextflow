@@ -5,8 +5,8 @@ nextflow.enable.dsl=2
 // Including Workflows
 //---------------------------------------------------------------
 
-include { coreWorkflow } from './modules/coreWorkflow.nf'
-include { residualWorkflow } from './modules/residualWorkflow.nf'
+include { coreWorkflow } from './modules/coreAndResidualWorkflow.nf'
+include { residualWorkflow } from './modules/coreAndResidualWorkflow.nf'
 include { groupSelfWorkflow } from './modules/groupSelfWorkflow.nf'
 
 //---------------------------------------------------------------
