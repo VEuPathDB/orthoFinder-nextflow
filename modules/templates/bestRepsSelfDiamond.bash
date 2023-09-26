@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+# TODO:  one diamond config in config
+# TODO:  send in batch of ~ 1000
 diamond makedb --in $bestRepsFasta --db newdb
 diamond blastp \
   -d newdb.dmnd \

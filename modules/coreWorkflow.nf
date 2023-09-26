@@ -1,6 +1,14 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
+
+/**
+ * ortho finder looks for unambiguous amino acid sequences first sequences of fasta
+ * ensure the first sequence in each fasta file has unambigous amino acids
+ * @param proteomes:  tar.gz directory of fasta files.  each named like $organismAbbrev.fasta
+ * @return arrangedProteomes directory of fasta files
+ *
+ */
 process moveUnambiguousAminoAcidSequencesFirst {
   container = 'jbrestel/orthofinder'
 
@@ -8,25 +16,22 @@ process moveUnambiguousAminoAcidSequencesFirst {
     path proteomes
 
   output:
-    path 'arrangedProteomes'
+    path 'cleanedFastas'
 
   script:
     template 'moveUnambiguousAminoAcidSequencesFirst.bash'
 }
 
-process removeOutdatedBlasts {
-  container = 'jbrestel/orthofinder'
 
-  input:
-    path outdatedOrganisms
-    path previousBlastDir
-
-  output:
-    stdout
-
-  script:
-    template 'removeOutdatedBlasts.bash'
-}
+/**
+ * orthofinder makes new primary key for protein sequences
+ * this step makes new fastas and mapping files (species and sequence) and diamond index files
+ * the species and sequence mapping files are published to diamondCache output directory
+ * @param fastas:  directory of fasta files appropriate for orthofinder
+ * @return orthofinderSetup directory containes mapped fastas, diamond indexes and mapping files
+ * @return SpeciesIDs.txt file contains mappings from orthofinder primary keys to organism abbreviations
+ * @return SequenceIDs.txt file contains mappings from orthofinder primary keys to gene/protein ids
+ */
 
 process orthoFinderSetup {
   container = 'jbrestel/orthofinder'
@@ -34,28 +39,34 @@ process orthoFinderSetup {
   publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "*.txt"
 
   input:
-    path fastas
+    path 'fastas'
 
   output:
-    path 'orthofinderSetup', emit: orthofinderDirectory
-    path 'SpeciesIDs.txt', emit: speciesMapping
-    path 'SequenceIDs.txt', emit: sequenceMapping
+    path 'OrthoFinder', emit: orthofinderDirectory
+    path 'WorkingDirectory', emit: orthofinderWorkingDir, type: 'dir'
+    path 'WorkingDirectory/SpeciesIDs.txt', emit: speciesMapping
+    path 'WorkingDirectory/SequenceIDs.txt', emit: sequenceMapping
 
   script:
     template 'orthoFinder.bash'
 }
 
+/**
+* will either take diamond results from mappedCache dir OR run diamond
+* @param pair of integers.  There will be lots of these
+* @param orthofinderWorkingDir is the direcotry with the diamond indexes and fasta files
+* @param mappedBlastCache is the directory of previous blast output mapped to this run
+* @return Blast*.txt is the resulting file (either from cache or new)
+*/
 process diamond {
   container = 'veupathdb/diamondsimilarity'
 
   publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "Blast*.txt"
 
-    //cache 'lenient'
-
   input:
     val pair
-    path orthofinderSetup
-//    path previousBlastDir
+    path orthofinderWorkingDir
+    path mappedBlastCache
 
   output:
     path 'Blast*.txt', emit: blast
@@ -65,7 +76,18 @@ process diamond {
 }
 
 
-process outdatedOrganisms {
+/**
+ * organisms which are being updated by this run are set in a file in the nextflow config
+ *  this step does a further check to ensure the sequence mapping file is identical;  if not it will add to the cache
+ * (this step allows us to simplify the mapping from cache by allowing us to only map species/organisms.)
+ * This step will loop through the Blast*.txt and change the file name and first 2 columns based on species id mapping
+ * @param previousDiamondCacheDirectory is set in the nextflow config. it contains Blast files and Species/Sequence Mappings
+ * @param outdatedOrganisms file contains on organism id per line and is used when we get an updated annotation for a core proteome
+ * @param speciesMapping is the NEW Species mapping from orthofinder setup step (current run)
+ * @param sequenceMapping is the NEW Sequence mapping from orthofinder setup step (current run)
+ * @return outputDir contains a directory of Blast*.txt files with mapped ids
+ */
+process mapCachedBlasts {
     container = 'jbrestel/orthofinder'
 
     input:
@@ -75,27 +97,10 @@ process outdatedOrganisms {
     path sequenceMapping
 
     output:
-    path 'full_outdated.txt'
+    path 'mappedCacheDir'
 
     script:
-    template 'outdatedOrganisms.bash'
-
-}
-
-
-process renameDiamondFiles {
-  container = 'jbrestel/orthofinder'
-  publishDir "$params.outputDir/newPreviousBlasts", mode: "copy", pattern: "*.txt.gz"
-  
-  input:
-    path blasts
-    path speciesInfo
-
-  output:
-    path '*.txt.gz', emit: renamed
-
-  script:
-    template 'renameDiamondFiles.bash'
+    template 'mapCachedBlasts.bash'
 }
 
 
@@ -106,30 +111,14 @@ process computeGroups {
 
   input:
     path blasts
-    path orthofinderSetup
+    path orthofinderWorkingDir
 
   output:
     path 'Results', emit: results
-    path 'SpeciesIDs.txt', emit: species
-    path 'SequenceIDs.txt', emit: sequences
+    path 'Results/Orthogroups/Orthogroups.txt', emit: orthologgroups
 
   script:
     template 'computeGroups.bash'
-}
-
-
-process reformatBlastOutput {
-  container = 'jbrestel/orthofinder'
-
-  input:
-    path blastOutput
-    tuple path(sequenceIDs), path(speciesIDs)
-
-  output:
-    path 'reformattedBlast.tsv'
-
-  script:
-    template 'reformatBlastOutput.bash'
 }
 
 
@@ -156,8 +145,8 @@ process makeOrthogroupSpecificFiles {
     path diamondFiles
 
   output:
-    path 'OrthoGroup*', emit: orthogroups, optional: true
-    path 'Singletons.dat', emit: singletons, optional: true
+//    path 'OrthoGroup*', emit: orthogroups, optional: true
+//    path 'Singletons.dat', emit: singletons, optional: true
 
   script:
     template 'makeOrthogroupSpecificFiles.bash'
@@ -246,50 +235,36 @@ workflow coreWorkflow {
   main:
     proteomesForOrthofinder = moveUnambiguousAminoAcidSequencesFirst(inputFile)
 
-
-    // removeOutdatedBlastsResults = removeOutdatedBlasts(params.outdated, params.previousBlastDir)
-
-    // TODO:  make mappedCache dir and remove outdated
-
     setup = orthoFinderSetup(proteomesForOrthofinder)
 
-    outdatedOrgs = outdatedOrganisms(params.diamondSimilarityCache, params.outdatedOrganisms, setup.speciesMapping, setup.sequenceMapping);
+    mappedCachedBlasts = mapCachedBlasts(params.diamondSimilarityCache, params.outdatedOrganisms, setup.speciesMapping, setup.sequenceMapping);
 
-    pairs = setup.speciesMapping.splitText(){it.tokenize(':')[0]}.toList().map { it -> [it,it].combinations().findAll(); }
-    pairsChannel = pairs.flatten().collate(2)
+    // // get all pairwise combinations of organisms
+    pairsChannel = setup.speciesMapping.splitText(){it.tokenize(':')[0]}.toList().map { it -> [it,it].combinations().findAll(); }.flatten().collate(2)
 
-// TODO:  only do this if we don't have in cache
-    diamondResults = diamond(pairsChannel, setup.orthofinderDirectory.collect())
+    diamondResults = diamond(pairsChannel, setup.orthofinderWorkingDir.collect(), mappedCachedBlasts.collect())
 
-     blasts = diamondResults.blast.collect()
+    blasts = diamondResults.blast.collect()
 
+    computeGroupResults = computeGroups(blasts, setup.orthofinderWorkingDir)
 
+    // TODO:  How many groups to process at a time?
+//    orthologGroupSubset = computeGroupResults.orthologgroups.splitText(by: 100, file: true)
 
-
-
-     computeGroupsResults = computeGroups(blasts, setup.orthofinderDirectory)
-
-
-//     // replace splitorthologgrupsfileresults with:
-//     //Channel
-//     //.fromPath('/some/path/*.txt')
-//     //.splitText( by: 10
-
-    //     splitOrthoGroupsFilesResults = splitOrthogroupsFile(computeGroupsResults.results)
-
-
-// //  TODO:  Stopping here
-//     makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(splitOrthoGroupsFilesResults.orthoGroupsFiles.flatten(), renameDiamondFilesResults)
-
+//    makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(orthologGroupSubset, blasts)
 
 //     // website stats
 //     orthogroupStatisticsResults = orthogroupStatistics(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250), computeGroupsResults.results)
 
-//     //best representative per group
+//     //TODO Rename this "best representative per group"
 //     orthogroupCalculationsResults = orthogroupCalculations(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250))
 
+
+    // Defline named by the group ID;  No mapping of sequenceIDs needed
 //     makeBestRepresentativesFastaResults = makeBestRepresentativesFasta(orthogroupCalculationsResults, inputFile, makeOrthogroupSpecificFilesResults.singletons)
+
 //     bestRepsSelfDiamondResults = bestRepsSelfDiamond(makeBestRepresentativesFastaResults, params.blastArgs)
+
 //     formatSimilarOrthogroups(bestRepsSelfDiamondResults)
 
 }

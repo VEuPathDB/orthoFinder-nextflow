@@ -20,18 +20,20 @@ my %values;
 
 while (my $line = <$data>) {
     chomp $line;
+
+    # TODO:  change this to split the line and take first 2 elements
     if ($line =~  /^([^\t]+)\t(?:[^\t]+\t){9}([^\t]+)\t(?:[^\t]+\t){10}\w+$/) {
         my ($qseq, $evalue) = ($1, $2);
-	if (exists($values{$qseq}[0])) {
-	    	    push( @{ $values{$qseq} }, $evalue); 
-	}
-	else {
+        if (exists($values{$qseq}[0])) {
+            push( @{ $values{$qseq} }, $evalue);
+        }
+        else {
             @values{$qseq} = [];
-	    push( @{ $values{$qseq} }, $evalue); 
-	}
+            push( @{ $values{$qseq} }, $evalue);
+        }
     }
     else {
-	die;
+        die;
     }
 }
 

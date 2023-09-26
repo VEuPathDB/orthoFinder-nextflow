@@ -2,10 +2,9 @@
 
 set -euo pipefail
 
-ln -s orthofinderSetup/* ./
+ln -s $orthofinderWorkingDir/* ./
 
 orthofinder -a 5 -b .
 
-mkdir Results
-mv OrthoFinder/Results*/* Results
-
+#TODO:  what happens if there is more than one directory returned by this glob??
+ln -s OrthoFinder/Results* ./Results
