@@ -2,11 +2,5 @@
 
 set -euo pipefail
 
-exit 1;
-
-gunzip -d --force *.gz
-mkdir GroupFiles
-perl /usr/bin/makeOrthogroupSpecificFiles.pl --groupsFile $orthoGroupsFile
-rm *.txt
-mv GroupFiles/* .
-rm -rf GroupFiles
+translateGroupsFile.pl --groupsFile $orthoGroupsFile --sequenceFile $sequenceMapping --singletonsFile Singletons.dat --output translatedGroups.txt
+makeOrthogroupSpecificFiles.pl --groupsFile translatedGroups.txt

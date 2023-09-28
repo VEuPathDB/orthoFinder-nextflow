@@ -2,6 +2,6 @@
 
 set -euo pipefail
 
-for f in *.dat; do /usr/bin/orthogroupCalculations.pl --groupFile "\$f"; done
+for f in *.dat; do orthogroupCalculations.pl --groupFile "\$f"; done
 
 
