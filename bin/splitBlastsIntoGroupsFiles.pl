@@ -26,6 +26,8 @@ my $fh;
 my $count;
 
 while(<FILE>) {
+    chomp;
+
     my @a = split(/\t/, $_);
     my $group = shift @a;
 

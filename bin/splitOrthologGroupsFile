@@ -6,13 +6,17 @@ use Getopt::Long;
 
 use Data::Dumper;
 
-my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $species);
+# NOTE:  This script could use some refactoring into subroutines
+
+my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $species, $singletonsFileSuffix, $orthologGroupsFileWithSingletons);
 
 &GetOptions("species_mapping=s" => \$speciesMapping,
             "sequence_mapping=s" => \$sequenceMapping,
             "species=s" => \$species,
             "ortholog_groups=s" => \$orthologGroups,
-            "output_file_suffix=s" => \$outputFileSuffix
+            "output_file_suffix=s" => \$outputFileSuffix,
+            "singletons_file_suffix=s" => \$singletonsFileSuffix,
+            "ortholog_groups_with_singletons=s" => \$orthologGroupsFileWithSingletons,
     );
 
 
@@ -39,6 +43,8 @@ unless(defined $speciesMap{$species}) {
 }
 
 my $outputFile = "${internalSpecies}.${outputFileSuffix}";
+my $singletonsFile = "${internalSpecies}.${singletonsFileSuffix}";
+
 open(OUT, ">$outputFile") or die "Cannot open output file $outputFile for writing: $!";
 
 
@@ -52,7 +58,7 @@ while(<SEQ>) {
 
     my ($internal, $name) = split(/: /, $_);
 
-    my (@n) = split(/ /, $name);
+    my @n = split(/ /, $name);
 
     $sequenceMapping{$n[0]} = $internal;
 }
@@ -82,6 +88,8 @@ unless($speciesIndex) {
     die "Could not map species $species to ortholog group file header";
 }
 
+my %seenSequences;
+
 while(<GROUP>) {
     chomp;
     my @line = split(/\t/, $_);
@@ -101,14 +109,44 @@ while(<GROUP>) {
         unless($internalSequence) {
             die "Cannot map ortholog group file sequence $ogSequence";
         }
-        #push @internalList, $internalSequence;
 
         print OUT "$orthologGroup\t$internalSequence\n";
+
+        $seenSequences{$ogSequence}++;
     }
 
-#    my $internalString = join(",", @internalList);
 
 }
 
 close GROUP;
 close OUT;
+
+
+open(SGROUP, $orthologGroupsFileWithSingletons) or die "Cannot open file $orthologGroupsFileWithSingletons for reading:$!";
+my %oldStyleOrthologGroups;
+while(<SGROUP>) {
+    chomp;
+    my ($group, $seq) = split(/: /, $_);
+
+    # Only store in memory groups for sequences in the seq mapping for this organism
+    next unless($sequenceMapping{$seq});
+
+    $oldStyleOrthologGroups{$seq} = $group;
+}
+
+close SGROUP;
+
+
+open(SINGLETONS, ">$singletonsFile") or die "Cannot open file $singletonsFile for writing: $!";
+
+foreach my $seqName (keys %sequenceMapping) {
+    next if($seenSequences{$seqName});
+
+    my $singletonGroup = $oldStyleOrthologGroups{$seqName};
+
+    my $internalSeq = $sequenceMapping{$seqName};
+
+    print SINGLETONS "$singletonGroup\t$internalSeq\n";
+}
+
+close SINGLETONS;

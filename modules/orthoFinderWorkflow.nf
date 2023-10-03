@@ -145,7 +145,7 @@ process computeGroups {
     path orthofinderWorkingDir
 
   output:
-    path 'Results', emit: results
+    path 'Results/Orthogroups/Orthogroups.txt', emit: orthologgroupsdeprecated
     path 'Results/Phylogenetic_Hierarchical_Orthogroups/N0.tsv', emit: orthologgroups
 
   script:
@@ -168,6 +168,9 @@ process splitOrthogroupsFile {
     template 'splitOrthogroupsFile.bash'
 }
 
+
+
+// TODO: should remove this process in peripheral graph
 process makeOrthogroupSpecificFiles {
   container = 'jbrestel/orthofinder'
 
@@ -205,33 +208,33 @@ process makeOrthogroupDiamondFiles {
 }
 
 
-process orthogroupStatistics {
-  container = 'jbrestel/orthofinder'
+// process orthogroupStatistics {
+//   container = 'jbrestel/orthofinder'
 
-  publishDir "$params.outputDir", mode: "copy"
+//   publishDir "$params.outputDir", mode: "copy"
+
+//   input:
+//     path groupData
+//     path results
+
+//   output:
+//     path '*.tsv', emit: groupStats
+
+//   script:
+//     template 'orthogroupStatistics.bash'
+// }
+
+process findBestRepresentatives {
+  container = 'jbrestel/orthofinder'
 
   input:
     path groupData
-    path results
 
   output:
-    path '*.tsv', emit: groupStats
+    path 'best_representative.txt', emit: groupCalcs
 
   script:
-    template 'orthogroupStatistics.bash'
-}
-
-process orthogroupCalculations {
-  container = 'jbrestel/orthofinder'
-
-  input:
-    path groupData
-
-  output:
-    path '*.final', emit: groupCalcs
-
-  script:
-    template 'orthogroupCalculations.bash'
+    template 'findBestRepresentatives.bash'
 }
 
 process makeBestRepresentativesFasta {
@@ -476,9 +479,11 @@ process splitSequenceMappingBySpecies {
     path speciesMapping
     path sequenceMapping
     path orthologgroups
+    path orthologgroupsWithSingletons
 
     output:
-    path '*.orthologs'
+    path '*.orthologs', emit: orthologs
+    path "*.singletons", emit: singletons
 
     script:
     template 'splitSequenceMappingBySpecies.bash'
@@ -491,6 +496,20 @@ process test {
 
     script:
     template 'test.bash'
+}
+
+
+process uniqueAndSkipEmptyGroups {
+    input:
+    path f
+
+    output:
+    path "unique_${f}"
+
+    script:
+    """
+    sort -u $f |grep -v '^empty' > unique_${f}
+    """
 }
 
 
@@ -527,19 +546,20 @@ workflow coreWorkflow {
     blasts = diamondResults.blast.collect()
     computeGroupResults = computeGroups(blasts, setup.orthofinderWorkingDir)
 
-    speciesOrthologs = splitSequenceMappingBySpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), computeGroupResults.orthologgroups.collect());
-    makeOrthogroupSpecificFilesResults = makeOrthogroupDiamondFiles(pairsChannel, blasts, speciesOrthologs.collect())
+    // TODO; Rename this process
+    speciesOrthologs = splitSequenceMappingBySpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), computeGroupResults.orthologgroups.collect(), computeGroupResults.orthologgroupsdeprecated.collect());
+
+    makeOrthogroupDiamondFilesResults = makeOrthogroupDiamondFiles(pairsChannel, blasts, speciesOrthologs.orthologs.collect())
 
     // For Each ortholog group this should collect up all OG*.sim files for that group
     // TODO: check this with real data
-    orthologGroupSimilarities = makeOrthogroupSpecificFilesResults.flatten().collectFile() { item -> [ item.getName(), item ] }
+    orthologGroupSimilarities = makeOrthogroupDiamondFilesResults.flatten().collectFile() { item -> [ item.getName(), item ] }
 
-    // TODO make the residual files
-    //makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(pairsChannel, blasts, speciesOrthologs.collect())
+    findBestRepresentativesResults = findBestRepresentatives(orthologGroupSimilarities.collate(250))
 
-    orthogroupCalculationsResults = orthogroupCalculations(orthologGroupSimilarities.collate(250))
-    // makeBestRepresentativesFastaResults = makeBestRepresentativesFasta(orthogroupCalculationsResults, setup.sequenceMapping, inputFile, makeOrthogroupSpecificFilesResults.singletons)
+    combinedBestRepresentatives = uniqueAndSkipEmptyGroups(speciesOrthologs.singletons.combine(findBestRepresentativesResults).flatten().collectFile(name: "combined_best_representative.txt"))
 
+    makeBestRepresentativesFastaResults = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir)
     // bestRepsSelfDiamondResults = bestRepsSelfDiamond(makeBestRepresentativesFastaResults, params.blastArgs)
     // formatSimilarOrthogroups(bestRepsSelfDiamondResults)
 
@@ -576,8 +596,11 @@ workflow peripheralWorkflow {
     orthologGroupSubset = computeGroupResults.orthologgroups.splitText(by: 100, file: true)
 
     makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(orthologGroupSubset, blasts, setup.sequenceMapping)
-    orthogroupCalculationsResults = orthogroupCalculations(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250))
-    makeBestRepresentativesFastaResults =  makeBestRepresentativesFasta(orthogroupCalculationsResults, setup.sequenceMapping, peripheralFasta, makeOrthogroupSpecificFilesResults.singletons)
+
+
+
+    findBestRepresentativesResults = findBestRepresentatives(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250))
+    makeBestRepresentativesFastaResults =  makeBestRepresentativesFasta(findBestRepresentativesResults, setup.sequenceMapping, peripheralFasta, )
 
     // Groups
     cleanCacheResults = cleanCache(params.updateList)

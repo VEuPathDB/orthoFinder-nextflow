@@ -43,6 +43,9 @@ while(<BLAST>) {
 
     my @a = split(/\t/, $_);
 
+    # filter out self-self
+    next if($a[0] eq $a[1]);
+
     if($species0Orthologs{$a[0]} && $species0Orthologs{$a[0]} eq $species1Orthologs{$a[1]}) {
         unshift @a, $species0Orthologs{$a[0]};
         print OUT join("\t", @a) . "\n";
