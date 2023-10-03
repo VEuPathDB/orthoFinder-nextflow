@@ -22,6 +22,12 @@ my ($outdated, $cachedSpeciesMapping, $cachedSequenceMapping, $newSpeciesMapping
 open(FILE, $outdated) or die "cannot open file $outdated for reading: $!";
 
 
+unless(-e $cachedSpeciesMapping && -e $cachedSequenceMapping) {
+    print STDERR "NO CACHE Mapping found.  Processing all pairs\n";
+    exit;
+}
+
+
 
 my %outdated;
 while(<FILE>) {
@@ -85,7 +91,9 @@ foreach my $cachedBlastFile (@cachedBlastFiles) {
     if(defined $newOrg1  && defined $newOrg2) {
         my $newBlastFileBasename = "Blast${newOrg1}_${newOrg2}.txt";
         open(BLASTIN, $cachedBlastFile) or die "Cannot open file $cachedBlastFile for reading: $!";
-        open(BLASTOUT, ">$outputDir/$cachedBlastFileBasename") or die "Cannot open file $outputDir/$newBlastFileBasename for writing: $!";
+        open(BLASTOUT, ">$outputDir/$newBlastFileBasename") or die "Cannot open file $outputDir/$newBlastFileBasename for writing: $!";
+
+
         while(<BLASTIN>) {
             chomp;
             my @line = split(/\t/, $_);
@@ -99,6 +107,9 @@ foreach my $cachedBlastFile (@cachedBlastFiles) {
 
         close BLASTIN;
         close BLASTOUT;
+    }
+    else {
+        die "Could not find species mapping for $org1 or $org2";
     }
 }
 

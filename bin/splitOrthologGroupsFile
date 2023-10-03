@@ -1,0 +1,114 @@
+#!/usr/bin/perl
+
+use strict;
+
+use Getopt::Long;
+
+use Data::Dumper;
+
+my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $species);
+
+&GetOptions("species_mapping=s" => \$speciesMapping,
+            "sequence_mapping=s" => \$sequenceMapping,
+            "species=s" => \$species,
+            "ortholog_groups=s" => \$orthologGroups,
+            "output_file_suffix=s" => \$outputFileSuffix
+    );
+
+
+
+
+open(SPECIES, $speciesMapping) or die "Cannot open file $speciesMapping for reading: $!";
+
+my %speciesMap;
+while(<SPECIES>) {
+    chomp;
+    my ($internal, $name) = split(/: /, $_);
+    $speciesMap{$name} = $internal;
+}
+
+close SPECIES;
+
+
+my $internalSpecies = $speciesMap{$species};
+
+
+
+unless(defined $speciesMap{$species}) {
+    die "Species $species not found in species mapping file";
+}
+
+my $outputFile = "${internalSpecies}.${outputFileSuffix}";
+open(OUT, ">$outputFile") or die "Cannot open output file $outputFile for writing: $!";
+
+
+open(SEQ, $sequenceMapping) or die "Cannot open file $sequenceMapping for reading: $!";
+
+my %sequenceMapping;
+while(<SEQ>) {
+    chomp;
+
+    next unless(/^${internalSpecies}_/);
+
+    my ($internal, $name) = split(/: /, $_);
+
+    my (@n) = split(/ /, $name);
+
+    $sequenceMapping{$n[0]} = $internal;
+}
+
+close SEQ;
+
+
+open(GROUP, $orthologGroups) or die "Cannot open file $orthologGroups for reading: $!";
+
+
+my $header = <GROUP>;
+chomp $header;
+
+my $index = 0;
+my %headerMap = map { $_ => $index++} split(/\t/, $header);
+
+
+my $ogIndex = $headerMap{"OG"};
+
+
+my $speciesNoFileSuffix = $species;
+$speciesNoFileSuffix =~ s/.fasta$//;
+
+my $speciesIndex = $headerMap{$speciesNoFileSuffix};
+
+unless($speciesIndex) {
+    die "Could not map species $species to ortholog group file header";
+}
+
+while(<GROUP>) {
+    chomp;
+    my @line = split(/\t/, $_);
+
+    my $orthologGroup = $line[$ogIndex];
+    my $speciesField =  $line[$speciesIndex];
+
+
+    my @speciesList = split(/, /, $speciesField);
+
+
+    #my @internalList;
+
+    foreach my $ogSequence (@speciesList) {
+        my $internalSequence = $sequenceMapping{$ogSequence};
+
+        unless($internalSequence) {
+            die "Cannot map ortholog group file sequence $ogSequence";
+        }
+        #push @internalList, $internalSequence;
+
+        print OUT "$orthologGroup\t$internalSequence\n";
+    }
+
+#    my $internalString = join(",", @internalList);
+
+}
+
+close GROUP;
+close OUT;

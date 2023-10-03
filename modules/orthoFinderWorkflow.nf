@@ -95,7 +95,7 @@ process diamond {
   publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "Blast*.txt"
 
   input:
-    val pair
+    tuple val(target), val(queries)
     path orthofinderWorkingDir
     path mappedBlastCache
 
@@ -146,11 +146,13 @@ process computeGroups {
 
   output:
     path 'Results', emit: results
-    path 'Results/Orthogroups/Orthogroups.txt', emit: orthologgroups
+    path 'Results/Phylogenetic_Hierarchical_Orthogroups/N0.tsv', emit: orthologgroups
 
   script:
     template 'computeGroups.bash'
 }
+
+
 
 
 process splitOrthogroupsFile {
@@ -183,6 +185,25 @@ process makeOrthogroupSpecificFiles {
   script:
     template 'makeOrthogroupSpecificFiles.bash'
 }
+
+
+process makeOrthogroupDiamondFiles {
+  container = 'jbrestel/orthofinder'
+
+  publishDir "$params.outputDir/GroupResults", mode: "copy"
+
+  input:
+    tuple val(target), val(queries)
+    path blasts
+    path orthologs
+
+  output:
+    path '*.sim', emit: orthogroupblasts
+
+  script:
+    template 'makeOrthogroupDiamondFiles.bash'
+}
+
 
 process orthogroupStatistics {
   container = 'jbrestel/orthofinder'
@@ -447,6 +468,45 @@ process createGeneTrees {
     template 'createGeneTrees.bash'
 }
 
+process splitSequenceMappingBySpecies {
+    container = 'jbrestel/orthofinder'
+
+    input:
+    val species
+    path speciesMapping
+    path sequenceMapping
+    path orthologgroups
+
+    output:
+    path '*.orthologs'
+
+    script:
+    template 'splitSequenceMappingBySpecies.bash'
+}
+
+
+process test {
+    input:
+     tuple val(key), val(values)
+
+    script:
+    template 'test.bash'
+}
+
+
+def listToPairwiseComparisons(list, chunkSize) {
+    return list.map { it -> [it,it].combinations().findAll(); }
+        .flatMap { it }
+        .groupTuple(size: chunkSize, remainder:true)
+
+}
+
+def speciesFileToList(speciesMapping, index) {
+    return speciesMapping
+        .splitText(){it.tokenize(': ')[index]}
+        .map { it.replaceAll("[\n\r]", "") }
+        .toList()
+}
 
 workflow coreWorkflow { 
   take:
@@ -456,20 +516,33 @@ workflow coreWorkflow {
     proteomesForOrthofinder = moveUnambiguousAminoAcidSequencesFirst(inputFile)
     setup = orthoFinderSetup(proteomesForOrthofinder)
     mappedCachedBlasts = mapCachedBlasts(params.diamondSimilarityCache, params.outdatedOrganisms, setup.speciesMapping, setup.sequenceMapping);
-    // get all pairwise combinations of organisms
-    pairsChannel = setup.speciesMapping.splitText(){it.tokenize(':')[0]}.toList().map { it -> [it,it].combinations().findAll(); }.flatten().collate(2)
+
+    speciesIds = speciesFileToList(setup.speciesMapping, 0);
+    speciesNames = speciesFileToList(setup.speciesMapping, 1);
+
+    // process X number pairs at a time
+    pairsChannel = listToPairwiseComparisons(speciesIds, 100);
+
     diamondResults = diamond(pairsChannel, setup.orthofinderWorkingDir.collect(), mappedCachedBlasts.collect())
     blasts = diamondResults.blast.collect()
     computeGroupResults = computeGroups(blasts, setup.orthofinderWorkingDir)
-    // TODO:  How many groups to process at a time?
-    orthologGroupSubset = computeGroupResults.orthologgroups.splitText(by: 100, file: true)
-    makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(orthologGroupSubset, blasts, setup.sequenceMapping)
-    orthogroupCalculationsResults = orthogroupCalculations(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250))
-    makeBestRepresentativesFastaResults = makeBestRepresentativesFasta(orthogroupCalculationsResults, setup.sequenceMapping, inputFile, makeOrthogroupSpecificFilesResults.singletons)
 
-    bestRepsSelfDiamondResults = bestRepsSelfDiamond(makeBestRepresentativesFastaResults, params.blastArgs)
-    formatSimilarOrthogroups(bestRepsSelfDiamondResults)
-    
+    speciesOrthologs = splitSequenceMappingBySpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), computeGroupResults.orthologgroups.collect());
+    makeOrthogroupSpecificFilesResults = makeOrthogroupDiamondFiles(pairsChannel, blasts, speciesOrthologs.collect())
+
+    // For Each ortholog group this should collect up all OG*.sim files for that group
+    // TODO: check this with real data
+    orthologGroupSimilarities = makeOrthogroupSpecificFilesResults.flatten().collectFile() { item -> [ item.getName(), item ] }
+
+    // TODO make the residual files
+    //makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(pairsChannel, blasts, speciesOrthologs.collect())
+
+    orthogroupCalculationsResults = orthogroupCalculations(orthologGroupSimilarities.collate(250))
+    // makeBestRepresentativesFastaResults = makeBestRepresentativesFasta(orthogroupCalculationsResults, setup.sequenceMapping, inputFile, makeOrthogroupSpecificFilesResults.singletons)
+
+    // bestRepsSelfDiamondResults = bestRepsSelfDiamond(makeBestRepresentativesFastaResults, params.blastArgs)
+    // formatSimilarOrthogroups(bestRepsSelfDiamondResults)
+
 }
 
 workflow peripheralWorkflow { 
@@ -482,7 +555,7 @@ workflow peripheralWorkflow {
     database = createDatabase(params.coreBestReps)
     seqs = peripheralFasta.splitFasta( by:params.fastaSubsetSize, file:true  )
     diamondSimilarityResults = diamondSimilarity(seqs, database, params.diamondArgs)
-    similarityResults = diamondSimilarityResults.output_file | collectFile(name: 'similarity.out')
+    isimilarityResults = diamondSimilarityResults.output_file | collectFile(name: 'similarity.out')
     sortedResults = sortResults(similarityResults)
     assignGroupsResults = assignGroups(sortedResults)
     makeResidualAndPeripheralFastasResults = makeResidualAndPeripheralFastas(assignGroupsResults, peripheralFasta)
@@ -494,6 +567,7 @@ workflow peripheralWorkflow {
     proteomesForOrthofinder = moveUnambiguousAminoAcidSequencesFirst(compressedFastaDir.fastaDir)
     setup = orthoFinderSetup(proteomesForOrthofinder)
     // // get all pairwise combinations of organisms
+    // TODO: use the function above which uses flatMap instead of flatten.collate(2)
     pairsChannel = setup.speciesMapping.splitText(){it.tokenize(':')[0]}.toList().map { it -> [it,it].combinations().findAll(); }.flatten().collate(2)
     diamondResults = diamond(pairsChannel, setup.orthofinderWorkingDir.collect(), emptyDir)
     blasts = diamondResults.blast.collect()
