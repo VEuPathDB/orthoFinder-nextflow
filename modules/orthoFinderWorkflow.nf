@@ -577,7 +577,7 @@ workflow coreWorkflow {
 
     bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir).collect()
 
-    bestRepSubset = bestRepresentativeFasta.splitFasta(by:1, file:true)
+    bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
 
     bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, bestRepresentativeFasta, params.blastArgs)
     formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
@@ -638,7 +638,7 @@ workflow peripheralWorkflow {
 
     makeBestRepresentativesFastaResults = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir)
 
-    bestRepSubset = makeBestRepresentativesFastaResults.splitFasta(by:1, file:true)
+    bestRepSubset = makeBestRepresentativesFastaResults.splitFasta(by:1000, file:true)
 
     bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, makeBestRepresentativesFastaResults, params.blastArgs)
     formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
