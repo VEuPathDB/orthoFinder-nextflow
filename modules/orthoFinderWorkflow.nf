@@ -3,7 +3,7 @@ nextflow.enable.dsl=2
 
 
 process createCompressedFastaDir {
-  container = 'jbrestel/orthofinder'
+  container = 'rdemko2332/orthofinder'
 
   input:
     path inputFasta
@@ -17,8 +17,22 @@ process createCompressedFastaDir {
 }
 
 
+process splitPeripheralFasta {
+  container = 'rdemko2332/orthofinder'
+
+  input:
+    path inputFasta
+
+  output:
+    path 'fastas/*.fasta'
+
+  script:
+    template 'splitPeripheralFasta.bash'
+}
+
+
 process createEmptyBlastDir {
-  container = 'jbrestel/orthofinder'
+  container = 'rdemko2332/orthofinder'
 
   input:
     val stdin
@@ -41,7 +55,7 @@ process createEmptyBlastDir {
  *
  */
 process moveUnambiguousAminoAcidSequencesFirst {
-  container = 'jbrestel/orthofinder'
+  container = 'rdemko2332/orthofinder'
 
   input:
     path proteomes
@@ -65,7 +79,7 @@ process moveUnambiguousAminoAcidSequencesFirst {
  */
 
 process orthoFinderSetup {
-  container = 'jbrestel/orthofinder'
+  container = 'rdemko2332/orthofinder'
 
   publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "*.txt"
 
@@ -119,7 +133,7 @@ process diamond {
  * @return outputDir contains a directory of Blast*.txt files with mapped ids
  */
 process mapCachedBlasts {
-    container = 'jbrestel/orthofinder'
+    container = 'rdemko2332/orthofinder'
 
     input:
     path previousDiamondCacheDirectory
@@ -136,7 +150,7 @@ process mapCachedBlasts {
 
 
 process computeGroups {
-  container = 'jbrestel/orthofinder'
+  container = 'rdemko2332/orthofinder'
 
   publishDir "$params.outputDir", mode: "copy", pattern: "Results"
 
@@ -156,7 +170,7 @@ process computeGroups {
 
 
 process splitOrthogroupsFile {
-  container = 'jbrestel/orthofinder'
+  container = 'rdemko2332/orthofinder'
 
   input:
     path results
@@ -172,7 +186,7 @@ process splitOrthogroupsFile {
 
 // TODO: should remove this process in peripheral graph
 process makeOrthogroupSpecificFiles {
-  container = 'jbrestel/orthofinder'
+  container = 'rdemko2332/orthofinder'
 
   publishDir "$params.outputDir/GroupResults", mode: "copy"
 
@@ -191,7 +205,7 @@ process makeOrthogroupSpecificFiles {
 
 
 process makeOrthogroupDiamondFiles {
-  container = 'jbrestel/orthofinder'
+  container = 'rdemko2332/orthofinder'
 
   publishDir "$params.outputDir/GroupResults", mode: "copy"
 
@@ -209,7 +223,7 @@ process makeOrthogroupDiamondFiles {
 
 
 // process orthogroupStatistics {
-//   container = 'jbrestel/orthofinder'
+//   container = 'rdemko2332/orthofinder'
 
 //   publishDir "$params.outputDir", mode: "copy"
 
@@ -225,7 +239,7 @@ process makeOrthogroupDiamondFiles {
 // }
 
 process findBestRepresentatives {
-  container = 'jbrestel/orthofinder'
+  container = 'rdemko2332/orthofinder'
 
   input:
     path groupData
@@ -238,7 +252,7 @@ process findBestRepresentatives {
 }
 
 process makeBestRepresentativesFasta {
-  container = 'jbrestel/orthofinder'
+  container = 'rdemko2332/orthofinder'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -257,18 +271,19 @@ process bestRepsSelfDiamond {
   container = 'veupathdb/diamondsimilarity'
 
   input:
+    path bestRepSubset
     path bestRepsFasta
     val blastArgs
 
   output:
-    path '*.out'
+    path 'bestReps.out'
 
   script:
     template 'bestRepsSelfDiamond.bash'
 }
 
 process formatSimilarOrthogroups {
-  container = 'jbrestel/orthofinder'
+  container = 'rdemko2332/orthofinder'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -296,16 +311,19 @@ process createDatabase {
     template 'createDatabase.bash'
 }
 
-process diamondSimilarity {
-  container = 'rdemko2332/orthofinderperipheraltocore'
+process peripheralDiamond {
+  container = 'veupathdb/diamondsimilarity'
+
+  publishDir "$params.outputDir/peripheralDiamondCache", mode: "copy", pattern: "*.out"
 
   input:
     path fasta
     path database
-    val diamondArgs 
+    path peripheralDiamondCache
+    val stdin
 
   output:
-    path 'diamondSimilarity.out', emit: output_file
+    path '*.out', emit: output_file
 
   script:
     template 'diamondSimilarity.bash'
@@ -363,14 +381,16 @@ process cleanCache {
   container = 'rdemko2332/orthofinder'
 
   input:
-    path updateList
+    path outdatedOrganisms
+    path peripheralDiamondCache 
 
   output:
-    path 'done.txt'
+    stdout emit: complete
 
   script:
     template 'cleanCache.bash'
 }
+
 
 process combineProteomes {
   container = 'rdemko2332/orthofinder'
@@ -378,7 +398,6 @@ process combineProteomes {
   input:
     path coreProteome
     path peripheralProteome
-    path cleanCache
 
   output:
     path 'fullProteome.fasta'
@@ -470,7 +489,7 @@ process createGeneTrees {
 }
 
 process splitOrthologGroupsPerSpecies {
-    container = 'jbrestel/orthofinder'
+    container = 'rdemko2332/orthofinder'
 
     input:
     val species
@@ -556,9 +575,12 @@ workflow coreWorkflow {
 
     combinedBestRepresentatives = removeEmptyGroups(speciesOrthologs.singletons.concat(bestRepresentatives).flatten().collectFile(name: "combined_best_representative.txt"))
 
-    bestRepresentativeFastas = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir)
-    bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepresentativeFastas, params.blastArgs)
-    formatSimilarOrthogroups(bestRepsSelfDiamondResults)
+    bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir).collect()
+
+    bestRepSubset = bestRepresentativeFasta.splitFasta(by:1, file:true)
+
+    bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, bestRepresentativeFasta, params.blastArgs)
+    formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
 
 }
 
@@ -568,14 +590,26 @@ workflow peripheralWorkflow {
 
   main:
 
-    // PeripheralToCore
+  // PeripheralToCore
+    splitPeripheralFastaResults = splitPeripheralFasta(peripheralFasta)
+
     database = createDatabase(params.coreBestReps)
-    seqs = peripheralFasta.splitFasta( by:params.fastaSubsetSize, file:true  )
-    diamondSimilarityResults = diamondSimilarity(seqs, database, params.diamondArgs)
-    isimilarityResults = diamondSimilarityResults.output_file | collectFile(name: 'similarity.out')
+    cleanCacheResults = cleanCache(params.outdatedOrganisms, params.peripheralDiamondCache)
+    peripheralDiamondResults = peripheralDiamond(splitPeripheralFastaResults.flatten(), database, params.peripheralDiamondCache, cleanCacheResults.complete)
+    similarityResults = peripheralDiamondResults.output_file | collectFile(name: 'similarity.out')
     sortedResults = sortResults(similarityResults)
     assignGroupsResults = assignGroups(sortedResults)
     makeResidualAndPeripheralFastasResults = makeResidualAndPeripheralFastas(assignGroupsResults, peripheralFasta)
+
+    combinedProteome = combineProteomes(params.coreProteome, makeResidualAndPeripheralFastasResults.peripheralFasta)
+    makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, assignGroupsResults)
+    splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults, params.outdatedOrganisms)
+    keepSeqIdsFromDeflinesResults = keepSeqIdsFromDeflines(splitProteomesByGroupResults.collect().flatten().collate(100))
+    keepSeqIdsFromDeflinesResults.collect()
+    createGeneTrees(keepSeqIdsFromDeflinesResults.flatten())
+
+    //groupSelfDiamondResults = groupSelfDiamond(keepSeqIdsFromDeflinesResults.flatten(), params.blastArgs)
+    //orthogroupStatistics(groupSelfDiamondResults.collect(),makeGroupsFileResults)
 
     // Residuals
     compressedFastaDir = createCompressedFastaDir(makeResidualAndPeripheralFastasResults.residualFasta)
@@ -583,33 +617,30 @@ workflow peripheralWorkflow {
     emptyDir = emptyBlastDir.collect()
     proteomesForOrthofinder = moveUnambiguousAminoAcidSequencesFirst(compressedFastaDir.fastaDir)
     setup = orthoFinderSetup(proteomesForOrthofinder)
-    // // get all pairwise combinations of organisms
-    // TODO: use the function above which uses flatMap instead of flatten.collate(2)
-    speciesPairsAsTuple = setup.speciesMapping.splitText(){it.tokenize(':')[0]}.toList().map { it -> [it,it].combinations().findAll(); }.flatten().collate(2)
-    diamondResults = diamond(speciesPairsAsTuple, setup.orthofinderWorkingDir.collect(), emptyDir)
-    collectedDiamondResults = diamondResults.blast.collect()
-    orthofinderGroupResults = computeGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
 
-    orthologGroupSubset = orthofinderGroupResults.orthologgroups.splitText(by: 100, file: true)
+    speciesIds = speciesFileToList(setup.speciesMapping, 0);
+    speciesNames = speciesFileToList(setup.speciesMapping, 1);
 
-    makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(orthologGroupSubset, collectedDiamondResults, setup.sequenceMapping)
+    // get all pairwise combinations of organisms
+    pairsChannel = listToPairwiseComparisons(speciesIds, 100);
 
+    diamondResults = diamond(pairsChannel, setup.orthofinderWorkingDir.collect(), emptyDir)
+    blasts = diamondResults.blast.collect()
+    computeGroupResults = computeGroups(blasts, setup.orthofinderWorkingDir)
+    
+    speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), computeGroupResults.orthologgroups.collect(), computeGroupResults.orthologgroupsdeprecated.collect());
 
+    makeOrthogroupDiamondFilesResults = makeOrthogroupDiamondFiles(pairsChannel, blasts, speciesOrthologs.orthologs.collect())
+    orthologGroupSimilarities = makeOrthogroupDiamondFilesResults.flatten().collectFile() { item -> [ item.getName(), item ] }
+    findBestRepresentativesResults = findBestRepresentatives(orthologGroupSimilarities.collate(250))
 
-    bestRepresentatives = findBestRepresentatives(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250))
-    bestRepresentativeFastas =  makeBestRepresentativesFasta(bestRepresentatives, setup.sequenceMapping, peripheralFasta, )
+    combinedBestRepresentatives = removeEmptyGroups(speciesOrthologs.singletons.concat(findBestRepresentativesResults).flatten().collectFile(name: "combined_best_representative.txt"))
 
-    // Groups
-    cleanCacheResults = cleanCache(params.updateList)
-    combinedProteome = combineProteomes(params.coreProteome, makeResidualAndPeripheralFastasResults.peripheralFasta, cleanCacheResults)
-    makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, assignGroupsResults)
-    splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults, params.updateList)
-    keepSeqIdsFromDeflinesResults = keepSeqIdsFromDeflines(splitProteomesByGroupResults.collect().flatten().collate(100))
-    keepSeqIdsFromDeflinesResults.collect()
-    createGeneTrees(keepSeqIdsFromDeflinesResults.flatten())
-    //groupSelfDiamondResults = groupSelfDiamond(keepSeqIdsFromDeflinesResults.flatten(), params.blastArgs)
-    //orthogroupStatistics(groupSelfDiamondResults.collect(),makeGroupsFileResults)
+    makeBestRepresentativesFastaResults = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir)
 
-    bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepresentativeFastas, params.blastArgs)
-    formatSimilarOrthogroups(bestRepsSelfDiamondResults)
+    bestRepSubset = makeBestRepresentativesFastaResults.splitFasta(by:1, file:true)
+
+    bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, makeBestRepresentativesFastaResults, params.blastArgs)
+    formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
+
 }
