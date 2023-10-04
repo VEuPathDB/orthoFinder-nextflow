@@ -497,7 +497,7 @@ process test {
 }
 
 
-process uniqueAndSkipEmptyGroups {
+process removeEmptyGroups {
     input:
     path f
 
@@ -506,7 +506,7 @@ process uniqueAndSkipEmptyGroups {
 
     script:
     """
-    sort -u $f |grep -v '^empty' > unique_${f}
+    grep -v '^empty' $f> unique_${f}
     """
 }
 
@@ -544,7 +544,6 @@ workflow coreWorkflow {
     collectedDiamondResults = diamondResults.blast.collect()
     orthofinderGroupResults = computeGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
 
-    // TODO; Rename this process
     speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), orthofinderGroupResults.orthologgroups.collect(), orthofinderGroupResults.orthologgroupsdeprecated.collect());
 
     diamondSimilaritiesPerGroup = makeOrthogroupDiamondFiles(speciesPairsAsTuple, collectedDiamondResults, speciesOrthologs.orthologs.collect())
@@ -553,11 +552,9 @@ workflow coreWorkflow {
     // TODO: check this with real data
     allDiamondSimilaritiesPerGroup = diamondSimilaritiesPerGroup.flatten().collectFile() { item -> [ item.getName(), item ] }
 
-
     bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250))
 
-    // TODO:  why is this unique here?  there shouldn't be redundant things when we collect
-    combinedBestRepresentatives = uniqueAndSkipEmptyGroups(speciesOrthologs.singletons.combine(bestRepresentatives).flatten().collectFile(name: "combined_best_representative.txt"))
+    combinedBestRepresentatives = removeEmptyGroups(speciesOrthologs.singletons.concat(bestRepresentatives).flatten().collectFile(name: "combined_best_representative.txt"))
 
     bestRepresentativeFastas = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir)
     bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepresentativeFastas, params.blastArgs)
