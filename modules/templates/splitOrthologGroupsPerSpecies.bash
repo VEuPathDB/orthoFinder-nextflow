@@ -4,7 +4,7 @@ set -euo pipefail
 
 
 
-splitOrthologGroupsFile --species_mapping $speciesMapping \
+splitOrthologGroupsPerSpecies --species_mapping $speciesMapping \
     --sequence_mapping $sequenceMapping \
     --ortholog_groups $orthologgroups \
     --species $species \

@@ -4,33 +4,43 @@ use strict;
 use warnings;
 use Getopt::Long;
 
-my ($bestReps,$fasta,$isResidual);
+use Bio::SeqIO;
+
+# Takes fasta as stdin and uses the bestReps file to map to groups
+
+my ($bestReps,$fasta,$isResidual, $outputFile);
 
 &GetOptions("bestReps=s"=> \$bestReps,
-            "fasta=s" => \$fasta,
+            "outputFile=s" => \$outputFile,
             "is_residual" => \$isResidual);
 
-open(my $data, '<', $bestReps) || die "Could not open file $bestReps: $!";
-open(OUT,">./bestReps.fasta");
 
-while (my $line = <$data>) {
+my $in  = Bio::SeqIO->new(-fh => \*STDIN,
+                          -format => 'Fasta');
+
+
+my $bestRepsFasta = Bio::SeqIO->new(-file => ">$outputFile" ,
+                                   -format => 'Fasta');
+
+
+open(MAP, '<', $bestReps) || die "Could not open file $bestReps: $!";
+
+my %map;
+while (my $line = <MAP>) {
     chomp $line;
-    if ($line =~ /^(OG\d+):\s(.+)/) {
-        my ($group, $repseq) = ($1, $2);
-	my $searchSeq = $repseq;
-        $searchSeq =~ s/\s.+//g;
-	$searchSeq =~ s/\|/\\\|/g;
-        my $seq = `samtools faidx $fasta $searchSeq`;
-        $seq = $seq =~ s/>.+\n//gr;
-	if ($isResidual) {
-	    print OUT ">${group}R\n$seq";
-	}
-	else {
-            print OUT ">${group}\n$seq";
-	}
-    }
-    else {
-	next;
-    }
+
+    my ($group, $repseq) = split(/\t/, $line);
+    $map{$repseq} = $group;
 }
-close OUT;
+close MAP;
+
+while ( my $seq = $in->next_seq() ) {
+    my $seqId = $seq->id();
+    my $group = $map{$seqId};
+    die "No Group defined for Seq $seqId" unless($group);
+
+    $seq->id($group);
+    $bestRepsFasta->write_seq($seq);
+}
+
+1;

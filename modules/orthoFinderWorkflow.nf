@@ -243,10 +243,8 @@ process makeBestRepresentativesFasta {
   publishDir "$params.outputDir", mode: "copy"
 
   input:
-    path bestReps
-    path sequenceMapping
-    path fasta
-    path singletons
+    path bestRepresentatives
+    path orthofinderWorkingDir
 
   output:
     path 'bestReps.fasta'
@@ -471,7 +469,7 @@ process createGeneTrees {
     template 'createGeneTrees.bash'
 }
 
-process splitSequenceMappingBySpecies {
+process splitOrthologGroupsPerSpecies {
     container = 'jbrestel/orthofinder'
 
     input:
@@ -486,7 +484,7 @@ process splitSequenceMappingBySpecies {
     path "*.singletons", emit: singletons
 
     script:
-    template 'splitSequenceMappingBySpecies.bash'
+    template 'splitOrthologGroupsPerSpecies.bash'
 }
 
 
@@ -540,28 +538,30 @@ workflow coreWorkflow {
     speciesNames = speciesFileToList(setup.speciesMapping, 1);
 
     // process X number pairs at a time
-    pairsChannel = listToPairwiseComparisons(speciesIds, 100);
+    speciesPairsAsTuple = listToPairwiseComparisons(speciesIds, 100);
 
-    diamondResults = diamond(pairsChannel, setup.orthofinderWorkingDir.collect(), mappedCachedBlasts.collect())
-    blasts = diamondResults.blast.collect()
-    computeGroupResults = computeGroups(blasts, setup.orthofinderWorkingDir)
+    diamondResults = diamond(speciesPairsAsTuple, setup.orthofinderWorkingDir.collect(), mappedCachedBlasts.collect())
+    collectedDiamondResults = diamondResults.blast.collect()
+    orthofinderGroupResults = computeGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
 
     // TODO; Rename this process
-    speciesOrthologs = splitSequenceMappingBySpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), computeGroupResults.orthologgroups.collect(), computeGroupResults.orthologgroupsdeprecated.collect());
+    speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), orthofinderGroupResults.orthologgroups.collect(), orthofinderGroupResults.orthologgroupsdeprecated.collect());
 
-    makeOrthogroupDiamondFilesResults = makeOrthogroupDiamondFiles(pairsChannel, blasts, speciesOrthologs.orthologs.collect())
+    diamondSimilaritiesPerGroup = makeOrthogroupDiamondFiles(speciesPairsAsTuple, collectedDiamondResults, speciesOrthologs.orthologs.collect())
 
     // For Each ortholog group this should collect up all OG*.sim files for that group
     // TODO: check this with real data
-    orthologGroupSimilarities = makeOrthogroupDiamondFilesResults.flatten().collectFile() { item -> [ item.getName(), item ] }
+    allDiamondSimilaritiesPerGroup = diamondSimilaritiesPerGroup.flatten().collectFile() { item -> [ item.getName(), item ] }
 
-    findBestRepresentativesResults = findBestRepresentatives(orthologGroupSimilarities.collate(250))
 
-    combinedBestRepresentatives = uniqueAndSkipEmptyGroups(speciesOrthologs.singletons.combine(findBestRepresentativesResults).flatten().collectFile(name: "combined_best_representative.txt"))
+    bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250))
 
-    makeBestRepresentativesFastaResults = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir)
-    // bestRepsSelfDiamondResults = bestRepsSelfDiamond(makeBestRepresentativesFastaResults, params.blastArgs)
-    // formatSimilarOrthogroups(bestRepsSelfDiamondResults)
+    // TODO:  why is this unique here?  there shouldn't be redundant things when we collect
+    combinedBestRepresentatives = uniqueAndSkipEmptyGroups(speciesOrthologs.singletons.combine(bestRepresentatives).flatten().collectFile(name: "combined_best_representative.txt"))
+
+    bestRepresentativeFastas = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir)
+    bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepresentativeFastas, params.blastArgs)
+    formatSimilarOrthogroups(bestRepsSelfDiamondResults)
 
 }
 
@@ -588,19 +588,19 @@ workflow peripheralWorkflow {
     setup = orthoFinderSetup(proteomesForOrthofinder)
     // // get all pairwise combinations of organisms
     // TODO: use the function above which uses flatMap instead of flatten.collate(2)
-    pairsChannel = setup.speciesMapping.splitText(){it.tokenize(':')[0]}.toList().map { it -> [it,it].combinations().findAll(); }.flatten().collate(2)
-    diamondResults = diamond(pairsChannel, setup.orthofinderWorkingDir.collect(), emptyDir)
-    blasts = diamondResults.blast.collect()
-    computeGroupResults = computeGroups(blasts, setup.orthofinderWorkingDir)
+    speciesPairsAsTuple = setup.speciesMapping.splitText(){it.tokenize(':')[0]}.toList().map { it -> [it,it].combinations().findAll(); }.flatten().collate(2)
+    diamondResults = diamond(speciesPairsAsTuple, setup.orthofinderWorkingDir.collect(), emptyDir)
+    collectedDiamondResults = diamondResults.blast.collect()
+    orthofinderGroupResults = computeGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
 
-    orthologGroupSubset = computeGroupResults.orthologgroups.splitText(by: 100, file: true)
+    orthologGroupSubset = orthofinderGroupResults.orthologgroups.splitText(by: 100, file: true)
 
-    makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(orthologGroupSubset, blasts, setup.sequenceMapping)
+    makeOrthogroupSpecificFilesResults = makeOrthogroupSpecificFiles(orthologGroupSubset, collectedDiamondResults, setup.sequenceMapping)
 
 
 
-    findBestRepresentativesResults = findBestRepresentatives(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250))
-    makeBestRepresentativesFastaResults =  makeBestRepresentativesFasta(findBestRepresentativesResults, setup.sequenceMapping, peripheralFasta, )
+    bestRepresentatives = findBestRepresentatives(makeOrthogroupSpecificFilesResults.orthogroups.flatten().collate(250))
+    bestRepresentativeFastas =  makeBestRepresentativesFasta(bestRepresentatives, setup.sequenceMapping, peripheralFasta, )
 
     // Groups
     cleanCacheResults = cleanCache(params.updateList)
@@ -613,6 +613,6 @@ workflow peripheralWorkflow {
     //groupSelfDiamondResults = groupSelfDiamond(keepSeqIdsFromDeflinesResults.flatten(), params.blastArgs)
     //orthogroupStatistics(groupSelfDiamondResults.collect(),makeGroupsFileResults)
 
-    bestRepsSelfDiamondResults = bestRepsSelfDiamond(makeBestRepresentativesFastaResults, params.blastArgs)
+    bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepresentativeFastas, params.blastArgs)
     formatSimilarOrthogroups(bestRepsSelfDiamondResults)
 }
