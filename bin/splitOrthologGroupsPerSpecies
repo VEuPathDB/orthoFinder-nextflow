@@ -8,7 +8,7 @@ use Data::Dumper;
 
 # NOTE:  This script could use some refactoring into subroutines
 
-my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $species, $singletonsFileSuffix, $orthologGroupsFileWithSingletons);
+my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $species, $singletonsFileSuffix, $orthologGroupsFileWithSingletons, $buildVersion);
 
 &GetOptions("species_mapping=s" => \$speciesMapping,
             "sequence_mapping=s" => \$sequenceMapping,
@@ -16,7 +16,7 @@ my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $spec
             "ortholog_groups=s" => \$orthologGroups,
             "output_file_suffix=s" => \$outputFileSuffix,
             "singletons_file_suffix=s" => \$singletonsFileSuffix,
-            "ortholog_groups_with_singletons=s" => \$orthologGroupsFileWithSingletons,
+            "build_version=s" => \$buildVersion,
     );
 
 
@@ -88,13 +88,20 @@ unless($speciesIndex) {
     die "Could not map species $species to ortholog group file header";
 }
 
-my %seenSequences;
+my (%seenSequences, $prevGroupIntegers);
+
 
 while(<GROUP>) {
     chomp;
     my @line = split(/\t/, $_);
 
     my $orthologGroup = $line[$ogIndex];
+
+    # change the orthologGroup id to add some version
+    # replace "OG" with "OG${version}_"
+    $orthologGroup =~ s/^OG(\d+)/OG${buildVersion}_$1/;
+    $prevGroupIntegers=  $1;
+
     my $speciesField =  $line[$speciesIndex];
 
 
@@ -121,28 +128,15 @@ while(<GROUP>) {
 close GROUP;
 close OUT;
 
-
-open(SGROUP, $orthologGroupsFileWithSingletons) or die "Cannot open file $orthologGroupsFileWithSingletons for reading:$!";
-my %oldStyleOrthologGroups;
-while(<SGROUP>) {
-    chomp;
-    my ($group, $seq) = split(/: /, $_);
-
-    # Only store in memory groups for sequences in the seq mapping for this organism
-    next unless($sequenceMapping{$seq});
-
-    $oldStyleOrthologGroups{$seq} = $group;
-}
-
-close SGROUP;
-
-
 open(SINGLETONS, ">$singletonsFile") or die "Cannot open file $singletonsFile for writing: $!";
 
 foreach my $seqName (keys %sequenceMapping) {
     next if($seenSequences{$seqName});
+    $prevGroupIntegers++;
 
-    my $singletonGroup = $oldStyleOrthologGroups{$seqName};
+    #my $singletonGroup = $oldStyleOrthologGroups{$seqName};
+
+    my $singletonGroup = "OG${buildVersion}_${prevGroupIntegers}";
 
     my $internalSeq = $sequenceMapping{$seqName};
 

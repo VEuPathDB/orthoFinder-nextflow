@@ -145,7 +145,6 @@ process computeGroups {
     path orthofinderWorkingDir
 
   output:
-    path 'Results/Orthogroups/Orthogroups.txt', emit: orthologgroupsdeprecated
     path 'Results/Phylogenetic_Hierarchical_Orthogroups/N0.tsv', emit: orthologgroups
 
   script:
@@ -477,7 +476,6 @@ process splitOrthologGroupsPerSpecies {
     path speciesMapping
     path sequenceMapping
     path orthologgroups
-    path orthologgroupsWithSingletons
 
     output:
     path '*.orthologs', emit: orthologs
@@ -544,7 +542,7 @@ workflow coreWorkflow {
     collectedDiamondResults = diamondResults.blast.collect()
     orthofinderGroupResults = computeGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
 
-    speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), orthofinderGroupResults.orthologgroups.collect(), orthofinderGroupResults.orthologgroupsdeprecated.collect());
+    speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), orthofinderGroupResults.orthologgroups.collect();
 
     diamondSimilaritiesPerGroup = makeOrthogroupDiamondFiles(speciesPairsAsTuple, collectedDiamondResults, speciesOrthologs.orthologs.collect())
 
