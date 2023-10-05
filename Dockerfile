@@ -14,6 +14,8 @@ RUN /usr/bin/miniconda3/bin/conda init bash
 RUN /usr/bin/miniconda3/bin/conda init zsh
 RUN /usr/bin/miniconda3/bin/conda install -c bioconda bmge
 RUN /usr/bin/miniconda3/bin/conda install -c bioconda fastme
+RUN /usr/bin/miniconda3/bin/conda install -c bioconda fasttree
+RUN mv /usr/bin/miniconda3/bin/fasttree /usr/bin/fasttree
 RUN mv /usr/bin/miniconda3/bin/bmge /usr/bin/bmge
 RUN mv /usr/bin/miniconda3/bin/fastme /usr/bin/fastme
 

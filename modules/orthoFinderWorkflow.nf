@@ -475,13 +475,13 @@ process keepSeqIdsFromDeflines {
 process createGeneTrees {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
 
-  //publishDir "$params.outputDir", mode: "copy"
+  publishDir "$params.outputDir/geneTrees", mode: "copy"
 
   input:
     path fasta
 
   output:
-    path '*.fas'
+    path '*.tree'
 
   script:
     template 'createGeneTrees.bash'
@@ -495,6 +495,7 @@ process splitOrthologGroupsPerSpecies {
     path speciesMapping
     path sequenceMapping
     path orthologgroups
+    val buildVersion
 
     output:
     path '*.orthologs', emit: orthologs
@@ -561,7 +562,7 @@ workflow coreWorkflow {
     collectedDiamondResults = diamondResults.blast.collect()
     orthofinderGroupResults = computeGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
 
-    speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), orthofinderGroupResults.orthologgroups.collect();
+    speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), orthofinderGroupResults.orthologgroups.collect(), params.buildVersion);
 
     diamondSimilaritiesPerGroup = makeOrthogroupDiamondFiles(speciesPairsAsTuple, collectedDiamondResults, speciesOrthologs.orthologs.collect())
 
@@ -626,7 +627,7 @@ workflow peripheralWorkflow {
     blasts = diamondResults.blast.collect()
     computeGroupResults = computeGroups(blasts, setup.orthofinderWorkingDir)
     
-    speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), computeGroupResults.orthologgroups.collect(), computeGroupResults.orthologgroupsdeprecated.collect());
+    speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), computeGroupResults.orthologgroups.collect(), params.buildVersion);
 
     makeOrthogroupDiamondFilesResults = makeOrthogroupDiamondFiles(pairsChannel, blasts, speciesOrthologs.orthologs.collect())
     orthologGroupSimilarities = makeOrthogroupDiamondFilesResults.flatten().collectFile() { item -> [ item.getName(), item ] }

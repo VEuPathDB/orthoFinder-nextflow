@@ -10,4 +10,4 @@ splitOrthologGroupsPerSpecies --species_mapping $speciesMapping \
     --species $species \
     --output_file_suffix orthologs \
     --singletons_file "${species}.singletons" \
-    --build_version $params.buildVersion
+    --build_version $buildVersion
