@@ -13,7 +13,7 @@ for query in ${queries.join(' ')}; do
 
         echo "Running Diamond to generate Blast\${query}_${target}.txt"
 
-        diamond blastp --ignore-warnings -d ${orthofinderWorkingDir}/diamondDBSpecies${target}.dmnd -q ${orthofinderWorkingDir}/Species\${query}.fa -o Blast\${query}_${target}.txt.gz -f 6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen nident positive qframe qstrand gaps qcovhsp scovhsp qseq --more-sensitive -p 1 --quiet -e 0.001 --compress 1
+        diamond blastp --ignore-warnings -d ${orthofinderWorkingDir}/diamondDBSpecies${target}.dmnd -q ${orthofinderWorkingDir}/Species\${query}.fa -o Blast\${query}_${target}.txt.gz -f 6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore --more-sensitive -p 1 --quiet -e 0.001 --compress 1
         gunzip Blast*.gz
     fi
 
