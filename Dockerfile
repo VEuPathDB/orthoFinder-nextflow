@@ -10,14 +10,10 @@ RUN mkdir -p ~/miniconda3
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
 RUN bash ~/miniconda3/miniconda.sh -b -u -p /usr/bin/miniconda3
 RUN rm -rf ~/miniconda3/miniconda.sh
-RUN /usr/bin/miniconda3/bin/conda init bash
-RUN /usr/bin/miniconda3/bin/conda init zsh
-RUN /usr/bin/miniconda3/bin/conda install -c bioconda bmge
-RUN /usr/bin/miniconda3/bin/conda install -c bioconda fastme
-RUN /usr/bin/miniconda3/bin/conda install -c bioconda fasttree
-RUN mv /usr/bin/miniconda3/bin/fasttree /usr/bin/fasttree
-RUN mv /usr/bin/miniconda3/bin/bmge /usr/bin/bmge
-RUN mv /usr/bin/miniconda3/bin/fastme /usr/bin/fastme
+RUN miniconda3/bin/conda init bash
+RUN miniconda3/bin/conda init zsh
+RUN miniconda3/bin/conda install -c bioconda fasttree
+RUN mv miniconda3/bin/fasttree fasttree
 
 ADD /bin/*.pl /usr/bin/
 
