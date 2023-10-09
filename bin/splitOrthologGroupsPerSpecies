@@ -1,10 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-
 use Getopt::Long;
-
-use Data::Dumper;
 
 # NOTE:  This script could use some refactoring into subroutines
 
@@ -17,10 +14,7 @@ my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $spec
             "output_file_suffix=s" => \$outputFileSuffix,
             "singletons_file_suffix=s" => \$singletonsFileSuffix,
             "build_version=s" => \$buildVersion,
-    );
-
-
-
+           );
 
 open(SPECIES, $speciesMapping) or die "Cannot open file $speciesMapping for reading: $!";
 

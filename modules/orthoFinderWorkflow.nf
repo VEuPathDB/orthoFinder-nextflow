@@ -203,6 +203,19 @@ process makeOrthogroupSpecificFiles {
 }
 
 
+process makeFullSingletonsFile {
+  container = 'veupathdb/orthofinder:branch-jb_refactor'
+
+  input:
+    path singletonFiles
+
+  output:
+    path 'singletonsFull.dat'
+
+  script:
+    template 'makeFullSingletonsFile.bash'
+}
+
 process makeOrthogroupDiamondFiles {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
 
@@ -248,6 +261,23 @@ process findBestRepresentatives {
 
   script:
     template 'findBestRepresentatives.bash'
+}
+
+process retrieveResultsToBestRepresentative {
+  container = 'veupathdb/orthofinder:branch-jb_refactor'
+
+  publishDir "$params.outputDir/groupStatsToBestReps", mode: "copy"
+
+  input:
+    path groupData
+    path bestReps
+    path singletons
+
+  output:
+    path '*.tsv'
+
+  script:
+    template 'retrieveResultsToBestRepresentative.bash'
 }
 
 process makeBestRepresentativesFasta {
@@ -566,20 +596,25 @@ workflow coreWorkflow {
 
     diamondSimilaritiesPerGroup = makeOrthogroupDiamondFiles(speciesPairsAsTuple, collectedDiamondResults, speciesOrthologs.orthologs.collect())
 
-    // For Each ortholog group this should collect up all OG*.sim files for that group
-    // TODO: check this with real data
     allDiamondSimilaritiesPerGroup = diamondSimilaritiesPerGroup.flatten().collectFile() { item -> [ item.getName(), item ] }
+
+    allDiamondSimilarities = allDiamondSimilaritiesPerGroup.collect()
+    singletonFiles = speciesOrthologs.singletons.collect()
+
+    fullSingletonsFile = makeFullSingletonsFile(singletonFiles)
 
     bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250))
 
-    combinedBestRepresentatives = removeEmptyGroups(speciesOrthologs.singletons.concat(bestRepresentatives).flatten().collectFile(name: "combined_best_representative.txt"))
+    combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile.concat(bestRepresentatives).flatten().collectFile(name: "combined_best_representative.txt"))
 
-    bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir).collect()
+    bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir)
 
-    bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
+    retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives, fullSingletonsFile)
 
-    bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, bestRepresentativeFasta, params.blastArgs)
-    formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
+    // This processing will be moved to the peripheral workflow. We want the stats between core and residual best representatives.
+    // bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
+    // bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, bestRepresentativeFasta, params.blastArgs)
+    // formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
 
 }
 
