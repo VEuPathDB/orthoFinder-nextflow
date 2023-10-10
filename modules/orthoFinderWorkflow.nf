@@ -558,6 +558,18 @@ process removeEmptyGroups {
     """
 }
 
+process calculateGroupResults {
+  container = 'veupathdb/orthofinder:branch-jb_refactor'
+
+  input:
+    path groupResultsToBestReps
+
+  output:
+    path '*final.tsv'
+
+  script:
+    template 'calculateGroupResults.bash'
+}
 
 def listToPairwiseComparisons(list, chunkSize) {
     return list.map { it -> [it,it].combinations().findAll(); }
@@ -664,17 +676,34 @@ workflow peripheralWorkflow {
     
     speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), computeGroupResults.orthologgroups.collect(), params.buildVersion);
 
-    makeOrthogroupDiamondFilesResults = makeOrthogroupDiamondFiles(pairsChannel, blasts, speciesOrthologs.orthologs.collect())
-    orthologGroupSimilarities = makeOrthogroupDiamondFilesResults.flatten().collectFile() { item -> [ item.getName(), item ] }
-    findBestRepresentativesResults = findBestRepresentatives(orthologGroupSimilarities.collate(250))
+    diamondSimilaritiesPerGroup = makeOrthogroupDiamondFiles(pairsChannel, blasts, speciesOrthologs.orthologs.collect())
+    allDiamondSimilaritiesPerGroup = diamondSimilaritiesPerGroup.flatten().collectFile() { item -> [ item.getName(), item ] }
+    allDiamondSimilarities = allDiamondSimilaritiesPerGroup.collect()
 
-    combinedBestRepresentatives = removeEmptyGroups(speciesOrthologs.singletons.concat(findBestRepresentativesResults).flatten().collectFile(name: "combined_best_representative.txt"))
+    singletonFiles = speciesOrthologs.singletons.collect()
+    fullSingletonsFile = makeFullSingletonsFile(singletonFiles)
 
-    makeBestRepresentativesFastaResults = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir)
+    bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250))
 
-    bestRepSubset = makeBestRepresentativesFastaResults.splitFasta(by:1000, file:true)
+    combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile.concat(bestRepresentatives).flatten().collectFile(name: "combined_best_representative.txt"))
 
-    bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, makeBestRepresentativesFastaResults, params.blastArgs)
+    bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir)
+
+    groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives, fullSingletonsFile) 
+
+    calculateGroupResults(groupResultsOfBestRep)
+
+    bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
+
+    bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, bestRepresentativeFasta, params.blastArgs)
     formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
 
 }
+
+
+
+    
+    
+
+
+

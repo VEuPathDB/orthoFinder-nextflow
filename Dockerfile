@@ -2,7 +2,7 @@ FROM davidemms/orthofinder:2.5.5.1
 
 Label maintainer="rdemko2332@gmail.com"
 
-RUN apt-get update && apt-get install -y default-jre samtools seqtk procps mafft bioperl && apt-get clean && apt-get purge && rm -rf /var/lib/apt/lists/* /tmp/*
+RUN apt-get update && apt-get install -y default-jre samtools seqtk procps mafft bioperl cpanminus && apt-get clean && apt-get purge && rm -rf /var/lib/apt/lists/* /tmp/*
 
 WORKDIR /usr/bin/
 
@@ -14,6 +14,8 @@ RUN miniconda3/bin/conda init bash
 RUN miniconda3/bin/conda init zsh
 RUN miniconda3/bin/conda install -c bioconda fasttree
 RUN mv miniconda3/bin/fasttree fasttree
+
+RUN cpanm Statistics::Basic Statistics::Descriptive::Weighted
 
 ADD /bin/*.pl /usr/bin/
 
