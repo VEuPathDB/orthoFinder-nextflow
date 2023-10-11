@@ -3,4 +3,3 @@
 set -euo pipefail
 
 for f in *.tsv; do calculateGroupResults.pl --bestRepResults \$f; done
-

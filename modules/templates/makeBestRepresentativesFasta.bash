@@ -2,7 +2,6 @@
 
 set -euo pipefail
 
-
 FASTA=proteome.fasta
 SEQIDS=sequenceIds.txt
 
@@ -16,5 +15,3 @@ cut -f 2 $bestRepresentatives >\$SEQIDS
 
 # this will get fasta for all seq ids
 samtools faidx -r \$SEQIDS \$FASTA | makeBestRepresentativesFasta.pl --bestReps $bestRepresentatives --outputFile \$OUTPUT
-
-# TODO: add back residual case?

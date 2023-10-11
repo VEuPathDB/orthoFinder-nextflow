@@ -9,16 +9,15 @@ use Data::Dumper;
 
 my ($groupFile, $outputFile);
 
-&GetOptions("groupFile=s"=> \$groupFile,
-    "output_file=s" => \$outputFile);
+&GetOptions("groupFile=s"=> \$groupFile, # Pairwise blast results per group
+            "output_file=s" => \$outputFile);
 
-my $QSEQ_COLUMN = 1;
-#TODO this doesn't seem like an e value
-#TODO check this.  Probably best to use the param/config string to ensure this is the right field
+my $QSEQ_COLUMN = 0;
 my $EVALUE_COLUMN = 10;
 
 open(my $data, '<', $groupFile) || die "Could not open file $groupFile: $!";
 
+# Retrieve group ID from groupFile
 my $group = $groupFile;
 $group =~ s/\.sim$//;
 
@@ -27,26 +26,35 @@ my %values;
 while (my $line = <$data>) {
     chomp $line;
 
+    # Get array of pairwise blast results
     my @lineAr = split(/\t/, $line);
 
+    # Retrieve query sequence
     my $qseq = $lineAr[$QSEQ_COLUMN];
 
+    # Retrieve evalue
     my $evalue = $lineAr[$EVALUE_COLUMN];
 
+    # Make an array of evalues per query sequence
     push( @{$values{$qseq}}, $evalue);
 }
 
-my %seqSum;
+my %seqAvg;
 
-foreach my $key (keys %values) {
+# For every query sequence
+foreach my $qseq (keys %values) {
     my $sum = 0;
-    foreach(@{$values{$key}}) {
+    my $pairCountPerQSeq = scalar @{$values{$qseq}};
+    # Sum up all of the evalues
+    foreach(@{$values{$qseq}}) {
         $sum += $_;
     }
-    $seqSum{$key} = $sum;
+    # Calculate average e-value per query sequence
+    my $avg = $sum / $pairCountPerQSeq;
+    $seqAvg{$qseq} = $avg;
 }
 
-my $bestRepresentative = reduce { $seqSum{$a} < $seqSum{$b} ? $a : $b } keys %seqSum;
+my $bestRepresentative = reduce { $seqAvg{$a} <= $seqAvg{$b} ? $a : $b } keys %seqAvg;
 
 open(OUT,">$outputFile")  or die "Cannot open file $outputFile For writing: $!";
 print OUT "${group}\t${bestRepresentative}\n";

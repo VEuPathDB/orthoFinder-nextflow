@@ -12,4 +12,3 @@ diamond blastp \
   --comp-based-stats 0 \
   --no-self-hits \
   $blastArgs
-

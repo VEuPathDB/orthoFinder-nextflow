@@ -10,25 +10,23 @@ use Data::Dumper;
 
 my ($outdated, $cachedSpeciesMapping, $cachedSequenceMapping, $newSpeciesMapping, $newSequenceMapping, $outputDir, $diamondCacheDir);
 
-&GetOptions("outdated=s"=> \$outdated,
-            "cachedSpeciesMapping=s" => \$cachedSpeciesMapping,
-            "cachedSequenceMapping=s" => \$cachedSequenceMapping,
-            "newSpeciesMapping=s" => \$newSpeciesMapping,
-            "newSequenceMapping=s" => \$newSequenceMapping,
-            "diamondCacheDir=s" => \$diamondCacheDir,
-            "outputDir=s" => \$outputDir
+&GetOptions("outdated=s"=> \$outdated, # File indicating outdated/new species, one species per line
+            "cachedSpeciesMapping=s" => \$cachedSpeciesMapping, # Species mapping file of the cache
+            "cachedSequenceMapping=s" => \$cachedSequenceMapping, # Sequence mapping file of the cache
+            "newSpeciesMapping=s" => \$newSpeciesMapping, # Species mapping file from the current run (from orthofinder setup)
+            "newSequenceMapping=s" => \$newSequenceMapping, # Sequence mapping file from the current run (from orthofinder setup)
+            "diamondCacheDir=s" => \$diamondCacheDir, # Directory contains pairwise blast results from the last run
+            "outputDir=s" => \$outputDir # New cache directory
     );
 
 open(FILE, $outdated) or die "cannot open file $outdated for reading: $!";
-
 
 unless(-e $cachedSpeciesMapping && -e $cachedSequenceMapping) {
     print STDERR "NO CACHE Mapping found.  Processing all pairs\n";
     exit;
 }
 
-
-
+# Creating a hash of outdated species
 my %outdated;
 while(<FILE>) {
     chomp;
@@ -36,6 +34,7 @@ while(<FILE>) {
 }
 close FILE;
 
+# Creating a hash object to hold the new species mapping information
 my %newSpecies;
 open(NEW, $newSpeciesMapping) or die "cannot open file $newSpeciesMapping for reading: $!";
 while(<NEW>) {
@@ -45,6 +44,7 @@ while(<NEW>) {
 }
 close NEW;
 
+# Creating a hash objet to hold the cached species mapping information
 open(CACHE, $cachedSpeciesMapping) or die "cannot open file $cachedSpeciesMapping for reading: $!";
 my %speciesMap;
 while(<CACHE>) {
@@ -58,41 +58,44 @@ while(<CACHE>) {
     }
 
 
-
+    # Use the organism name from the cache species mapping and the new species hash to get the new organism id
     my $newOrganismId = $newSpecies{$organismName};
+    # If the organism has been removed, skip
     unless(defined $newOrganismId) {
         print STDERR "WARN:  SKIP Organism $organismName as it no longer exists in this run of orthofinder";
         next;
     }
 
+    # Step to make sure the organism sequence ids are indeed identical to last run. Should always be true if the organism wasn't identified as outdated in the outdated file
     if(&organismIsOutdated($organismId, $newOrganismId, $cachedSequenceMapping, $newSequenceMapping)) {
         print STDERR "WARN:  Unexpected skipping of organism $organismName";
     }
 
-    # if we made it here, we can do the species mapping
+    # if we made it here, we can do the species mapping. Object holds new species mapping
     $speciesMap{$organismId} = $newOrganismId;
 }
 close CACHE;
 
+# Get array of cache blast files
 my @cachedBlastFiles = glob "$diamondCacheDir/Blast*.txt";
 
 foreach my $cachedBlastFile (@cachedBlastFiles) {
 
-
-
     my $cachedBlastFileBasename = basename $cachedBlastFile;
 
-    #Blast1_0.txt
+    # Example: Blast1_0.txt We will be changing the numbers to their new mapping
     my ($org1, $org2) = $cachedBlastFileBasename =~ /Blast(\d+)_(\d+)\.txt/;
 
+    # Get new species mapping
     my $newOrg1 = $speciesMap{$org1};
     my $newOrg2 = $speciesMap{$org2};
 
+    # If we have mapping data for these organisms
     if(defined $newOrg1  && defined $newOrg2) {
+	# Replace old species ids with new species ids
         my $newBlastFileBasename = "Blast${newOrg1}_${newOrg2}.txt";
         open(BLASTIN, $cachedBlastFile) or die "Cannot open file $cachedBlastFile for reading: $!";
         open(BLASTOUT, ">$outputDir/$newBlastFileBasename") or die "Cannot open file $outputDir/$newBlastFileBasename for writing: $!";
-
 
         while(<BLASTIN>) {
             chomp;
@@ -102,6 +105,7 @@ foreach my $cachedBlastFile (@cachedBlastFiles) {
             $line[0] =~ s/^(\d+)/$speciesMap{$1}/;
             $line[1] =~ s/^(\d+)/$speciesMap{$1}/;
 
+	    # Print out pairwise results with translated mapping
             print BLASTOUT join("\t", @line) . "\n";
         }
 
@@ -116,9 +120,13 @@ foreach my $cachedBlastFile (@cachedBlastFiles) {
 sub organismIsOutdated {
     my ($cachedOrganismId, $newOrganismId, $cachedSequenceMapping, $newSequenceMapping) = @_;
 
+    # Example 1_0: Original Sequence Defline
+
+    # Retrieve the sequence ids from the cache, and the new sequence ids.
     my $cachedSeqIds = `grep ${cachedOrganismId}_ ${cachedSequenceMapping} |cut -f 2 -d ' '`;
     my $newSeqIds = `grep ${newOrganismId}_ ${newSequenceMapping} |cut -f 2 -d ' '`;
 
+    # These should always be identical if the organism wasn't identified as outdated in the outdated organisms file
     if($cachedSeqIds eq $newSeqIds) {
         return 0;
     }
