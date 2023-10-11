@@ -24,7 +24,7 @@ chomp $lineCount;
 
 while (my $line = <$data>) {
     chomp $line;
-    my ($qseqid,$sseqid,$evalue) = split(/\t/, $line);
+    my ($qseqid,$qlen,$sseqid,$slen,$qstart,$qend,$sstart,$send,$evalue,$bitscore,$length,$nident,$pident,$positive,$qframe,$qstrand,$gaps,$qseq) = split(/\t/, $line);
     if ($evalue =~ /e/) {
         ($mant, $exp) = split(/e/, $evalue);
     } else {

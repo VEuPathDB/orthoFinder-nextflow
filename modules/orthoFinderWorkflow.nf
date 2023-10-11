@@ -166,8 +166,6 @@ process computeGroups {
 }
 
 
-
-
 process splitOrthogroupsFile {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
 
@@ -179,27 +177,6 @@ process splitOrthogroupsFile {
 
   script:
     template 'splitOrthogroupsFile.bash'
-}
-
-
-
-// TODO: should remove this process in peripheral graph
-process makeOrthogroupSpecificFiles {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
-
-  publishDir "$params.outputDir/GroupResults", mode: "copy"
-
-  input:
-    path orthoGroupsFile
-    path diamondFiles
-    path sequenceMapping
-
-  output:
-    path 'OrthoGroup*', emit: orthogroups, optional: true
-    path 'Singletons.dat', emit: singletons, optional: true
-
-  script:
-    template 'makeOrthogroupSpecificFiles.bash'
 }
 
 
@@ -218,8 +195,6 @@ process makeFullSingletonsFile {
 
 process makeOrthogroupDiamondFiles {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
-
-  publishDir "$params.outputDir/GroupResults", mode: "copy"
 
   input:
     tuple val(target), val(queries)
@@ -328,7 +303,7 @@ process formatSimilarOrthogroups {
 
 
 process createDatabase {
-  container = 'rdemko2332/orthofinderperipheraltocore'
+  container = 'veupathdb/orthofinder:branch-jb_refactor'
 
   input:
     path newdbfasta
@@ -359,7 +334,7 @@ process peripheralDiamond {
 }
 
 process sortResults {
-  container = 'rdemko2332/orthofinderperipheraltocore'
+  container = 'veupathdb/orthofinder:branch-jb_refactor'
 
   input:
     path output
@@ -374,7 +349,7 @@ process sortResults {
 }
 
 process assignGroups {
-  container = 'rdemko2332/orthofinderperipheraltocore'
+  container = 'veupathdb/orthofinder:branch-jb_refactor'
 
   publishDir params.outputDir, mode: "copy"
   
@@ -389,7 +364,7 @@ process assignGroups {
 }
 
 process makeResidualAndPeripheralFastas {
-  container = 'rdemko2332/orthofinderperipheraltocore'
+  container = 'veupathdb/orthofinder:branch-jb_refactor'
 
   publishDir params.outputDir, mode: "copy"
   
@@ -571,6 +546,25 @@ process calculateGroupResults {
     template 'calculateGroupResults.bash'
 }
 
+process mergeCoreAndResidualBestReps {
+  container = 'veupathdb/orthofinder:branch-jb_refactor'
+
+  input:
+    path residualBestReps
+    // Avoid file name collision
+    path 'coreBestReps.fasta'
+
+  output:
+    path 'bestRepsFull.fasta'
+
+  script:
+    """
+    touch bestRepsFull.fasta
+    cat $residualBestReps >> bestRepsFull.fasta
+    cat coreBestReps.fasta >> bestRepsFull.fasta
+    """
+}
+
 def listToPairwiseComparisons(list, chunkSize) {
     return list.map { it -> [it,it].combinations().findAll(); }
         .flatMap { it }
@@ -693,9 +687,12 @@ workflow peripheralWorkflow {
 
     calculateGroupResults(groupResultsOfBestRep)
 
-    bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
+    coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta, params.coreBestReps)
 
-    bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, bestRepresentativeFasta, params.blastArgs)
+
+    bestRepSubset = coreAndResidualBestRepFasta.splitFasta(by:1000, file:true)
+
+    bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, coreAndResidualBestRepFasta.collect(), params.blastArgs)
     formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
 
 }
