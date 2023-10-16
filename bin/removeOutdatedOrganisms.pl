@@ -3,12 +3,13 @@
 use strict;
 use warnings;
 
-my $outdatedFile = $ARGV[0];
-my $peripheralCache = $ARGV[1];
+my $outdatedFile = $ARGV[0]; # File containing organism abbrev, one per line
+my $peripheralCache = $ARGV[1]; # Directory of cache files
 
 # Open Outdated file
 open my $fh_outdated, '<', $outdatedFile or die "Cannot open $outdatedFile: $!";
 my @outdated;
+# Make array object to contain all of the outdated organisms 
 while (my $line = <$fh_outdated>) {
     chomp $line;
     if ($line =~ /^(.+)/) {
@@ -18,7 +19,9 @@ while (my $line = <$fh_outdated>) {
 }
 close $fh_outdated;
 
+# For each organism that requires and update
 foreach my $update (@outdated) {
+    # If there is a cache file for the organism, delete it
     if (-e "$peripheralCache/${update}.fasta.out") {
         system("rm $peripheralCache/${update}.fasta.out");
 	print "Removed ${update}.fasta.out from cache";

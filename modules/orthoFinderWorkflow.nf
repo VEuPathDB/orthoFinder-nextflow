@@ -78,6 +78,7 @@ process moveUnambiguousAminoAcidSequencesFirst {
  * @return SequenceIDs.txt file contains mappings from orthofinder primary keys to gene/protein ids
  */
 
+
 process orthoFinderSetup {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
 
@@ -95,6 +96,7 @@ process orthoFinderSetup {
   script:
     template 'orthoFinder.bash'
 }
+
 
 /**
 * will either take diamond results from mappedCache dir OR run diamond
@@ -193,6 +195,7 @@ process makeFullSingletonsFile {
     template 'makeFullSingletonsFile.bash'
 }
 
+
 process makeOrthogroupDiamondFiles {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
 
@@ -209,22 +212,6 @@ process makeOrthogroupDiamondFiles {
 }
 
 
-// process orthogroupStatistics {
-//   container = 'veupathdb/orthofinder:branch-jb_refactor'
-
-//   publishDir "$params.outputDir", mode: "copy"
-
-//   input:
-//     path groupData
-//     path results
-
-//   output:
-//     path '*.tsv', emit: groupStats
-
-//   script:
-//     template 'orthogroupStatistics.bash'
-// }
-
 process findBestRepresentatives {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
 
@@ -237,6 +224,7 @@ process findBestRepresentatives {
   script:
     template 'findBestRepresentatives.bash'
 }
+
 
 process retrieveResultsToBestRepresentative {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
@@ -255,6 +243,7 @@ process retrieveResultsToBestRepresentative {
     template 'retrieveResultsToBestRepresentative.bash'
 }
 
+
 process makeBestRepresentativesFasta {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
 
@@ -271,6 +260,7 @@ process makeBestRepresentativesFasta {
     template 'makeBestRepresentativesFasta.bash'
 }
 
+
 process bestRepsSelfDiamond {
   container = 'veupathdb/diamondsimilarity'
 
@@ -285,6 +275,7 @@ process bestRepsSelfDiamond {
   script:
     template 'bestRepsSelfDiamond.bash'
 }
+
 
 process formatSimilarOrthogroups {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
@@ -315,6 +306,7 @@ process createDatabase {
     template 'createDatabase.bash'
 }
 
+
 process peripheralDiamond {
   container = 'veupathdb/diamondsimilarity'
 
@@ -333,20 +325,6 @@ process peripheralDiamond {
     template 'diamondSimilarity.bash'
 }
 
-process sortResults {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
-
-  input:
-    path output
-        
-  output:
-    path 'diamondSimilarity.out'
-
-  script:
-    """
-    cat $output | sort -k 1 > diamondSimilarity.out
-    """
-}
 
 process assignGroups {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
@@ -357,11 +335,30 @@ process assignGroups {
     path sortedResults
         
   output:
-    path 'groups.txt'
+    path 'sortedGroups.txt', emit: groups
+    path 'sortedResults.txt', emit: similarities
 
   script:
     template 'assignGroups.bash'
 }
+
+
+process getPeripheralResultsToBestRep {
+  container = 'veupathdb/orthofinder:branch-jb_refactor'
+
+  publishDir params.outputDir, mode: "copy"
+  
+  input:
+    path similarityResults
+    path groupAssignments
+        
+  output:
+    path '*.tsv', emit: groupSimilarities
+
+  script:
+    template 'getPeripheralResultsToBestRep.bash'
+}
+
 
 process makeResidualAndPeripheralFastas {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
@@ -410,6 +407,7 @@ process combineProteomes {
     template 'combineProteomes.bash'
 }
 
+
 process makeGroupsFile {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
 
@@ -425,6 +423,7 @@ process makeGroupsFile {
   script:
     template 'makeGroupsFile.bash'
 }
+
 
 process splitProteomeByGroup {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
@@ -442,6 +441,7 @@ process splitProteomeByGroup {
   script:
     template 'splitProteomeByGroup.bash'
 }
+
 
 process groupSelfDiamond {
   container = 'veupathdb/diamondsimilarity'
@@ -492,6 +492,7 @@ process createGeneTrees {
     template 'createGeneTrees.bash'
 }
 
+
 process splitOrthologGroupsPerSpecies {
     container = 'veupathdb/orthofinder:branch-jb_refactor'
 
@@ -511,15 +512,6 @@ process splitOrthologGroupsPerSpecies {
 }
 
 
-process test {
-    input:
-     tuple val(key), val(values)
-
-    script:
-    template 'test.bash'
-}
-
-
 process removeEmptyGroups {
     input:
     path f
@@ -533,11 +525,15 @@ process removeEmptyGroups {
     """
 }
 
-process calculateGroupResults {
+
+process calculatePeripheralGroupResults {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
+
+  publishDir "$params.outputDir/peripheralAndCoreGroupStats", mode: "copy"
 
   input:
     path groupResultsToBestReps
+    val evalueColumn
 
   output:
     path '*final.tsv'
@@ -545,6 +541,24 @@ process calculateGroupResults {
   script:
     template 'calculateGroupResults.bash'
 }
+
+
+process calculateGroupResults {
+  container = 'veupathdb/orthofinder:branch-jb_refactor'
+
+  publishDir "$params.outputDir/groupStats", mode: "copy"
+
+  input:
+    path groupResultsToBestReps
+    val evalueColumn
+
+  output:
+    path '*final.tsv'
+
+  script:
+    template 'calculateGroupResults.bash'
+}
+
 
 process mergeCoreAndResidualBestReps {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
@@ -565,6 +579,22 @@ process mergeCoreAndResidualBestReps {
     """
 }
 
+
+process combinePeripheralAndCoreSimilaritiesToBestReps {
+  container = 'veupathdb/orthofinder:branch-jb_refactor'
+
+  input:
+    path peripheralGroupSimilarities
+    path coreGroupSimilarities
+
+  output:
+    path 'final/*'
+
+  script:
+    template 'combinePeripheralAndCoreSimilaritiesToBestReps.bash'
+}
+
+
 def listToPairwiseComparisons(list, chunkSize) {
     return list.map { it -> [it,it].combinations().findAll(); }
         .flatMap { it }
@@ -572,12 +602,14 @@ def listToPairwiseComparisons(list, chunkSize) {
 
 }
 
+
 def speciesFileToList(speciesMapping, index) {
     return speciesMapping
         .splitText(){it.tokenize(': ')[index]}
         .map { it.replaceAll("[\n\r]", "") }
         .toList()
 }
+
 
 workflow coreWorkflow { 
   take:
@@ -615,14 +647,12 @@ workflow coreWorkflow {
 
     bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir)
 
-    retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives, fullSingletonsFile)
+    groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives, fullSingletonsFile)
 
-    // This processing will be moved to the peripheral workflow. We want the stats between core and residual best representatives.
-    // bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
-    // bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, bestRepresentativeFasta, params.blastArgs)
-    // formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
+    calculateGroupResults(groupResultsOfBestRep, 10)
 
 }
+
 
 workflow peripheralWorkflow { 
   take:
@@ -634,22 +664,30 @@ workflow peripheralWorkflow {
     splitPeripheralFastaResults = splitPeripheralFasta(peripheralFasta)
 
     database = createDatabase(params.coreBestReps)
-    cleanCacheResults = cleanCache(params.outdatedOrganisms, params.peripheralDiamondCache)
-    peripheralDiamondResults = peripheralDiamond(splitPeripheralFastaResults.flatten(), database, params.peripheralDiamondCache, cleanCacheResults.complete)
-    similarityResults = peripheralDiamondResults.output_file | collectFile(name: 'similarity.out')
-    sortedResults = sortResults(similarityResults)
-    assignGroupsResults = assignGroups(sortedResults)
-    makeResidualAndPeripheralFastasResults = makeResidualAndPeripheralFastas(assignGroupsResults, peripheralFasta)
 
+    cleanCacheResults = cleanCache(params.outdatedOrganisms, params.peripheralDiamondCache)
+
+    peripheralDiamondResults = peripheralDiamond(splitPeripheralFastaResults.flatten(), database, params.peripheralDiamondCache, cleanCacheResults.complete)
+
+    assignGroupsResults = assignGroups(peripheralDiamondResults)
+    groupAssignments = assignGroupsResults.groups.collectFile(name: 'groups.txt')
+    similarityResults = assignGroupsResults.similarities.collectFile(name: 'sorted.out')
+
+    groupSimilarityResultsToBestRep = getPeripheralResultsToBestRep(assignGroupsResults.similarities, assignGroupsResults.groups)
+
+    allGroupSimilarityResultsToBestRep = groupSimilarityResultsToBestRep.flatten().collectFile() { item -> [ item.getName(), item ] }
+
+    combinePeripheralAndCoreSimilaritiesToBestRepsResults = combinePeripheralAndCoreSimilaritiesToBestReps(allGroupSimilarityResultsToBestRep.collect(), params.coreSimilarityResults)
+
+    calculatePeripheralGroupResults(combinePeripheralAndCoreSimilaritiesToBestRepsResults, 1)
+
+    makeResidualAndPeripheralFastasResults = makeResidualAndPeripheralFastas(groupAssignments, peripheralFasta)
     combinedProteome = combineProteomes(params.coreProteome, makeResidualAndPeripheralFastasResults.peripheralFasta)
-    makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, assignGroupsResults)
+    makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, groupAssignments)
     splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults, params.outdatedOrganisms)
     keepSeqIdsFromDeflinesResults = keepSeqIdsFromDeflines(splitProteomesByGroupResults.collect().flatten().collate(100))
     keepSeqIdsFromDeflinesResults.collect()
     createGeneTrees(keepSeqIdsFromDeflinesResults.flatten())
-
-    //groupSelfDiamondResults = groupSelfDiamond(keepSeqIdsFromDeflinesResults.flatten(), params.blastArgs)
-    //orthogroupStatistics(groupSelfDiamondResults.collect(),makeGroupsFileResults)
 
     // Residuals
     compressedFastaDir = createCompressedFastaDir(makeResidualAndPeripheralFastasResults.residualFasta)
@@ -685,10 +723,9 @@ workflow peripheralWorkflow {
 
     groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives, fullSingletonsFile) 
 
-    calculateGroupResults(groupResultsOfBestRep)
+    calculateGroupResults(groupResultsOfBestRep, 10)
 
     coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta, params.coreBestReps)
-
 
     bestRepSubset = coreAndResidualBestRepFasta.splitFasta(by:1000, file:true)
 
@@ -696,11 +733,3 @@ workflow peripheralWorkflow {
     formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
 
 }
-
-
-
-    
-    
-
-
-

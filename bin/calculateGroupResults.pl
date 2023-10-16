@@ -7,9 +7,10 @@ use Data::Dumper;
 use Statistics::Basic::Median;
 use Statistics::Descriptive::Weighted;    
 
-my ($bestRepResults);
+my ($bestRepResults,$evalueColumn);
 
-&GetOptions("bestRepResults=s"=> \$bestRepResults);
+&GetOptions("bestRepResults=s"=> \$bestRepResults,
+            "evalueColumn=i"=> \$evalueColumn);
 
 # Open file that contains pairwise results of sequences involving the groups best rep
 open(my $data, '<', $bestRepResults) || die "Could not open file $bestRepResults: $!";
@@ -19,7 +20,7 @@ my @evalues;
 while (my $line = <$data>) {
     chomp $line;
     my @results = split(/\t/, $line);
-    push(@evalues,$results[10]);
+    push(@evalues,$results[$evalueColumn]);
 }
 
 close $data;
