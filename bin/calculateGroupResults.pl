@@ -3,14 +3,14 @@
 use strict;
 use warnings;
 use Getopt::Long;
-use Data::Dumper;
 use Statistics::Basic::Median;
 use Statistics::Descriptive::Weighted;    
 
-my ($bestRepResults,$evalueColumn);
+my ($bestRepResults,$evalueColumn,$isResidual);
 
 &GetOptions("bestRepResults=s"=> \$bestRepResults,
-            "evalueColumn=i"=> \$evalueColumn);
+            "evalueColumn=i"=> \$evalueColumn,
+            "isResidual"=> \$isResidual);
 
 # Open file that contains pairwise results of sequences involving the groups best rep
 open(my $data, '<', $bestRepResults) || die "Could not open file $bestRepResults: $!";
@@ -27,6 +27,9 @@ close $data;
 
 my $finalFileName = $bestRepResults;
 $finalFileName =~ s/bestRep/final/;
+if ($isResidual) {
+    $finalFileName =~ s/OG/OGR/;
+}
 open(OUT, ">${finalFileName}") or die "Cannot open output file $finalFileName for writing: $!";
 
 if (scalar(@evalues) >= 1) {

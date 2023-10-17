@@ -286,6 +286,7 @@ process makeBestRepresentativesFasta {
   input:
     path bestRepresentatives
     path orthofinderWorkingDir
+    val isResidual
 
   output:
     path 'bestReps.fasta'
@@ -568,6 +569,7 @@ process calculatePeripheralGroupResults {
   input:
     path groupResultsToBestReps
     val evalueColumn
+    val isResidual
 
   output:
     path '*final.tsv'
@@ -585,6 +587,7 @@ process calculateGroupResults {
   input:
     path groupResultsToBestReps
     val evalueColumn
+    val isResidual
 
   output:
     path '*final.tsv'
@@ -683,11 +686,11 @@ workflow coreWorkflow {
 
     combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile.concat(bestRepresentatives).flatten().collectFile(name: "combined_best_representative.txt"))
 
-    bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir)
+    bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir, false)
 
     groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives, fullSingletonsFile)
 
-    calculateGroupResults(groupResultsOfBestRep, 10)
+    calculateGroupResults(groupResultsOfBestRep, 10, false)
 
 }
 
@@ -717,7 +720,7 @@ workflow peripheralWorkflow {
     groupSimilarityResultsToBestRep = getPeripheralResultsToBestRep(assignGroupsResults.similarities, assignGroupsResults.groups)
     allGroupSimilarityResultsToBestRep = groupSimilarityResultsToBestRep.flatten().collectFile() { item -> [ item.getName(), item ] }
     combinePeripheralAndCoreSimilaritiesToBestRepsResults = combinePeripheralAndCoreSimilaritiesToBestReps(allGroupSimilarityResultsToBestRep.collect(), params.coreSimilarityResults)
-    calculatePeripheralGroupResults(combinePeripheralAndCoreSimilaritiesToBestRepsResults, 1)
+    calculatePeripheralGroupResults(combinePeripheralAndCoreSimilaritiesToBestRepsResults, 1, false)
 
     // Create Peripherals And Residual Fastas
     makeResidualAndPeripheralFastasResults = makeResidualAndPeripheralFastas(groupAssignments, peripheralFasta)
@@ -766,11 +769,11 @@ workflow peripheralWorkflow {
     // Best Representatives
     bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250))
     combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile.concat(bestRepresentatives).flatten().collectFile(name: "combined_best_representative.txt"))
-    bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir)
+    bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir, true)
 
     // Residual Group Stats
     groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives, fullSingletonsFile) 
-    calculateGroupResults(groupResultsOfBestRep, 10)
+    calculateGroupResults(groupResultsOfBestRep, 10, true)
 
     // Similarity Between Orthogroups
     coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta, params.coreBestReps)

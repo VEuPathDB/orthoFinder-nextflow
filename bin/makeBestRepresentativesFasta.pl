@@ -7,10 +7,11 @@ use Bio::SeqIO;
 
 # Takes fasta as stdin and uses the bestReps file to map to groups
 
-my ($bestReps,$fasta,$isResidual, $outputFile);
+my ($bestReps,$isResidual,$outputFile);
 
 &GetOptions("bestReps=s"=> \$bestReps, # Tab seperated file with group and seqID
-            "outputFile=s" => \$outputFile); # Output best rep fasta file
+            "outputFile=s"=> \$outputFile,
+            "isResidual=s"=> \$isResidual);
 
 my $in  = Bio::SeqIO->new(-fh => \*STDIN,
                           -format => 'Fasta');
@@ -33,7 +34,12 @@ while ( my $seq = $in->next_seq() ) {
     my $seqId = $seq->id();
     my $group = $map{$seqId};
     die "No Group defined for Seq $seqId" unless($group);
-
+    if ($isResidual) {
+	print "Ding\n";
+	print "$group\n";
+        $group =~ s/OG/OGR/;
+	print "$group\n";
+    }  
     $seq->id($group);
     $bestRepsFasta->write_seq($seq);
 }
