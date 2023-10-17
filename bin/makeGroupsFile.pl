@@ -16,7 +16,7 @@ open(OUT,">$output");
 
 while (my $line = <$core>) {
     chomp $line;
-    if ($line =~ /^(OG\d+):\s(.+)/) {
+    if ($line =~ /^(OG\d+_\d+):\s(.+)/) {
 	my $groupId = $1;
 	my $groupSeqs = $2;
 	my @sequences = split(/\s/, $groupSeqs);
@@ -37,6 +37,6 @@ while (my $line = <$core>) {
 	`rm ${groupId}.txt`;
     }
     else {
-	die "Improper groupFile format\n";
+	die "Improper groupFile format\n$line\n";
     }   
 }	

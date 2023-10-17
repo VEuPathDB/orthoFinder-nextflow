@@ -162,6 +162,7 @@ process computeGroups {
 
   output:
     path 'Results/Phylogenetic_Hierarchical_Orthogroups/N0.tsv', emit: orthologgroups
+    path 'Results'
 
   script:
     template 'computeGroups.bash'
@@ -193,6 +194,39 @@ process makeFullSingletonsFile {
 
   script:
     template 'makeFullSingletonsFile.bash'
+}
+
+
+process translateSingletonsFile {
+  container = 'veupathdb/orthofinder:branch-jb_refactor'
+
+  input:
+    path singletonsFile
+    path sequenceMapping
+
+  output:
+    path 'translatedSingletons.dat'
+
+  script:
+    template 'translateSingletonsFile.bash'
+}
+
+
+process reformatGroupsFile {
+  container = 'veupathdb/orthofinder:branch-jb_refactor'
+
+  publishDir "$params.outputDir", mode: "copy"
+
+  input:
+    path groupsFile
+    path translatedSingletons
+    val buildVersion
+
+  output:
+    path 'reformattedGroups.txt'
+
+  script:
+    template 'reformatGroupsFile.bash'
 }
 
 
@@ -641,6 +675,10 @@ workflow coreWorkflow {
 
     fullSingletonsFile = makeFullSingletonsFile(singletonFiles)
 
+    translatedSingletonsFile = translateSingletonsFile(fullSingletonsFile, setup.sequenceMapping)
+
+    reformatGroupsFile(orthofinderGroupResults.orthologgroups, translatedSingletonsFile, params.buildVersion)
+
     bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250))
 
     combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile.concat(bestRepresentatives).flatten().collectFile(name: "combined_best_representative.txt"))
@@ -660,28 +698,31 @@ workflow peripheralWorkflow {
 
   main:
 
-  // PeripheralToCore
+  // Peripheral Processing
+
+    // Prep
     splitPeripheralFastaResults = splitPeripheralFasta(peripheralFasta)
-
     database = createDatabase(params.coreBestReps)
-
     cleanCacheResults = cleanCache(params.outdatedOrganisms, params.peripheralDiamondCache)
 
+    // Run Diamond
     peripheralDiamondResults = peripheralDiamond(splitPeripheralFastaResults.flatten(), database, params.peripheralDiamondCache, cleanCacheResults.complete)
 
+    // Assigning Groups
     assignGroupsResults = assignGroups(peripheralDiamondResults)
     groupAssignments = assignGroupsResults.groups.collectFile(name: 'groups.txt')
     similarityResults = assignGroupsResults.similarities.collectFile(name: 'sorted.out')
 
+    // Calculating Core + Peripheral Group Similarity Results
     groupSimilarityResultsToBestRep = getPeripheralResultsToBestRep(assignGroupsResults.similarities, assignGroupsResults.groups)
-
     allGroupSimilarityResultsToBestRep = groupSimilarityResultsToBestRep.flatten().collectFile() { item -> [ item.getName(), item ] }
-
     combinePeripheralAndCoreSimilaritiesToBestRepsResults = combinePeripheralAndCoreSimilaritiesToBestReps(allGroupSimilarityResultsToBestRep.collect(), params.coreSimilarityResults)
-
     calculatePeripheralGroupResults(combinePeripheralAndCoreSimilaritiesToBestRepsResults, 1)
 
+    // Create Peripherals And Residual Fastas
     makeResidualAndPeripheralFastasResults = makeResidualAndPeripheralFastas(groupAssignments, peripheralFasta)
+
+    // Creating Vore + Peripheral Gene Trees
     combinedProteome = combineProteomes(params.coreProteome, makeResidualAndPeripheralFastasResults.peripheralFasta)
     makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, groupAssignments)
     splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults, params.outdatedOrganisms)
@@ -689,7 +730,9 @@ workflow peripheralWorkflow {
     keepSeqIdsFromDeflinesResults.collect()
     createGeneTrees(keepSeqIdsFromDeflinesResults.flatten())
 
-    // Residuals
+  // Residual Processing
+
+    // Prep For OrthoFinder  
     compressedFastaDir = createCompressedFastaDir(makeResidualAndPeripheralFastasResults.residualFasta)
     emptyBlastDir = createEmptyBlastDir(compressedFastaDir.complete)
     emptyDir = emptyBlastDir.collect()
@@ -702,33 +745,36 @@ workflow peripheralWorkflow {
     // get all pairwise combinations of organisms
     pairsChannel = listToPairwiseComparisons(speciesIds, 100);
 
+    // Run Diamond
     diamondResults = diamond(pairsChannel, setup.orthofinderWorkingDir.collect(), emptyDir)
     blasts = diamondResults.blast.collect()
+
+    // Create Groups
     computeGroupResults = computeGroups(blasts, setup.orthofinderWorkingDir)
     
     speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), computeGroupResults.orthologgroups.collect(), params.buildVersion);
 
+    // Getting Pairwise Results Per Group
     diamondSimilaritiesPerGroup = makeOrthogroupDiamondFiles(pairsChannel, blasts, speciesOrthologs.orthologs.collect())
     allDiamondSimilaritiesPerGroup = diamondSimilaritiesPerGroup.flatten().collectFile() { item -> [ item.getName(), item ] }
     allDiamondSimilarities = allDiamondSimilaritiesPerGroup.collect()
 
+    // Identifying Singletons
     singletonFiles = speciesOrthologs.singletons.collect()
     fullSingletonsFile = makeFullSingletonsFile(singletonFiles)
 
+    // Best Representatives
     bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250))
-
     combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile.concat(bestRepresentatives).flatten().collectFile(name: "combined_best_representative.txt"))
-
     bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir)
 
+    // Residual Group Stats
     groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives, fullSingletonsFile) 
-
     calculateGroupResults(groupResultsOfBestRep, 10)
 
+    // Similarity Between Orthogroups
     coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta, params.coreBestReps)
-
     bestRepSubset = coreAndResidualBestRepFasta.splitFasta(by:1000, file:true)
-
     bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, coreAndResidualBestRepFasta.collect(), params.blastArgs)
     formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
 
