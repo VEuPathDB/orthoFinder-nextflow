@@ -356,6 +356,8 @@ process peripheralDiamond {
   output:
     path '*.out', emit: output_file
 
+
+    // TODO: rename this "peripheralDiamondSimilarity.bash"
   script:
     template 'diamondSimilarity.bash'
 }
@@ -415,6 +417,9 @@ process makeResidualAndPeripheralFastas {
 
 process cleanCache {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
+
+    // TODO:  renamne this "cleanPeripheralDiamondCache"
+    // TODO:  this shoudl make a new directory which where the outdated proteomes have been removed
 
   input:
     path outdatedOrganisms
@@ -684,13 +689,18 @@ workflow coreWorkflow {
 
     bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250))
 
+    // TODO:  why are we collecting these up if we want to split them back apart to run the next steps?
     combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile.concat(bestRepresentatives).flatten().collectFile(name: "combined_best_representative.txt"))
 
+    //TODO: can we cache/save the bestRepresentative core v core diamind job?
     bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir, false)
 
+    //TODO: split combinedBestRepresentatives and run this process in parallel
     groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives, fullSingletonsFile)
 
     calculateGroupResults(groupResultsOfBestRep, 10, false)
+
+
 
 }
 
@@ -704,17 +714,26 @@ workflow peripheralWorkflow {
   // Peripheral Processing
 
     // Prep
+
+    // TODO: ReFlow should send over tar.gz or fastas (same as core)
     splitPeripheralFastaResults = splitPeripheralFasta(peripheralFasta)
+
+    // TODO;  this may be moved up to the core workflow if we do core v core
     database = createDatabase(params.coreBestReps)
+
+
     cleanCacheResults = cleanCache(params.outdatedOrganisms, params.peripheralDiamondCache)
 
     // Run Diamond
+    // TODO: change this to use the output directory from above
     peripheralDiamondResults = peripheralDiamond(splitPeripheralFastaResults.flatten(), database, params.peripheralDiamondCache, cleanCacheResults.complete)
 
     // Assigning Groups
     assignGroupsResults = assignGroups(peripheralDiamondResults)
+
+
     groupAssignments = assignGroupsResults.groups.collectFile(name: 'groups.txt')
-    similarityResults = assignGroupsResults.similarities.collectFile(name: 'sorted.out')
+    //similarityResults = assignGroupsResults.similarities.collectFile(name: 'sorted.out')
 
     // Calculating Core + Peripheral Group Similarity Results
     groupSimilarityResultsToBestRep = getPeripheralResultsToBestRep(assignGroupsResults.similarities, assignGroupsResults.groups)

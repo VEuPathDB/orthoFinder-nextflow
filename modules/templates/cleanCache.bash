@@ -2,4 +2,6 @@
 
 set -euo pipefail
 
+#
+
 removeOutdatedOrganisms.pl $outdatedOrganisms $peripheralDiamondCache

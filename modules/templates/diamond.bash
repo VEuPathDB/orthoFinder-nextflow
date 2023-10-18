@@ -10,6 +10,7 @@ for query in ${queries.join(' ')}; do
         ln -s \$BLAST_FILE .
     else
         # TODO:  Review the command line options here!
+        #  TODO:  Move as much as possible here to nextflow.config
         echo "Running Diamond to generate Blast\${query}_${target}.txt"
 
         diamond blastp --ignore-warnings \

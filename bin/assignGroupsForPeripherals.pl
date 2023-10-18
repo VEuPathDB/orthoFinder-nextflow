@@ -15,14 +15,19 @@ open(OUT,">$output");
 my %seqToGroup;
 my %seqToEvalue;
 
+#TODO set initial value for evalue to hight number
+
 while (my $line = <$data>) {
     chomp $line;
     my ($qseq,$groupId,$evalue) = split(/\t/, $line);
+
+
+    # TODO take this out
     if ($seqToGroup{$qseq}) {
         if ($seqToEvalue{$qseq} > $evalue) {
             $seqToGroup{$qseq} = $groupId;
-	    $seqToEvalue{$qseq} = $evalue;
-	}
+            $seqToEvalue{$qseq} = $evalue;
+        }
     }
     else {
         $seqToGroup{$qseq} = $groupId;
