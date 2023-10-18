@@ -17,7 +17,7 @@ for query in ${queries.join(' ')}; do
 		-d ${orthofinderWorkingDir}/diamondDBSpecies${target}.dmnd \
 		-q ${orthofinderWorkingDir}/Species\${query}.fa \
 		-o Blast\${query}_${target}.txt.gz \
-		-f 6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore \
+		-f 6 $outputList \
 		--more-sensitive \
 		-p 1 \
 		--quiet \

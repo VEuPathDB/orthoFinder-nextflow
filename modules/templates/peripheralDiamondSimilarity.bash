@@ -12,7 +12,7 @@ else
       -d $database \
       -q $fasta \
       -o ${fasta}.out \
-      -f 6 qseqid sseqid evalue \
+      -f 6 $outputList \
       --comp-based-stats 0
 
     cat ${fasta}.out | sort -k 2 > diamondSimilarity.out

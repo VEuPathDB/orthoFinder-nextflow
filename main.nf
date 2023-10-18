@@ -30,8 +30,8 @@ workflow core {
 //---------------------------------------------------------------
 
 workflow peripheral {
-  if(params.peripheralProteome) {
-    inputFile = Channel.fromPath(params.peripheralProteome)
+  if(params.peripheralProteomes) {
+    inputFile = Channel.fromPath(params.peripheralProteomes)
   }
   else {
     throw new Exception("Missing params.peripheralProteome")

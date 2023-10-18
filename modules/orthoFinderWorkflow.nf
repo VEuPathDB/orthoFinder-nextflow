@@ -16,18 +16,32 @@ process createCompressedFastaDir {
     template 'createCompressedFastaDir.bash'
 }
 
-
-process splitPeripheralFasta {
+process uncompressAndMakePeripheralFasta {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
 
   input:
-    path inputFasta
+    path peripheralDir
 
   output:
-    path 'fastas/*.fasta'
+    path 'fastas/*.fasta', emit: proteomes
+    path 'peripheral.fasta', emit: peripheralFasta
 
   script:
-    template 'splitPeripheralFasta.bash'
+    template 'uncompressAndMakePeripheralFasta.bash'
+}
+
+
+process uncompressAndMakeCoreFasta {
+  container = 'veupathdb/orthofinder:branch-jb_refactor'
+
+  input:
+    path coreDir
+
+  output:
+    path 'core.fasta'
+
+  script:
+    template 'uncompressAndMakeCoreFasta.bash'
 }
 
 
@@ -114,6 +128,7 @@ process diamond {
     tuple val(target), val(queries)
     path orthofinderWorkingDir
     path mappedBlastCache
+    val outputList
 
   output:
     path 'Blast*.txt', emit: blast
@@ -345,21 +360,20 @@ process createDatabase {
 process peripheralDiamond {
   container = 'veupathdb/diamondsimilarity'
 
-  publishDir "$params.outputDir/peripheralDiamondCache", mode: "copy", pattern: "*.out"
+  publishDir "$params.outputDir/newPeripheralDiamondCache", mode: "copy", pattern: "*.out"
 
   input:
     path fasta
     path database
     path peripheralDiamondCache
-    val stdin
+    val outputList
 
   output:
     path '*.out', emit: output_file
 
 
-    // TODO: rename this "peripheralDiamondSimilarity.bash"
   script:
-    template 'diamondSimilarity.bash'
+    template 'peripheralDiamondSimilarity.bash'
 }
 
 
@@ -415,21 +429,18 @@ process makeResidualAndPeripheralFastas {
 }
  
 
-process cleanCache {
+process cleanPeripheralDiamondCache {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
-
-    // TODO:  renamne this "cleanPeripheralDiamondCache"
-    // TODO:  this shoudl make a new directory which where the outdated proteomes have been removed
 
   input:
     path outdatedOrganisms
     path peripheralDiamondCache 
 
   output:
-    stdout emit: complete
+    path 'cleanedCache'
 
   script:
-    template 'cleanCache.bash'
+    template 'cleanPeripheralDiamondCache.bash'
 }
 
 
@@ -668,7 +679,7 @@ workflow coreWorkflow {
     // process X number pairs at a time
     speciesPairsAsTuple = listToPairwiseComparisons(speciesIds, 100);
 
-    diamondResults = diamond(speciesPairsAsTuple, setup.orthofinderWorkingDir.collect(), mappedCachedBlasts.collect())
+    diamondResults = diamond(speciesPairsAsTuple, setup.orthofinderWorkingDir.collect(), mappedCachedBlasts.collect(), params.diamondOutput)
     collectedDiamondResults = diamondResults.blast.collect()
     orthofinderGroupResults = computeGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
 
@@ -707,30 +718,26 @@ workflow coreWorkflow {
 
 workflow peripheralWorkflow { 
   take:
-    peripheralFasta
+    peripheralDir
 
   main:
 
   // Peripheral Processing
 
     // Prep
-
-    // TODO: ReFlow should send over tar.gz or fastas (same as core)
-    splitPeripheralFastaResults = splitPeripheralFasta(peripheralFasta)
+    uncompressAndMakePeripheralFastaResults = uncompressAndMakePeripheralFasta(peripheralDir)
+    uncompressAndMakeCoreFastaResults = uncompressAndMakeCoreFasta(params.coreProteomes)
 
     // TODO;  this may be moved up to the core workflow if we do core v core
     database = createDatabase(params.coreBestReps)
 
-
-    cleanCacheResults = cleanCache(params.outdatedOrganisms, params.peripheralDiamondCache)
+    cleanPeripheralDiamondCacheResults = cleanPeripheralDiamondCache(params.outdatedOrganisms, params.peripheralDiamondCache)
 
     // Run Diamond
-    // TODO: change this to use the output directory from above
-    peripheralDiamondResults = peripheralDiamond(splitPeripheralFastaResults.flatten(), database, params.peripheralDiamondCache, cleanCacheResults.complete)
+    peripheralDiamondResults = peripheralDiamond(uncompressAndMakePeripheralFastaResults.proteomes.flatten(), database, cleanPeripheralDiamondCacheResults, params.peripheralDiamondOutput)
 
     // Assigning Groups
     assignGroupsResults = assignGroups(peripheralDiamondResults)
-
 
     groupAssignments = assignGroupsResults.groups.collectFile(name: 'groups.txt')
     //similarityResults = assignGroupsResults.similarities.collectFile(name: 'sorted.out')
@@ -742,10 +749,10 @@ workflow peripheralWorkflow {
     calculatePeripheralGroupResults(combinePeripheralAndCoreSimilaritiesToBestRepsResults, 1, false)
 
     // Create Peripherals And Residual Fastas
-    makeResidualAndPeripheralFastasResults = makeResidualAndPeripheralFastas(groupAssignments, peripheralFasta)
+    makeResidualAndPeripheralFastasResults = makeResidualAndPeripheralFastas(groupAssignments, uncompressAndMakePeripheralFastaResults.peripheralFasta)
 
     // Creating Vore + Peripheral Gene Trees
-    combinedProteome = combineProteomes(params.coreProteome, makeResidualAndPeripheralFastasResults.peripheralFasta)
+    combinedProteome = combineProteomes(uncompressAndMakeCoreFastaResults, makeResidualAndPeripheralFastasResults.peripheralFasta)
     makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, groupAssignments)
     splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults, params.outdatedOrganisms)
     keepSeqIdsFromDeflinesResults = keepSeqIdsFromDeflines(splitProteomesByGroupResults.collect().flatten().collate(100))
@@ -768,7 +775,7 @@ workflow peripheralWorkflow {
     pairsChannel = listToPairwiseComparisons(speciesIds, 100);
 
     // Run Diamond
-    diamondResults = diamond(pairsChannel, setup.orthofinderWorkingDir.collect(), emptyDir)
+    diamondResults = diamond(pairsChannel, setup.orthofinderWorkingDir.collect(), emptyDir, params.residualDiamondOutput)
     blasts = diamondResults.blast.collect()
 
     // Create Groups
@@ -797,7 +804,7 @@ workflow peripheralWorkflow {
     // Similarity Between Orthogroups
     coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta, params.coreBestReps)
     bestRepSubset = coreAndResidualBestRepFasta.splitFasta(by:1000, file:true)
-    bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, coreAndResidualBestRepFasta.collect(), params.blastArgs)
+    bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, coreAndResidualBestRepFasta.collect(), params.peripheralDiamondOutput)
     formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
 
 }
