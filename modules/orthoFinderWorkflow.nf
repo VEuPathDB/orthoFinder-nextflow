@@ -434,8 +434,6 @@ process assignGroups {
 
 process getPeripheralResultsToBestRep {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
-
-  publishDir params.outputDir, mode: "copy"
   
   input:
     path similarityResults
@@ -741,13 +739,12 @@ workflow coreWorkflow {
     // TODO:  why are we collecting these up if we want to split them back apart to run the next steps?
     combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile.concat(bestRepresentatives).flatten().collectFile(name: "combined_best_representative.txt"))
 
-    //TODO: can we cache/save the bestRepresentative core v core diamind job?
     bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir, false)
 
     //TODO: split combinedBestRepresentatives and run this process in parallel
-    groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives, fullSingletonsFile)
+    groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives.splitText( by: 1000, file: true ), fullSingletonsFile)
 
-    calculateGroupResults(groupResultsOfBestRep, 10, false)
+    calculateGroupResults(groupResultsOfBestRep.collect(), 10, false)
 
     bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
     bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, bestRepresentativeFasta, params.bestRepDiamondOutput)
@@ -796,8 +793,7 @@ workflow peripheralWorkflow {
     makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, groupAssignments)
     splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults, params.outdatedOrganisms)
     keepSeqIdsFromDeflinesResults = keepSeqIdsFromDeflines(splitProteomesByGroupResults.collect().flatten().collate(100))
-    keepSeqIdsFromDeflinesResults.collect()
-    createGeneTrees(keepSeqIdsFromDeflinesResults.flatten())
+    createGeneTrees(keepSeqIdsFromDeflinesResults.collect().flatten().collate(100))
 
   // Residual Processing
 
@@ -838,23 +834,30 @@ workflow peripheralWorkflow {
     bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir, true)
 
     // Residual Group Stats
-    groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives, fullSingletonsFile) 
+    groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives.splitText( by: 1, file: true ), fullSingletonsFile) 
     calculateGroupResults(groupResultsOfBestRep, 10, true)
 
     // Similarity Between Orthogroups
     coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta, params.coreBestReps)
     bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
+
+    // Residual to core and residuals
     residualBestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, coreAndResidualBestRepFasta.collect(), params.peripheralDiamondOutput)
 
     coreBestRepsChannel = Channel.fromPath( params.coreBestReps )
     coreBestRepSubset = coreBestRepsChannel.splitFasta(by:1000, file:true)
+
+    // Core to residuals only
     coreToResidualBestRepsSelfDiamondResults = bestRepsSelfDiamondTwo(coreBestRepSubset, bestRepresentativeFasta.collect(), params.peripheralDiamondOutput)
 
+    // Collect orthogroup similarity results
     allResidualBestRepsSelfDiamondResults = residualBestRepsSelfDiamondResults.collectFile()
     allCoreToResidualBestRepsSelfDiamondResults = coreToResidualBestRepsSelfDiamondResults.collectFile()
 
+    // Format group similairity results
     formatSimilarOrthogroupsResults = formatSimilarOrthogroups(allResidualBestRepsSelfDiamondResults.concat(allCoreToResidualBestRepsSelfDiamondResults))
 
-    combineSimilarOrthogroups(formatSimilarOrthogroupsResults, params.coreSimilarOrthogroups)
+    // Combine residual vs core and residual, core vs residual and cached core vs core to get final results
+    combineSimilarOrthogroups(formatSimilarOrthogroupsResults.collectFile(), params.coreSimilarOrthogroups)
 
 }

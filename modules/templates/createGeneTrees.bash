@@ -2,4 +2,6 @@
 
 set -euo pipefail
 
-mafft --auto $fasta | fasttree -mlnni 4 > ${fasta}.tree
+for f in *.fasta; do mafft --auto \$f | fasttree -mlnni 4 > \$f.tree; done
+
+
