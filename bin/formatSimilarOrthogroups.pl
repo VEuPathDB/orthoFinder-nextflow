@@ -34,7 +34,9 @@ while (my $line = <$data>) {
 }
 
 my $outputString = join(',',@sequenceIdEvalue);
-print OUT "$currentQSeqId" . ": " . $outputString . "\n";
+if ($currentQSeqId ne "") {
+    print OUT "$currentQSeqId" . ": " . $outputString . "\n";
+}
 
 close OUT;
 close $data;
