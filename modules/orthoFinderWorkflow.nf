@@ -327,6 +327,22 @@ process bestRepsSelfDiamond {
 }
 
 
+process bestRepsSelfDiamondTwo {
+  container = 'veupathdb/diamondsimilarity'
+
+  input:
+    path bestRepSubset
+    path bestRepsFasta
+    val blastArgs
+
+  output:
+    path 'bestReps.out'
+
+  script:
+    template 'bestRepsSelfDiamond.bash'
+}
+
+
 process formatSimilarOrthogroups {
   container = 'veupathdb/orthofinder:branch-jb_refactor'
 
@@ -340,6 +356,28 @@ process formatSimilarOrthogroups {
 
   script:
     template 'formatSimilarOrthogroups.bash'
+}
+
+
+process combineSimilarOrthogroups {
+  container = 'veupathdb/orthofinder:branch-jb_refactor'
+
+  publishDir "$params.outputDir", mode: "copy"
+
+  input:
+    // Avoid file name collision
+    path 'coreAndResidual.txt'
+    path coreAndCore
+
+  output:
+    path 'similarOrthogroupsFinal.txt'
+
+  script:
+    """
+    touch similarOrthogroupsFinal.txt
+    cat coreAndResidual.txt >> similarOrthogroupsFinal.txt
+    cat $coreAndCore >> similarOrthogroupsFinal.txt
+    """
 }
 
 
@@ -679,7 +717,7 @@ workflow coreWorkflow {
     // process X number pairs at a time
     speciesPairsAsTuple = listToPairwiseComparisons(speciesIds, 100);
 
-    diamondResults = diamond(speciesPairsAsTuple, setup.orthofinderWorkingDir.collect(), mappedCachedBlasts.collect(), params.diamondOutput)
+    diamondResults = diamond(speciesPairsAsTuple, setup.orthofinderWorkingDir.collect(), mappedCachedBlasts.collect(), params.orthoFinderDiamondOutput)
     collectedDiamondResults = diamondResults.blast.collect()
     orthofinderGroupResults = computeGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
 
@@ -711,7 +749,9 @@ workflow coreWorkflow {
 
     calculateGroupResults(groupResultsOfBestRep, 10, false)
 
-
+    bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
+    bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, bestRepresentativeFasta, params.bestRepDiamondOutput)
+    formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
 
 }
 
@@ -803,8 +843,18 @@ workflow peripheralWorkflow {
 
     // Similarity Between Orthogroups
     coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta, params.coreBestReps)
-    bestRepSubset = coreAndResidualBestRepFasta.splitFasta(by:1000, file:true)
-    bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, coreAndResidualBestRepFasta.collect(), params.peripheralDiamondOutput)
-    formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
+    bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
+    residualBestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, coreAndResidualBestRepFasta.collect(), params.peripheralDiamondOutput)
+
+    coreBestRepsChannel = Channel.fromPath( params.coreBestReps )
+    coreBestRepSubset = coreBestRepsChannel.splitFasta(by:1000, file:true)
+    coreToResidualBestRepsSelfDiamondResults = bestRepsSelfDiamondTwo(coreBestRepSubset, bestRepresentativeFasta.collect(), params.peripheralDiamondOutput)
+
+    allResidualBestRepsSelfDiamondResults = residualBestRepsSelfDiamondResults.collectFile()
+    allCoreToResidualBestRepsSelfDiamondResults = coreToResidualBestRepsSelfDiamondResults.collectFile()
+
+    formatSimilarOrthogroupsResults = formatSimilarOrthogroups(allResidualBestRepsSelfDiamondResults.concat(allCoreToResidualBestRepsSelfDiamondResults))
+
+    combineSimilarOrthogroups(formatSimilarOrthogroupsResults, params.coreSimilarOrthogroups)
 
 }
