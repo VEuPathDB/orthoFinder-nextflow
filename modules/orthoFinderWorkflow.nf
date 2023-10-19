@@ -736,12 +736,10 @@ workflow coreWorkflow {
 
     bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250))
 
-    // TODO:  why are we collecting these up if we want to split them back apart to run the next steps?
     combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile.concat(bestRepresentatives).flatten().collectFile(name: "combined_best_representative.txt"))
 
     bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir, false)
 
-    //TODO: split combinedBestRepresentatives and run this process in parallel
     groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives.splitText( by: 1000, file: true ), fullSingletonsFile)
 
     calculateGroupResults(groupResultsOfBestRep.collect(), 10, false)
