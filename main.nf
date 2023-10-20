@@ -5,9 +5,8 @@ nextflow.enable.dsl=2
 // Including Workflows
 //---------------------------------------------------------------
 
-include { coreWorkflow } from './modules/coreWorkflow.nf'
-include { residualWorkflow } from './modules/residualWorkflow.nf'
-include { groupSelfWorkflow } from './modules/groupSelfWorkflow.nf'
+include { coreWorkflow } from './modules/orthoFinderWorkflow.nf'
+include { peripheralWorkflow } from './modules/orthoFinderWorkflow.nf'
 
 //---------------------------------------------------------------
 // core
@@ -15,11 +14,11 @@ include { groupSelfWorkflow } from './modules/groupSelfWorkflow.nf'
 
 workflow core {
 
-  if(params.inputFile) {
-    inputFile = Channel.fromPath( params.inputFile )
+  if(params.proteomes) {
+    inputFile = Channel.fromPath( params.proteomes )
   }
   else {
-    throw new Exception("Missing params.inputFile")
+    throw new Exception("Missing params.proteomes")
   }
 
   coreWorkflow(inputFile)
@@ -27,35 +26,18 @@ workflow core {
 }
 
 //---------------------------------------------------------------
-// residual
+// peripheral
 //---------------------------------------------------------------
 
-workflow residual {
-
-  if(params.inputFile) {
-    inputFile = Channel.fromPath( params.inputFile )
+workflow peripheral {
+  if(params.peripheralProteomes) {
+    inputFile = Channel.fromPath(params.peripheralProteomes)
   }
   else {
-    throw new Exception("Missing params.inputFile")
+    throw new Exception("Missing params.peripheralProteome")
   }
 
-  residualWorkflow(inputFile)
-   
-}
-
-//---------------------------------------------------------------
-// groups
-//---------------------------------------------------------------
-
-workflow group {
-  if(params.coreProteome) {
-    inputFile = Channel.fromPath( params.coreProteome )
-  }
-  else {
-    throw new Exception("Missing params.coreProteome")
-  }
-
-  groupSelfWorkflow(inputFile)
+  peripheralWorkflow(inputFile)
    
 }
 
@@ -65,11 +47,11 @@ workflow group {
 
 workflow {
 
-  if(params.inputFile) {
-    inputFile = Channel.fromPath( params.inputFile )
+  if(params.proteomes) {
+    inputFile = Channel.fromPath( params.proteomes )
   }
   else {
-    throw new Exception("Missing params.inputFile")
+    throw new Exception("Missing params.proteomes")
   }
 
   coreWorkflow(inputFile)

@@ -2,27 +2,9 @@
 
 set -euo pipefail
 
-rm -f cleaned.txt
+ln -s $fastas/* ./
 
-if [[ "$tarfile" == *".gz"* ]];then
-    tar xzf $tarfile
-    rm *.tar.gz
-else
-    tar xf $tarfile
-    rm *.tar
-fi
+orthofinder -f . -op
 
-for f in **/*; do mv "\$f" .; done
-
-rm -r */
-
-for f in *; do mv "\$f" "\$f.fasta"; done
-
-mkdir input
-for f in *.fasta; do mv "\$f" ./input; done
-
-orthofinder -f input -op
-
-for f in input/OrthoFinder/**/WorkingDirectory/*.txt; do mv "\$f" .; done
-for f in input/OrthoFinder/**/WorkingDirectory/*.fa; do mv "\$f" .; done
-for f in input/OrthoFinder/**/WorkingDirectory/*.dmnd; do mv "\$f" .; done
+#TODO:  what happens if there is more than one directory returned by this glob??
+ln -s OrthoFinder/**/WorkingDirectory .

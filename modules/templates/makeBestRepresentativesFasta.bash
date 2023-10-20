@@ -2,8 +2,30 @@
 
 set -euo pipefail
 
-touch bestReps.txt
-for f in *.final; do cat "\$f" >> bestReps.txt; done
-cat Singletons.dat >> bestReps.txt
-samtools faidx $fasta
-perl /usr/bin/makeBestRepresentativesFasta.pl --bestReps bestReps.txt --fasta $fasta
+FASTA=proteome.fasta
+SEQIDS=sequenceIds.txt
+
+OUTPUT=bestReps.fasta
+
+cat $orthofinderWorkingDir/*.fa >\$FASTA
+
+samtools faidx \$FASTA
+
+cut -f 2 $bestRepresentatives >\$SEQIDS
+
+# this will get fasta for all seq ids
+
+if [ "$isResidual" = true ]; then
+
+    echo "residual"
+    samtools faidx -r \$SEQIDS \$FASTA | makeBestRepresentativesFasta.pl --bestReps $bestRepresentatives --outputFile \$OUTPUT --isResidual true
+    
+else
+
+    echo "Not"
+    samtools faidx -r \$SEQIDS \$FASTA | makeBestRepresentativesFasta.pl --bestReps $bestRepresentatives --outputFile \$OUTPUT
+    
+fi
+
+
+

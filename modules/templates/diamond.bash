@@ -2,12 +2,28 @@
 
 set -euo pipefail
 
-perl /usr/bin/orthoFinderBlast.pl --database ${pair[0]} --query ${pair[1]} --sequences_id_file SequenceIDs.txt --species_id_file SpeciesIDs.txt
+for query in ${queries.join(' ')}; do
 
-cp Blast*.txt.gz hold.txt.gz
-gunzip hold.txt.gz
-rm *.dmnd
-rm -rf previousBlasts
+    BLAST_FILE=$mappedBlastCache/Blast\${query}_${target}.txt
+    if [ -f "\$BLAST_FILE" ]; then
+        echo "Taking from Cache for \$BLAST_FILE"
+        ln -s \$BLAST_FILE .
+    else
+        # TODO:  Review the command line options here!
+        #  TODO:  Move as much as possible here to nextflow.config
+        echo "Running Diamond to generate Blast\${query}_${target}.txt"
 
-echo "Testing"
-ls /previousBlasts
+        diamond blastp --ignore-warnings \
+		-d ${orthofinderWorkingDir}/diamondDBSpecies${target}.dmnd \
+		-q ${orthofinderWorkingDir}/Species\${query}.fa \
+		-o Blast\${query}_${target}.txt.gz \
+		-f 6 $outputList \
+		--more-sensitive \
+		-p 1 \
+		--quiet \
+		-e 0.001 \
+		--compress 1
+        gunzip Blast*.gz
+    fi
+
+done

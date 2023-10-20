@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-
-mkdir hold
-
-perl /usr/bin/organismSeperateFastaFile.pl --input $inputFasta --outputDir hold
-
-mv hold fastas
+mkdir fastas
+separateFastaByOrganism.pl --input $inputFasta --outputDir fastas
+tar -zcvf fastas.tar.gz fastas

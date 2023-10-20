@@ -21,5 +21,3 @@ fi
 if [ -f "/cache/previousFastas/${groupFasta}" ]; then
   cat /cache/previousFastas/${groupFasta} >> $groupFasta
 fi
-
-
