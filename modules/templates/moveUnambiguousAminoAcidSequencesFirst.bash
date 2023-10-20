@@ -6,7 +6,7 @@ mkdir cleanedFastas
 
 # unpack the tarball;  need to know the directory name which is unpacked
 tar -xvzf $proteomes >tarOut
-tarDir=`cat tarOut | head -1 | cut -f1 -d"/"`
+tarDir=`cat tarOut | head -1`
 
 for f in \$tarDir/*.fasta;
 do
