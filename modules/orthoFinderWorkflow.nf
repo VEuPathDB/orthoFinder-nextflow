@@ -3,7 +3,7 @@ nextflow.enable.dsl=2
 
 
 process createCompressedFastaDir {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   input:
     path inputFasta
@@ -17,7 +17,7 @@ process createCompressedFastaDir {
 }
 
 process uncompressAndMakePeripheralFasta {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   input:
     path peripheralDir
@@ -32,7 +32,7 @@ process uncompressAndMakePeripheralFasta {
 
 
 process uncompressAndMakeCoreFasta {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   input:
     path coreDir
@@ -46,7 +46,7 @@ process uncompressAndMakeCoreFasta {
 
 
 process createEmptyBlastDir {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   input:
     val stdin
@@ -69,7 +69,7 @@ process createEmptyBlastDir {
  *
  */
 process moveUnambiguousAminoAcidSequencesFirst {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   input:
     path proteomes
@@ -94,7 +94,7 @@ process moveUnambiguousAminoAcidSequencesFirst {
 
 
 process orthoFinderSetup {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "*.txt"
 
@@ -150,7 +150,7 @@ process diamond {
  * @return outputDir contains a directory of Blast*.txt files with mapped ids
  */
 process mapCachedBlasts {
-    container = 'veupathdb/orthofinder:branch-jb_refactor'
+    container = 'veupathdb/orthofinder'
 
     input:
     path previousDiamondCacheDirectory
@@ -167,7 +167,7 @@ process mapCachedBlasts {
 
 
 process computeGroups {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir", mode: "copy", pattern: "Results"
 
@@ -185,7 +185,7 @@ process computeGroups {
 
 
 process splitOrthogroupsFile {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   input:
     path results
@@ -199,7 +199,7 @@ process splitOrthogroupsFile {
 
 
 process makeFullSingletonsFile {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   input:
     path singletonFiles
@@ -213,7 +213,7 @@ process makeFullSingletonsFile {
 
 
 process translateSingletonsFile {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   input:
     path singletonsFile
@@ -228,7 +228,7 @@ process translateSingletonsFile {
 
 
 process reformatGroupsFile {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -246,7 +246,7 @@ process reformatGroupsFile {
 
 
 process makeOrthogroupDiamondFiles {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   input:
     tuple val(target), val(queries)
@@ -262,7 +262,7 @@ process makeOrthogroupDiamondFiles {
 
 
 process findBestRepresentatives {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   input:
     path groupData
@@ -276,7 +276,7 @@ process findBestRepresentatives {
 
 
 process retrieveResultsToBestRepresentative {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir/groupStatsToBestReps", mode: "copy"
 
@@ -294,7 +294,7 @@ process retrieveResultsToBestRepresentative {
 
 
 process makeBestRepresentativesFasta {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -344,7 +344,7 @@ process bestRepsSelfDiamondTwo {
 
 
 process formatSimilarOrthogroups {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -360,7 +360,7 @@ process formatSimilarOrthogroups {
 
 
 process combineSimilarOrthogroups {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -382,7 +382,7 @@ process combineSimilarOrthogroups {
 
 
 process createDatabase {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   input:
     path newdbfasta
@@ -416,7 +416,7 @@ process peripheralDiamond {
 
 
 process assignGroups {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   publishDir params.outputDir, mode: "copy"
   
@@ -433,7 +433,7 @@ process assignGroups {
 
 
 process getPeripheralResultsToBestRep {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
   
   input:
     path similarityResults
@@ -448,7 +448,7 @@ process getPeripheralResultsToBestRep {
 
 
 process makeResidualAndPeripheralFastas {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   publishDir params.outputDir, mode: "copy"
   
@@ -466,7 +466,7 @@ process makeResidualAndPeripheralFastas {
  
 
 process cleanPeripheralDiamondCache {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   input:
     path outdatedOrganisms
@@ -481,7 +481,7 @@ process cleanPeripheralDiamondCache {
 
 
 process combineProteomes {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   input:
     path coreProteome
@@ -496,7 +496,7 @@ process combineProteomes {
 
 
 process makeGroupsFile {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -513,7 +513,7 @@ process makeGroupsFile {
 
 
 process splitProteomeByGroup {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir/fastas", mode: "copy"
 
@@ -549,7 +549,7 @@ process groupSelfDiamond {
 
 
 process keepSeqIdsFromDeflines {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir/fastas", mode: "copy"
 
@@ -565,7 +565,7 @@ process keepSeqIdsFromDeflines {
 
 
 process createGeneTrees {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir/geneTrees", mode: "copy"
 
@@ -581,7 +581,7 @@ process createGeneTrees {
 
 
 process splitOrthologGroupsPerSpecies {
-    container = 'veupathdb/orthofinder:branch-jb_refactor'
+    container = 'veupathdb/orthofinder'
 
     input:
     val species
@@ -614,7 +614,7 @@ process removeEmptyGroups {
 
 
 process calculatePeripheralGroupResults {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir/peripheralAndCoreGroupStats", mode: "copy"
 
@@ -632,7 +632,7 @@ process calculatePeripheralGroupResults {
 
 
 process calculateGroupResults {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir/groupStats", mode: "copy"
 
@@ -650,7 +650,7 @@ process calculateGroupResults {
 
 
 process mergeCoreAndResidualBestReps {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   input:
     path residualBestReps
@@ -670,7 +670,7 @@ process mergeCoreAndResidualBestReps {
 
 
 process combinePeripheralAndCoreSimilaritiesToBestReps {
-  container = 'veupathdb/orthofinder:branch-jb_refactor'
+  container = 'veupathdb/orthofinder'
 
   input:
     path peripheralGroupSimilarities
