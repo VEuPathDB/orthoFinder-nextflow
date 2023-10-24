@@ -17,7 +17,7 @@ my @sequenceIdEvalue;
 
 while (my $line = <$data>) {
     chomp $line;
-    my ($qseqid,$qlen,$sseqid,$slen,$qstart,$qend,$sstart,$send,$evalue,$bitscore,$length,$nident,$pident,$positive,$qframe,$qstrand,$gaps,$qcovhsp,$scovhsp,$qseq) = split(/\t/, $line);
+    my ($qseqid,$sseqid,$pident,$length,$mismatch,$gapopen,$qstart,$qend,$sstart,$send,$evalue,$bitscore) = split(/\t/, $line);
     if ($qseqid eq $currentQSeqId) {
         push(@sequenceIdEvalue, "$sseqid $evalue");
     }
