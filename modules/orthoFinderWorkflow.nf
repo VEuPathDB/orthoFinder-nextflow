@@ -104,8 +104,8 @@ process orthoFinderSetup {
   output:
     path 'OrthoFinder', emit: orthofinderDirectory
     path 'WorkingDirectory', emit: orthofinderWorkingDir, type: 'dir'
-    path 'WorkingDirectory/SpeciesIDs.txt', emit: speciesMapping
-    path 'WorkingDirectory/SequenceIDs.txt', emit: sequenceMapping
+    path 'SpeciesIDs.txt', emit: speciesMapping
+    path 'SequenceIDs.txt', emit: sequenceMapping
 
   script:
     template 'orthoFinder.bash'
@@ -418,8 +418,6 @@ process peripheralDiamond {
 process assignGroups {
   container = 'veupathdb/orthofinder'
 
-  publishDir params.outputDir, mode: "copy"
-  
   input:
     path sortedResults
         
@@ -515,8 +513,6 @@ process makeGroupsFile {
 process splitProteomeByGroup {
   container = 'veupathdb/orthofinder'
 
-  publishDir "$params.outputDir/fastas", mode: "copy"
-
   input:
     path proteome
     path groups
@@ -534,7 +530,6 @@ process groupSelfDiamond {
   container = 'veupathdb/diamondsimilarity'
 
   publishDir "$params.outputDir/groupResults", mode: "copy", pattern: "*.out"
-  publishDir "$params.outputDir/fastas", mode: "copy", pattern: "*.fasta"
 
   input:
     path groupFasta
@@ -550,8 +545,6 @@ process groupSelfDiamond {
 
 process keepSeqIdsFromDeflines {
   container = 'veupathdb/orthofinder'
-
-  publishDir "$params.outputDir/fastas", mode: "copy"
 
   input:
     path fastas

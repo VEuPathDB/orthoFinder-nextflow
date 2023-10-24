@@ -1,11 +1,8 @@
 #!/usr/bin/perl
 
 use strict;
-
 use Getopt::Long;
-
 use File::Basename;
-
 use Data::Dumper;
 
 my ($outdated, $cachedSpeciesMapping, $cachedSequenceMapping, $newSpeciesMapping, $newSequenceMapping, $outputDir, $diamondCacheDir);
@@ -17,7 +14,7 @@ my ($outdated, $cachedSpeciesMapping, $cachedSequenceMapping, $newSpeciesMapping
             "newSequenceMapping=s" => \$newSequenceMapping, # Sequence mapping file from the current run (from orthofinder setup)
             "diamondCacheDir=s" => \$diamondCacheDir, # Directory contains pairwise blast results from the last run
             "outputDir=s" => \$outputDir # New cache directory
-    );
+           );
 
 open(FILE, $outdated) or die "cannot open file $outdated for reading: $!";
 
@@ -30,7 +27,8 @@ unless(-e $cachedSpeciesMapping && -e $cachedSequenceMapping) {
 my %outdated;
 while(<FILE>) {
     chomp;
-    $outdated{$_} = 1;
+    my $organism = $_;
+    $outdated{"${organism}.fasta"} = 1;
 }
 close FILE;
 
@@ -44,7 +42,7 @@ while(<NEW>) {
 }
 close NEW;
 
-# Creating a hash objet to hold the cached species mapping information
+# Creating a hash object to hold the cached species mapping information
 open(CACHE, $cachedSpeciesMapping) or die "cannot open file $cachedSpeciesMapping for reading: $!";
 my %speciesMap;
 while(<CACHE>) {
@@ -53,7 +51,8 @@ while(<CACHE>) {
 
     # don't read from cache if outdated
     if($outdated{$organismName}) {
-        print STDERR "WARN:  SKIP Organism $organismName defined in Outdated File";
+        print STDERR "WARN:  SKIP Organism $organismName defined in Outdated File\n";
+        $speciesMap{$organismId} = "outdated";
         next ;
     }
 
@@ -62,13 +61,14 @@ while(<CACHE>) {
     my $newOrganismId = $newSpecies{$organismName};
     # If the organism has been removed, skip
     unless(defined $newOrganismId) {
-        print STDERR "WARN:  SKIP Organism $organismName as it no longer exists in this run of orthofinder";
+        print STDERR "WARN:  SKIP Organism $organismName as it no longer exists in this run of orthofinder\n";
+        $speciesMap{$organismId} = "NA";
         next;
     }
 
     # Step to make sure the organism sequence ids are indeed identical to last run. Should always be true if the organism wasn't identified as outdated in the outdated file
     if(&organismIsOutdated($organismId, $newOrganismId, $cachedSequenceMapping, $newSequenceMapping)) {
-        print STDERR "WARN:  Unexpected skipping of organism $organismName";
+        print STDERR "WARN:  Unexpected skipping of organism $organismName\n";
     }
 
     # if we made it here, we can do the species mapping. Object holds new species mapping
@@ -89,9 +89,12 @@ foreach my $cachedBlastFile (@cachedBlastFiles) {
     # Get new species mapping
     my $newOrg1 = $speciesMap{$org1};
     my $newOrg2 = $speciesMap{$org2};
-
+    
     # If we have mapping data for these organisms
-    if(defined $newOrg1  && defined $newOrg2) {
+    if(defined $newOrg1 && defined $newOrg2 && $newOrg1 ne "NA" && $newOrg1 ne "outdated" && $newOrg2 ne "NA" && $newOrg2 ne "outdated") {
+
+        print STDERR "Mapping needed data for new org id $newOrg1 and $newOrg2\n";
+	
 	# Replace old species ids with new species ids
         my $newBlastFileBasename = "Blast${newOrg1}_${newOrg2}.txt";
         open(BLASTIN, $cachedBlastFile) or die "Cannot open file $cachedBlastFile for reading: $!";
@@ -111,6 +114,12 @@ foreach my $cachedBlastFile (@cachedBlastFiles) {
 
         close BLASTIN;
         close BLASTOUT;
+    }
+    elsif($newOrg1 eq "outdated" || $newOrg2 eq "outdated") {
+	print STDERR "WARN:  No Need To Map Outdated Organism\n";
+    }
+    elsif($newOrg1 eq "NA" || $newOrg2 eq "NA") {
+	print STDERR "WARN:  No Need To Map Unused Data\n";
     }
     else {
         die "Could not find species mapping for $org1 or $org2";
