@@ -4,7 +4,7 @@ set -euo pipefail
 
 # unpack the tarball;  need to know the directory name which is unpacked
 tar -xvzf $peripheralDir >tarOut
-tarDir=`cat tarOut | head -1 | cut -f1 -d"/"`
+tarDir=`cat tarOut | head -1 | cut -f1`
 
 touch peripheral.fasta
 
