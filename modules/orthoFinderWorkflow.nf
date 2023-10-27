@@ -733,9 +733,9 @@ workflow coreWorkflow {
 
     bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir, false)
 
-    groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives.splitText( by: 1000, file: true ), fullSingletonsFile)
+    groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives.splitText( by: 1000, file: true ), fullSingletonsFile).collect()
 
-    calculateGroupResults(groupResultsOfBestRep.collect(), 10, false)
+    calculateGroupResults(groupResultsOfBestRep.flatten().collate(250), 10, false)
 
     bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
     bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, bestRepresentativeFasta, params.bestRepDiamondOutput)
