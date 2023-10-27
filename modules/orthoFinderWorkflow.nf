@@ -550,7 +550,7 @@ process keepSeqIdsFromDeflines {
     path fastas
 
   output:
-    path 'filteredFastas/*.fasta'
+    path 'filteredFastas/*.fasta', optional: true
 
   script:
     template 'keepSeqIdsFromDeflines.bash'
