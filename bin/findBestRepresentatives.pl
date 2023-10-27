@@ -3,14 +3,14 @@
 use strict;
 use warnings;
 use Getopt::Long;
-use List::Util qw( reduce );
+#use List::Util qw( reduce );
 
 use Data::Dumper;
 
-my ($groupFile, $outputFile);
+my ($groupFile);
 
 &GetOptions("groupFile=s"=> \$groupFile, # Pairwise blast results per group
-            "output_file=s" => \$outputFile);
+            );
 
 my $QSEQ_COLUMN = 0;
 my $EVALUE_COLUMN = 10;
@@ -36,27 +36,28 @@ while (my $line = <$data>) {
     my $evalue = $lineAr[$EVALUE_COLUMN];
 
     # Make an array of evalues per query sequence
-    push( @{$values{$qseq}}, $evalue);
+    #push( @{$values{$qseq}}, $evalue);
+
+    $values{$qseq}->{sum} += $evalue;
+    $values{$qseq}->{total}++;
 }
 
 my %seqAvg;
 
+my $minValue = 1000000000;
+
+my $bestRepresentative;
+
 # For every query sequence
 foreach my $qseq (keys %values) {
-    my $sum = 0;
-    my $pairCountPerQSeq = scalar @{$values{$qseq}};
-    # Sum up all of the evalues
-    foreach(@{$values{$qseq}}) {
-        $sum += $_;
+    my $avg = $values{$qseq}->{sum} / $values{$qseq}->{total} ;
+    if($avg <= $minValue) {
+        $bestRepresentative = $qseq;
+        $minValue = $avg;
     }
-    # Calculate average e-value per query sequence
-    my $avg = $sum / $pairCountPerQSeq;
-    $seqAvg{$qseq} = $avg;
 }
 
-my $bestRepresentative = reduce { $seqAvg{$a} <= $seqAvg{$b} ? $a : $b } keys %seqAvg;
-
-open(OUT,">$outputFile")  or die "Cannot open file $outputFile For writing: $!";
-print OUT "${group}\t${bestRepresentative}\n";
-close OUT;
-
+#my $bestRepresentative = reduce { $seqAvg{$a} <= $seqAvg{$b} ? $a : $b } keys %seqAvg;
+#open(OUT,">$outputFile")  or die "Cannot open file $outputFile For writing: $!";
+print "${group}\t${bestRepresentative}\n";
+#close OUT;
