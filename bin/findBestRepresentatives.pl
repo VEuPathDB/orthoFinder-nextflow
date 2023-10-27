@@ -3,14 +3,11 @@
 use strict;
 use warnings;
 use Getopt::Long;
-#use List::Util qw( reduce );
-
 use Data::Dumper;
 
 my ($groupFile);
 
-&GetOptions("groupFile=s"=> \$groupFile, # Pairwise blast results per group
-            );
+&GetOptions("groupFile=s"=> \$groupFile); # Pairwise blast results per group
 
 my $QSEQ_COLUMN = 0;
 my $EVALUE_COLUMN = 10;
@@ -67,6 +64,6 @@ sub calculateAverageAndPrintGroup {
         }
     }
 
-    print "${group}\t${bestRepresentative}\n";
 
+    print "${group}\t${bestRepresentative}\n";
 }
