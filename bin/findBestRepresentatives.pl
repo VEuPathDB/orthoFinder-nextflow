@@ -3,14 +3,11 @@
 use strict;
 use warnings;
 use Getopt::Long;
-#use List::Util qw( reduce );
-
 use Data::Dumper;
 
 my ($groupFile);
 
-&GetOptions("groupFile=s"=> \$groupFile, # Pairwise blast results per group
-            );
+&GetOptions("groupFile=s"=> \$groupFile); # Pairwise blast results per group
 
 my $QSEQ_COLUMN = 0;
 my $EVALUE_COLUMN = 10;
@@ -57,7 +54,5 @@ foreach my $qseq (keys %values) {
     }
 }
 
-#my $bestRepresentative = reduce { $seqAvg{$a} <= $seqAvg{$b} ? $a : $b } keys %seqAvg;
-#open(OUT,">$outputFile")  or die "Cannot open file $outputFile For writing: $!";
 print "${group}\t${bestRepresentative}\n";
-#close OUT;
+
