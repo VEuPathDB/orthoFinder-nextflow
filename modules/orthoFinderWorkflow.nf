@@ -774,15 +774,15 @@ workflow peripheralWorkflow {
     groupSimilarityResultsToBestRep = getPeripheralResultsToBestRep(assignGroupsResults.similarities, assignGroupsResults.groups)
     allGroupSimilarityResultsToBestRep = groupSimilarityResultsToBestRep.flatten().collectFile() { item -> [ item.getName(), item ] }
     combinePeripheralAndCoreSimilaritiesToBestRepsResults = combinePeripheralAndCoreSimilaritiesToBestReps(allGroupSimilarityResultsToBestRep.collect(), params.coreSimilarityResults)
-    calculatePeripheralGroupResults(combinePeripheralAndCoreSimilaritiesToBestRepsResults, 1, false)
+    calculatePeripheralGroupResults(combinePeripheralAndCoreSimilaritiesToBestRepsResults.collect().flatten().collate(100), 1, false)
 
     // Create Peripherals And Residual Fastas
     makeResidualAndPeripheralFastasResults = makeResidualAndPeripheralFastas(groupAssignments, uncompressAndMakePeripheralFastaResults.peripheralFasta)
 
     // Creating Vore + Peripheral Gene Trees
-    combinedProteome = combineProteomes(uncompressAndMakeCoreFastaResults, makeResidualAndPeripheralFastasResults.peripheralFasta)
+    combinedProteome = combineProteomes(uncompressAndMakeCoreFastaResults, makeResidualAndPeripheralFastasResults.peripheralFasta).collect()
     makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, groupAssignments)
-    splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults, params.outdatedOrganisms)
+    splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults.splitText( by: 100, file: true ), params.outdatedOrganisms)
     keepSeqIdsFromDeflinesResults = keepSeqIdsFromDeflines(splitProteomesByGroupResults.collect().flatten().collate(100))
     createGeneTrees(keepSeqIdsFromDeflinesResults.collect().flatten().collate(100))
 
