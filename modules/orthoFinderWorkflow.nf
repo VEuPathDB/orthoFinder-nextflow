@@ -825,7 +825,7 @@ workflow peripheralWorkflow {
     bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir, true)
 
     // Residual Group Stats
-    groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives.splitText( by: 1, file: true ), fullSingletonsFile).collect()
+    groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives.splitText( by: 100, file: true ), fullSingletonsFile).collect()
     calculateGroupResults(groupResultsOfBestRep.flatten().collate(250), 10, true)
 
     // Similarity Between Orthogroups
