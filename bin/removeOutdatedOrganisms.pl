@@ -23,7 +23,7 @@ close $fh_outdated;
 foreach my $update (@outdated) {
     # If there is a cache file for the organism, delete it
     if (-e "$peripheralCache/${update}.fasta.out") {
-        system("rm $peripheralCache/${update}.fasta.out");
-	print "Removed ${update}.fasta.out from cache\n";
+        unlink "$peripheralCache/${update}.fasta.out";
+        print "Removed ${update}.fasta.out from cache\n";
     }
 }

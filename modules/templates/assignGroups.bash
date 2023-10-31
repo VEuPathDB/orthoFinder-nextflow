@@ -2,8 +2,10 @@
 
 set -euo pipefail
 
-assignGroupsForPeripherals.pl --result $sortedResults \
+assignGroupsForPeripherals.pl --result $diamondInput \
 			      --output groups.txt
 
 sort -k 2 groups.txt > sortedGroups.txt
-sort -k 2 $sortedResults > sortedResults.txt
+
+
+#sort -k 2 $diamondInput > sortedResults.txt

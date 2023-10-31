@@ -1,6 +1,7 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
+include { uncompressFastas; uncompressFastas as uncompressPeripheralFastas; orthoFinderSetup} from './shared.nf'
 
 process createCompressedFastaDir {
   container = 'veupathdb/orthofinder'
@@ -16,33 +17,19 @@ process createCompressedFastaDir {
     template 'createCompressedFastaDir.bash'
 }
 
-process uncompressAndMakePeripheralFasta {
-  container = 'veupathdb/orthofinder'
 
-  input:
-    path peripheralDir
+// process uncompressAndMakeCoreFasta {
+//   container = 'veupathdb/orthofinder'
 
-  output:
-    path 'fastas/*.fasta', emit: proteomes
-    path 'peripheral.fasta', emit: peripheralFasta
+//   input:
+//     path coreDir
 
-  script:
-    template 'uncompressAndMakePeripheralFasta.bash'
-}
+//   output:
+//     path 'core.fasta'
 
-
-process uncompressAndMakeCoreFasta {
-  container = 'veupathdb/orthofinder'
-
-  input:
-    path coreDir
-
-  output:
-    path 'core.fasta'
-
-  script:
-    template 'uncompressAndMakeCoreFasta.bash'
-}
+//   script:
+//     template 'uncompressAndMakeCoreFasta.bash'
+// }
 
 
 process createEmptyBlastDir {
@@ -61,127 +48,12 @@ process createEmptyBlastDir {
 }
 
 
-/**
- * ortho finder looks for unambiguous amino acid sequences first sequences of fasta
- * ensure the first sequence in each fasta file has unambigous amino acids
- * @param proteomes:  tar.gz directory of fasta files.  each named like $organismAbbrev.fasta
- * @return arrangedProteomes directory of fasta files
- *
- */
-process moveUnambiguousAminoAcidSequencesFirst {
-  container = 'veupathdb/orthofinder'
-
-  input:
-    path proteomes
-
-  output:
-    path 'cleanedFastas'
-
-  script:
-    template 'moveUnambiguousAminoAcidSequencesFirst.bash'
-}
 
 
-/**
- * orthofinder makes new primary key for protein sequences
- * this step makes new fastas and mapping files (species and sequence) and diamond index files
- * the species and sequence mapping files are published to diamondCache output directory
- * @param fastas:  directory of fasta files appropriate for orthofinder
- * @return orthofinderSetup directory containes mapped fastas, diamond indexes and mapping files
- * @return SpeciesIDs.txt file contains mappings from orthofinder primary keys to organism abbreviations
- * @return SequenceIDs.txt file contains mappings from orthofinder primary keys to gene/protein ids
- */
 
 
-process orthoFinderSetup {
-  container = 'veupathdb/orthofinder'
-
-  publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "*.txt"
-
-  input:
-    path 'fastas'
-
-  output:
-    path 'OrthoFinder', emit: orthofinderDirectory
-    path 'WorkingDirectory', emit: orthofinderWorkingDir, type: 'dir'
-    path 'SpeciesIDs.txt', emit: speciesMapping
-    path 'SequenceIDs.txt', emit: sequenceMapping
-
-  script:
-    template 'orthoFinder.bash'
-}
 
 
-/**
-* will either take diamond results from mappedCache dir OR run diamond
-* @param pair of integers.  There will be lots of these
-* @param orthofinderWorkingDir is the direcotry with the diamond indexes and fasta files
-* @param mappedBlastCache is the directory of previous blast output mapped to this run
-* @return Blast*.txt is the resulting file (either from cache or new)
-*/
-process diamond {
-  container = 'veupathdb/diamondsimilarity'
-
-  publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "Blast*.txt"
-
-  input:
-    tuple val(target), val(queries)
-    path orthofinderWorkingDir
-    path mappedBlastCache
-    val outputList
-
-  output:
-    path 'Blast*.txt', emit: blast
-
-  script:
-    template 'diamond.bash'
-}
-
-
-/**
- * organisms which are being updated by this run are set in a file in the nextflow config
- *  this step does a further check to ensure the sequence mapping file is identical;  if not it will add to the cache
- * (this step allows us to simplify the mapping from cache by allowing us to only map species/organisms.)
- * This step will loop through the Blast*.txt and change the file name and first 2 columns based on species id mapping
- * @param previousDiamondCacheDirectory is set in the nextflow config. it contains Blast files and Species/Sequence Mappings
- * @param outdatedOrganisms file contains on organism id per line and is used when we get an updated annotation for a core proteome
- * @param speciesMapping is the NEW Species mapping from orthofinder setup step (current run)
- * @param sequenceMapping is the NEW Sequence mapping from orthofinder setup step (current run)
- * @return outputDir contains a directory of Blast*.txt files with mapped ids
- */
-process mapCachedBlasts {
-    container = 'veupathdb/orthofinder'
-
-    input:
-    path previousDiamondCacheDirectory
-    path outdatedOrganisms
-    path speciesMapping
-    path sequenceMapping
-
-    output:
-    path 'mappedCacheDir'
-
-    script:
-    template 'mapCachedBlasts.bash'
-}
-
-
-process computeGroups {
-  container = 'veupathdb/orthofinder'
-
-  publishDir "$params.outputDir", mode: "copy", pattern: "Results"
-
-  input:
-    path blasts
-    path orthofinderWorkingDir
-
-  output:
-    path 'Results/Phylogenetic_Hierarchical_Orthogroups/N0.tsv', emit: orthologgroups
-    path 'Results'
-
-  script:
-    template 'computeGroups.bash'
-}
 
 
 process splitOrthogroupsFile {
@@ -198,165 +70,19 @@ process splitOrthogroupsFile {
 }
 
 
-process makeFullSingletonsFile {
-  container = 'veupathdb/orthofinder'
-
-  input:
-    path singletonFiles
-
-  output:
-    path 'singletonsFull.dat'
-
-  script:
-    template 'makeFullSingletonsFile.bash'
-}
 
 
-process translateSingletonsFile {
-  container = 'veupathdb/orthofinder'
-
-  input:
-    path singletonsFile
-    path sequenceMapping
-
-  output:
-    path 'translatedSingletons.dat'
-
-  script:
-    template 'translateSingletonsFile.bash'
-}
 
 
-process reformatGroupsFile {
-  container = 'veupathdb/orthofinder'
-
-  publishDir "$params.outputDir", mode: "copy"
-
-  input:
-    path groupsFile
-    path translatedSingletons
-    val buildVersion
-
-  output:
-    path 'reformattedGroups.txt'
-
-  script:
-    template 'reformatGroupsFile.bash'
-}
 
 
-process makeOrthogroupDiamondFiles {
-  container = 'veupathdb/orthofinder'
-
-  input:
-    tuple val(target), val(queries)
-    path blasts
-    path orthologs
-
-  output:
-    path '*.sim', emit: orthogroupblasts
-
-  script:
-    template 'makeOrthogroupDiamondFiles.bash'
-}
 
 
-process findBestRepresentatives {
-  container = 'veupathdb/orthofinder'
-
-  input:
-    path groupData
-
-  output:
-    path 'best_representative.txt', emit: groupCalcs
-
-  script:
-    template 'findBestRepresentatives.bash'
-}
 
 
-process retrieveResultsToBestRepresentative {
-  container = 'veupathdb/orthofinder'
-
-  publishDir "$params.outputDir/groupStatsToBestReps", mode: "copy"
-
-  input:
-    path groupData
-    path bestReps
-    path singletons
-
-  output:
-    path '*.tsv'
-
-  script:
-    template 'retrieveResultsToBestRepresentative.bash'
-}
 
 
-process makeBestRepresentativesFasta {
-  container = 'veupathdb/orthofinder'
 
-  publishDir "$params.outputDir", mode: "copy"
-
-  input:
-    path bestRepresentatives
-    path orthofinderWorkingDir
-    val isResidual
-
-  output:
-    path 'bestReps.fasta'
-
-  script:
-    template 'makeBestRepresentativesFasta.bash'
-}
-
-
-process bestRepsSelfDiamond {
-  container = 'veupathdb/diamondsimilarity'
-
-  input:
-    path bestRepSubset
-    path bestRepsFasta
-    val blastArgs
-
-  output:
-    path 'bestReps.out'
-
-  script:
-    template 'bestRepsSelfDiamond.bash'
-}
-
-
-process bestRepsSelfDiamondTwo {
-  container = 'veupathdb/diamondsimilarity'
-
-  input:
-    path bestRepSubset
-    path bestRepsFasta
-    val blastArgs
-
-  output:
-    path 'bestReps.out'
-
-  script:
-    template 'bestRepsSelfDiamond.bash'
-}
-
-
-process formatSimilarOrthogroups {
-  container = 'veupathdb/orthofinder'
-
-  publishDir "$params.outputDir", mode: "copy"
-
-  input:
-    path bestRepsBlast
-
-  output:
-    path 'similarOrthogroups.txt'
-
-  script:
-    template 'formatSimilarOrthogroups.bash'
-}
 
 
 process combineSimilarOrthogroups {
@@ -407,7 +133,7 @@ process peripheralDiamond {
     val outputList
 
   output:
-    path '*.out', emit: output_file
+    path '*.out', emit: similarities
 
 
   script:
@@ -419,11 +145,11 @@ process assignGroups {
   container = 'veupathdb/orthofinder'
 
   input:
-    path sortedResults
+    path diamondInput
         
   output:
     path 'sortedGroups.txt', emit: groups
-    path 'sortedResults.txt', emit: similarities
+    path diamondInput, emit: similarities
 
   script:
     template 'assignGroups.bash'
@@ -573,37 +299,8 @@ process createGeneTrees {
 }
 
 
-process splitOrthologGroupsPerSpecies {
-    container = 'veupathdb/orthofinder'
-
-    input:
-    val species
-    path speciesMapping
-    path sequenceMapping
-    path orthologgroups
-    val buildVersion
-
-    output:
-    path '*.orthologs', emit: orthologs
-    path "*.singletons", emit: singletons
-
-    script:
-    template 'splitOrthologGroupsPerSpecies.bash'
-}
 
 
-process removeEmptyGroups {
-    input:
-    path f
-
-    output:
-    path "unique_${f}"
-
-    script:
-    """
-    grep -v '^empty' $f> unique_${f}
-    """
-}
 
 
 process calculatePeripheralGroupResults {
@@ -624,22 +321,6 @@ process calculatePeripheralGroupResults {
 }
 
 
-process calculateGroupResults {
-  container = 'veupathdb/orthofinder'
-
-  publishDir "$params.outputDir/groupStats", mode: "copy"
-
-  input:
-    path groupResultsToBestReps
-    val evalueColumn
-    val isResidual
-
-  output:
-    path '*final.tsv'
-
-  script:
-    template 'calculateGroupResults.bash'
-}
 
 
 process mergeCoreAndResidualBestReps {
@@ -677,110 +358,39 @@ process combinePeripheralAndCoreSimilaritiesToBestReps {
 }
 
 
-def listToPairwiseComparisons(list, chunkSize) {
-    return list.map { it -> [it,it].combinations().findAll(); }
-        .flatMap { it }
-        .groupTuple(size: chunkSize, remainder:true)
-
-}
-
-
-def speciesFileToList(speciesMapping, index) {
-    return speciesMapping
-        .splitText(){it.tokenize(': ')[index]}
-        .map { it.replaceAll("[\n\r]", "") }
-        .toList()
-}
-
-
-workflow coreWorkflow { 
-  take:
-    inputFile
-
-  main:
-    proteomesForOrthofinder = moveUnambiguousAminoAcidSequencesFirst(inputFile)
-    setup = orthoFinderSetup(proteomesForOrthofinder)
-    mappedCachedBlasts = mapCachedBlasts(params.diamondSimilarityCache, params.outdatedOrganisms, setup.speciesMapping, setup.sequenceMapping);
-
-    speciesIds = speciesFileToList(setup.speciesMapping, 0);
-    speciesNames = speciesFileToList(setup.speciesMapping, 1);
-
-    // process X number pairs at a time
-    speciesPairsAsTuple = listToPairwiseComparisons(speciesIds, 100);
-
-    diamondResults = diamond(speciesPairsAsTuple, setup.orthofinderWorkingDir.collect(), mappedCachedBlasts.collect(), params.orthoFinderDiamondOutput)
-    collectedDiamondResults = diamondResults.blast.collect()
-    orthofinderGroupResults = computeGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
-
-    speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), orthofinderGroupResults.orthologgroups.collect(), params.buildVersion);
-
-    diamondSimilaritiesPerGroup = makeOrthogroupDiamondFiles(speciesPairsAsTuple, collectedDiamondResults, speciesOrthologs.orthologs.collect())
-
-    allDiamondSimilaritiesPerGroup = diamondSimilaritiesPerGroup.flatten().collectFile() { item -> [ item.getName(), item ] }
-
-    allDiamondSimilarities = allDiamondSimilaritiesPerGroup.collect()
-    singletonFiles = speciesOrthologs.singletons.collect()
-
-    fullSingletonsFile = makeFullSingletonsFile(singletonFiles)
-
-    translatedSingletonsFile = translateSingletonsFile(fullSingletonsFile, setup.sequenceMapping)
-
-    reformatGroupsFile(orthofinderGroupResults.orthologgroups, translatedSingletonsFile, params.buildVersion)
-
-    bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250))
-
-    combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile.concat(bestRepresentatives).flatten().collectFile(name: "combined_best_representative.txt"))
-
-    bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir, false)
-
-    groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives.splitText( by: 1000, file: true ), fullSingletonsFile).collect()
-
-    calculateGroupResults(groupResultsOfBestRep.flatten().collate(250), 10, false)
-
-    bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
-    bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, bestRepresentativeFasta, params.bestRepDiamondOutput)
-    formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
-
-}
-
-
 workflow peripheralWorkflow { 
   take:
     peripheralDir
 
   main:
 
-  // Peripheral Processing
+    uncompressAndMakePeripheralFastaResults = uncompressPeripheralFastas(peripheralDir)
+    uncompressAndMakeCoreFastaResults = uncompressFastas(params.coreProteomes)
 
-    // Prep
-    uncompressAndMakePeripheralFastaResults = uncompressAndMakePeripheralFasta(peripheralDir)
-    uncompressAndMakeCoreFastaResults = uncompressAndMakeCoreFasta(params.coreProteomes)
-
-    // TODO;  this may be moved up to the core workflow if we do core v core
     database = createDatabase(params.coreBestReps)
-
     cleanPeripheralDiamondCacheResults = cleanPeripheralDiamondCache(params.outdatedOrganisms, params.peripheralDiamondCache)
 
     // Run Diamond
-    peripheralDiamondResults = peripheralDiamond(uncompressAndMakePeripheralFastaResults.proteomes.flatten(), database, cleanPeripheralDiamondCacheResults, params.peripheralDiamondOutput)
+    similarities = peripheralDiamond(uncompressAndMakePeripheralFastaResults.proteomes.flatten(), database, cleanPeripheralDiamondCacheResults, params.peripheralDiamondOutput)
 
     // Assigning Groups
-    assignGroupsResults = assignGroups(peripheralDiamondResults)
+    groupsAndSimilarities = assignGroups(similarities)
 
-    groupAssignments = assignGroupsResults.groups.collectFile(name: 'groups.txt')
-    //similarityResults = assignGroupsResults.similarities.collectFile(name: 'sorted.out')
+    groupAssignments = groupsAndSimilarities.groups.collectFile(name: 'groups.txt')
 
     // Calculating Core + Peripheral Group Similarity Results
-    groupSimilarityResultsToBestRep = getPeripheralResultsToBestRep(assignGroupsResults.similarities, assignGroupsResults.groups)
+    groupSimilarityResultsToBestRep = getPeripheralResultsToBestRep(groupsAndSimilarities.similarities, groupsAndSimilarities.groups)
     allGroupSimilarityResultsToBestRep = groupSimilarityResultsToBestRep.flatten().collectFile() { item -> [ item.getName(), item ] }
+
     combinePeripheralAndCoreSimilaritiesToBestRepsResults = combinePeripheralAndCoreSimilaritiesToBestReps(allGroupSimilarityResultsToBestRep.collect(), params.coreSimilarityResults)
     calculatePeripheralGroupResults(combinePeripheralAndCoreSimilaritiesToBestRepsResults.collect().flatten().collate(100), 1, false)
 
     // Create Peripherals And Residual Fastas
-    makeResidualAndPeripheralFastasResults = makeResidualAndPeripheralFastas(groupAssignments, uncompressAndMakePeripheralFastaResults.peripheralFasta)
+    makeResidualAndPeripheralFastasResults = makeResidualAndPeripheralFastas(groupAssignments, uncompressAndMakePeripheralFastaResults.combinedProteomesFasta)
 
     // Creating Vore + Peripheral Gene Trees
-    combinedProteome = combineProteomes(uncompressAndMakeCoreFastaResults, makeResidualAndPeripheralFastasResults.peripheralFasta).collect()
+    combinedProteome = combineProteomes(uncompressAndMakeCoreFastaResults.combinedProteomesFasta, makeResidualAndPeripheralFastasResults.peripheralFasta)
+
     makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, groupAssignments)
     splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults.splitText( by: 100, file: true ), params.outdatedOrganisms)
     keepSeqIdsFromDeflinesResults = keepSeqIdsFromDeflines(splitProteomesByGroupResults.collect().flatten().collate(100))
@@ -788,7 +398,7 @@ workflow peripheralWorkflow {
 
   // Residual Processing
 
-    // Prep For OrthoFinder  
+    // Prep For OrthoFinder
     compressedFastaDir = createCompressedFastaDir(makeResidualAndPeripheralFastasResults.residualFasta)
     emptyBlastDir = createEmptyBlastDir(compressedFastaDir.complete)
     emptyDir = emptyBlastDir.collect()
@@ -807,7 +417,7 @@ workflow peripheralWorkflow {
 
     // Create Groups
     computeGroupResults = computeGroups(blasts, setup.orthofinderWorkingDir)
-    
+
     speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(), setup.speciesMapping.collect(), setup.sequenceMapping.collect(), computeGroupResults.orthologgroups.collect(), params.buildVersion);
 
     // Getting Pairwise Results Per Group
