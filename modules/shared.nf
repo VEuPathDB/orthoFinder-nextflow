@@ -2,6 +2,14 @@
 nextflow.enable.dsl=2
 
 
+def collectDiamondSimilaritesPerGroup(diamondSimilaritiesPerGroup) {
+    return diamondSimilaritiesPerGroup
+        .flatten()
+        .collectFile() { item -> [ item.getName(), item ] }
+}
+
+
+
 process uncompressFastas {
   container = 'veupathdb/orthofinder'
 

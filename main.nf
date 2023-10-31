@@ -5,8 +5,8 @@ nextflow.enable.dsl=2
 // Including Workflows
 //---------------------------------------------------------------
 
-include { coreWorkflow } from './modules/core.nf'
 include { peripheralWorkflow } from './modules/orthoFinderWorkflow.nf'
+include { coreOrResidualWorkflow as coreWorkflow } from './core.nf'
 
 //---------------------------------------------------------------
 // core
@@ -14,14 +14,18 @@ include { peripheralWorkflow } from './modules/orthoFinderWorkflow.nf'
 
 workflow core {
 
-  if(params.proteomes) {
-    inputFile = Channel.fromPath( params.proteomes )
-  }
-  else {
-    throw new Exception("Missing params.proteomes")
-  }
+    if(params.proteomes) {
+        inputFile = Channel.fromPath( params.proteomes )
+    }
+    else {
+        throw new Exception("Missing params.proteomes")
+    }
 
-  coreWorkflow(inputFile)
+    if(!params.diamondSimilarityCache) {
+        throw new Exception("Missing params.diamondSimilarityCache")
+    }
+
+    coreOrResidualWorkflow(inputFile, "core")
 
 }
 
@@ -46,14 +50,5 @@ workflow peripheral {
 //---------------------------------------------------------------
 
 workflow {
-
-  if(params.proteomes) {
-    inputFile = Channel.fromPath( params.proteomes )
-  }
-  else {
-    throw new Exception("Missing params.proteomes")
-  }
-
-  coreWorkflow(inputFile)
-
+    core();
 }
