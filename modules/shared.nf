@@ -25,29 +25,20 @@ process uncompressFastas {
 }
 
 
-/**
- * orthofinder makes new primary key for protein sequences
- * this step makes new fastas and mapping files (species and sequence) and diamond index files
- * the species and sequence mapping files are published to diamondCache output directory
- * @param fastas:  directory of fasta files appropriate for orthofinder
- * @return orthofinderSetup directory containes mapped fastas, diamond indexes and mapping files
- * @return SpeciesIDs.txt file contains mappings from orthofinder primary keys to organism abbreviations
- * @return SequenceIDs.txt file contains mappings from orthofinder primary keys to gene/protein ids
- */
-process orthoFinderSetup {
+
+process calculateGroupResults {
   container = 'veupathdb/orthofinder'
 
-  publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "*.txt"
+  //publishDir "$params.outputDir/groupStats", mode: "copy"
 
   input:
-    path 'fastas'
+    path groupResultsToBestReps
+    val evalueColumn
+    val isResidual
 
   output:
-    path 'OrthoFinder', emit: orthofinderDirectory
-    path 'WorkingDirectory', emit: orthofinderWorkingDir, type: 'dir'
-    path 'SpeciesIDs.txt', emit: speciesMapping
-    path 'SequenceIDs.txt', emit: sequenceMapping
+    path 'groupStats*.txt'
 
   script:
-    template 'orthoFinder.bash'
+    template 'calculateGroupResults.bash'
 }

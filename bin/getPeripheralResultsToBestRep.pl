@@ -21,19 +21,22 @@ while (my $line = <$group>) {
 }
 close $group;
 
-my $currentGroupId = '';
+my $currentGroupId = "";
 while (my $line = <$sim>) {
     chomp $line;
-    my ($seq,$groupId,$evalue) = split(/\t/, $line);
-    $seqToGroup{$seq} = $groupId;
+    my ($seq,$groupId, @rest) = split(/\t/, $line);
+
+    next unless($seqToGroup{$seq} eq $groupId);
+
     if ($groupId eq $currentGroupId) {
-        print OUT "$seq\t$evalue\n";
+        print OUT "$line\n";
+        next;
     }
-    else {
-	$currentGroupId = $groupId;
-        open(OUT, ">${groupId}_bestRep.tsv") || die "Could not open file ${groupId}_bestRep.tsv: $!";
-        print OUT "$seq\t$evalue\n";
-    }
+
+    close OUT if($currentGroupId);
+    $currentGroupId = $groupId;
+    open(OUT, ">${groupId}_bestRep.tsv") || die "Could not open file ${groupId}_bestRep.tsv: $!";
+    print OUT "$line\n";
 }
 
 close $sim;

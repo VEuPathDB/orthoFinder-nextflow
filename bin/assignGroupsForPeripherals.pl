@@ -13,28 +13,29 @@ open(my $data, '<', $result) || die "Could not open file $result: $!";
 open(OUT,">$output");
 
 my %seqToGroup;
-my %seqToEvalue;
 
-#TODO set initial value for evalue to hight number
 
 while (my $line = <$data>) {
     chomp $line;
-    my ($qseq,$groupId,$evalue) = split(/\t/, $line);
 
+    my @lineAr = split(/\t/, $line);
 
-    # TODO take this out
-    if ($seqToGroup{$qseq}) {
-        if ($seqToEvalue{$qseq} > $evalue) {
-            $seqToGroup{$qseq} = $groupId;
-            $seqToEvalue{$qseq} = $evalue;
-        }
+    my $qseq = $lineAr[0];
+    my $group = $lineAr[1];
+    my $evalue = $lineAr[10];
+
+    unless($seqToGroup{$qseq}) {
+        $seqToGroup{$qseq}->{evalue} = $evalue;
+        $seqToGroup{$qseq}->{group} = $group;
     }
-    else {
-        $seqToGroup{$qseq} = $groupId;
-	$seqToEvalue{$qseq} = $evalue;
+
+    if($seqToGroup{$qseq}->{evalue} > $evalue) {
+        $seqToGroup{$qseq}->{evalue} = $evalue;
+        $seqToGroup{$qseq}->{group} = $group;
     }
+
 }
 
 foreach my $seq (keys %seqToGroup) {
-    print OUT "$seq\t$seqToGroup{$seq}\n";
+    print OUT "$seq\t" . $seqToGroup{$seq}->{group} . "\n";
 }

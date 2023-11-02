@@ -2,17 +2,17 @@
 
 set -euo pipefail
 
+PATH=/home/jbrestel/project_home/orthoFinder/bin:\$PATH
+
+
+IS_RESIDUAL_PARAM=""
+OUTPUT="groupStats.txt"
+
 if [ "$isResidual" = true ]; then
-
-    for f in *.tsv; do calculateGroupResults.pl --bestRepResults \$f --evalueColumn $evalueColumn --isResidual true; done
-    
-else
-
-    for f in *.tsv; do calculateGroupResults.pl --bestRepResults \$f --evalueColumn $evalueColumn; done
-    
+    IS_RESIDUAL_PARAM="--isResidual"
+    OUTPUT="groupStats_residual.txt"
 fi
 
+tail -n +1 *.tsv > combined.tsv
 
-
-
-
+calculateGroupResults.pl --outputFile \$OUTPUT --bestRepResults combined.tsv --evalueColumn $evalueColumn \$IS_RESIDUAL_PARAM

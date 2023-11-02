@@ -15,8 +15,8 @@ else
       -f 6 $outputList \
       --comp-based-stats 0
 
-    cat ${fasta}.out | sort -k 2 > diamondSimilarity.out
-    mv diamondSimilarity.out ${fasta}.out
+    sort -k 2 ${fasta}.out > diamondSimilarity.tmp
+    mv diamondSimilarity.tmp ${fasta}.out
 fi
 
 

@@ -20,8 +20,6 @@ RUN cpanm Statistics::Basic Statistics::Descriptive::Weighted
 RUN wget http://github.com/bbuchfink/diamond/releases/download/v2.1.4/diamond-linux64.tar.gz
 RUN tar xzf diamond-linux64.tar.gz
 
-ADD /bin/*.pl /usr/bin/
-
 # Making all tools executable
 RUN chmod +x *
 

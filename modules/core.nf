@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
-include { orthoFinderSetup; collectDiamondSimilaritesPerGroup} from './shared.nf'
+include { calculateGroupResults; collectDiamondSimilaritesPerGroup} from './shared.nf'
 
 
 /**
@@ -23,6 +23,35 @@ process moveUnambiguousAminoAcidSequencesFirst {
   script:
     template 'moveUnambiguousAminoAcidSequencesFirst.bash'
 }
+
+
+/**
+ * orthofinder makes new primary key for protein sequences
+ * this step makes new fastas and mapping files (species and sequence) and diamond index files
+ * the species and sequence mapping files are published to diamondCache output directory
+ * @param fastas:  directory of fasta files appropriate for orthofinder
+ * @return orthofinderSetup directory containes mapped fastas, diamond indexes and mapping files
+ * @return SpeciesIDs.txt file contains mappings from orthofinder primary keys to organism abbreviations
+ * @return SequenceIDs.txt file contains mappings from orthofinder primary keys to gene/protein ids
+ */
+process orthoFinderSetup {
+  container = 'veupathdb/orthofinder'
+
+  publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "*.txt"
+
+  input:
+    path 'fastas'
+
+  output:
+    path 'OrthoFinder', emit: orthofinderDirectory
+    path 'WorkingDirectory', emit: orthofinderWorkingDir, type: 'dir'
+    path 'SpeciesIDs.txt', emit: speciesMapping
+    path 'SequenceIDs.txt', emit: sequenceMapping
+
+  script:
+    template 'orthoFinder.bash'
+}
+
 
 
 /**
@@ -263,22 +292,6 @@ process retrieveResultsToBestRepresentative {
     template 'retrieveResultsToBestRepresentative.bash'
 }
 
-process calculateGroupResults {
-  container = 'veupathdb/orthofinder'
-
-  publishDir "$params.outputDir/groupStats", mode: "copy"
-
-  input:
-    path groupResultsToBestReps
-    val evalueColumn
-    val isResidual
-
-  output:
-    path '*final.tsv'
-
-  script:
-    template 'calculateGroupResults.bash'
-}
 
 
 
@@ -427,11 +440,10 @@ workflow coreOrResidualWorkflow {
 
     groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives.splitText( by: 1000, file: true ), fullSingletonsFile).collect()
 
-    calculateGroupResults(groupResultsOfBestRep.flatten().collate(250), 10, false)
-
     bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
 
     if (coreOrResidual === 'core') {
+        calculateGroupResults(groupResultsOfBestRep.flatten().collate(250), 10, false).collectFile(name: "core_stats.txt", storeDir: params.outputDir + "/groupStats" )
         bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, bestRepresentativeFasta, params.bestRepDiamondOutput)
 
         formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
@@ -439,23 +451,26 @@ workflow coreOrResidualWorkflow {
         reformatGroupsFile(orthofinderGroupResults.orthologgroups, translatedSingletonsFile, params.buildVersion)
     }
     else { // residual
-        coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta, params.coreBestReps)
-        bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, coreAndResidualBestRepFasta, params.bestRepDiamondOutput)
 
-        coreBestRepsChannel = Channel.fromPath( params.coreBestReps )
-        coreBestRepSubset = coreBestRepsChannel.splitFasta(by:1000, file:true)
+         calculateGroupResults(groupResultsOfBestRep.flatten().collate(250), 10, true).collectFile(name: "residual_stats.txt", storeDir: params.outputDir + "/groupStats" )
+         coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta, params.coreBestReps)
+         bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, coreAndResidualBestRepFasta, params.bestRepDiamondOutput)
 
-        // Core to residuals only
-        coreToResidualBestRepsSelfDiamondResults = bestRepsSelfDiamondTwo(coreBestRepSubset, bestRepresentativeFasta.collect(), params.peripheralDiamondOutput)
+        // TODO: below are unreviewd
+        // coreBestRepsChannel = Channel.fromPath( params.coreBestReps )
+        // coreBestRepSubset = coreBestRepsChannel.splitFasta(by:1000, file:true)
 
-        // Collect orthogroup similarity results
-        allResidualBestRepsSelfDiamondResults = residualBestRepsSelfDiamondResults.collectFile()
-        allCoreToResidualBestRepsSelfDiamondResults = coreToResidualBestRepsSelfDiamondResults.collectFile()
+        // // Core to residuals only
+        // coreToResidualBestRepsSelfDiamondResults = bestRepsSelfDiamondTwo(coreBestRepSubset, bestRepresentativeFasta.collect(), params.peripheralDiamondOutput)
 
-        // Format group similairity results
-        formatSimilarOrthogroupsResults = formatSimilarOrthogroups(allResidualBestRepsSelfDiamondResults.concat(allCoreToResidualBestRepsSelfDiamondResults))
+        // // Collect orthogroup similarity results
+        // allResidualBestRepsSelfDiamondResults = residualBestRepsSelfDiamondResults.collectFile()
+        // allCoreToResidualBestRepsSelfDiamondResults = coreToResidualBestRepsSelfDiamondResults.collectFile()
 
-        // Combine residual vs core and residual, core vs residual and cached core vs core to get final results
-        combineSimilarOrthogroups(formatSimilarOrthogroupsResults.collectFile(), params.coreSimilarOrthogroups)
+        // // Format group similairity results
+        // formatSimilarOrthogroupsResults = formatSimilarOrthogroups(allResidualBestRepsSelfDiamondResults.concat(allCoreToResidualBestRepsSelfDiamondResults))
+
+        // // Combine residual vs core and residual, core vs residual and cached core vs core to get final results
+        // combineSimilarOrthogroups(formatSimilarOrthogroupsResults.collectFile(), params.coreSimilarOrthogroups)
     }
 }

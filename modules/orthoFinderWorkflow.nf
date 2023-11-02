@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
-include { uncompressFastas; uncompressFastas as uncompressPeripheralFastas; orthoFinderSetup; collectDiamondSimilaritesPerGroup} from './shared.nf'
+include { calculateGroupResults; uncompressFastas; uncompressFastas as uncompressPeripheralFastas; collectDiamondSimilaritesPerGroup} from './shared.nf'
 include { coreOrResidualWorkflow  } from './core.nf'
 
 
@@ -84,6 +84,7 @@ process peripheralDiamond {
 
   output:
     path '*.out', emit: similarities
+    path fasta, emit: fasta
 
 
   script:
@@ -96,10 +97,12 @@ process assignGroups {
 
   input:
     path diamondInput
+    path fasta
         
   output:
     path 'sortedGroups.txt', emit: groups
     path diamondInput, emit: similarities
+    path fasta, emit: fasta
 
   script:
     template 'assignGroups.bash'
@@ -253,22 +256,22 @@ process createGeneTrees {
 
 
 
-process calculatePeripheralGroupResults {
-  container = 'veupathdb/orthofinder'
+// process calculatePeripheralGroupResults {
+//   container = 'veupathdb/orthofinder'
 
-  publishDir "$params.outputDir/peripheralAndCoreGroupStats", mode: "copy"
+//   publishDir "$params.outputDir/peripheralAndCoreGroupStats", mode: "copy"
 
-  input:
-    path groupResultsToBestReps
-    val evalueColumn
-    val isResidual
+//   input:
+//     path groupResultsToBestReps
+//     val evalueColumn
+//     val isResidual
 
-  output:
-    path '*final.tsv'
+//   output:
+//     path '*final.tsv'
 
-  script:
-    template 'calculateGroupResults.bash'
-}
+//   script:
+//     template 'calculateGroupResults.bash'
+// }
 
 
 
@@ -302,34 +305,44 @@ workflow peripheralWorkflow {
     database = createDatabase(params.coreBestReps)
     cleanPeripheralDiamondCacheResults = cleanPeripheralDiamondCache(params.outdatedOrganisms, params.peripheralDiamondCache)
 
-    // Run Diamond
+    // Run Diamond (forks so we get one process per organism; )
     similarities = peripheralDiamond(uncompressAndMakePeripheralFastaResults.proteomes.flatten(), database, cleanPeripheralDiamondCacheResults, params.orthoFinderDiamondOutput)
 
     // Assigning Groups
-    groupsAndSimilarities = assignGroups(similarities)
+    groupsAndSimilarities = assignGroups(similarities.similarities, similarities.fasta)
+
+    // split out residual and peripheral per organism and then collect into residuals and peripherals fasta
+    residualAndPeripheralFastas = makeResidualAndPeripheralFastas(groupsAndSimilarities.groups, groupsAndSimilarities.fasta)
+    residualFasta = residualAndPeripheralFastas.residualFasta.collectFile(name: 'residual.fasta');
+    peripheralFasta = residualAndPeripheralFastas.peripheralFasta.collectFile(name: 'peripheral.fasta');
+
+    // collect up the groups
     groupAssignments = groupsAndSimilarities.groups.collectFile(name: 'groups.txt')
 
     // Calculating Core + Peripheral Group Similarity Results
     groupSimilarityResultsToBestRep = getPeripheralResultsToBestRep(groupsAndSimilarities.similarities, groupsAndSimilarities.groups)
-    allSimilarityResultsToBestRep = collectDiamondSimilaritesPerGroup(groupSimilarityResultsToBestRep)
 
-    combinePeripheralAndCoreSimilaritiesToBestRepsResults = combinePeripheralAndCoreSimilaritiesToBestReps(allSimilarityResultsToBestRep.collect(), params.coreSimilarityToBestReps)
+    // in one file PER GROUP, collect up all peripheral similarities to best Rep
+    peripheralSimilaritiesToBestRep = collectDiamondSimilaritesPerGroup(groupSimilarityResultsToBestRep).collect()
 
-    //   calculatePeripheralGroupResults(combinePeripheralAndCoreSimilaritiesToBestRepsResults.collect().flatten().collate(100), 1, false)
+    // in one file PER GROUP, combine core + peripheral similarities
+    allSimilaritiesToBestRep = combinePeripheralAndCoreSimilaritiesToBestReps(peripheralSimilaritiesToBestRep, params.coreSimilarityToBestReps).collect();
 
-  //   // Create Peripherals And Residual Fastas
-     makeResidualAndPeripheralFastasResults = makeResidualAndPeripheralFastas(groupAssignments, uncompressAndMakePeripheralFastaResults.combinedProteomesFasta)
+    // for X number of groups (100?), calculate stats on evalue
+    calculateGroupResults(allSimilaritiesToBestRep.flatten().collate(100), 10, false).collectFile(name: "peripheral_stats.txt", storeDir: params.outputDir + "/groupStats" )
 
-  //   // Creating Vore + Peripheral Gene Trees
-  //   combinedProteome = combineProteomes(uncompressAndMakeCoreFastaResults.combinedProteomesFasta, makeResidualAndPeripheralFastasResults.peripheralFasta)
+    // Creating Vore + Peripheral Gene Trees
+    combinedProteome = combineProteomes(uncompressAndMakeCoreFastaResults.combinedProteomesFasta, peripheralFasta)
 
+
+    // TODO: these 4 steps need work
   //   makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, groupAssignments)
   //   splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults.splitText( by: 100, file: true ), params.outdatedOrganisms)
   //   keepSeqIdsFromDeflinesResults = keepSeqIdsFromDeflines(splitProteomesByGroupResults.collect().flatten().collate(100))
   //   createGeneTrees(keepSeqIdsFromDeflinesResults.collect().flatten().collate(100))
 
     // Residual Processing
-    compressedFastaDir = createCompressedFastaDir(makeResidualAndPeripheralFastasResults.residualFasta)
+    compressedFastaDir = createCompressedFastaDir(residualFasta)
 
     coreOrResidualWorkflow(compressedFastaDir.fastaDir, "residual")
 }

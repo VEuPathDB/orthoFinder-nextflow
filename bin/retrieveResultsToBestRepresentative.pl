@@ -33,8 +33,8 @@ while (my $line = <$data>) {
     }
     # If the group is not a singleton, go get all pairwise blast results that involve the best representative and output it to a groups file
     else {
-        `touch ${group}_bestRep.tsv`;
-        `grep "${seqID}" ${group}.sim > ${group}_bestRep.tsv`;
+        # we want only where the seqId is in the 2nd column to avoid dups
+        `grep -P "\t${seqID}" ${group}.sim > ${group}_bestRep.tsv`;
     }
 }
 
