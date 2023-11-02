@@ -5,7 +5,7 @@ nextflow.enable.dsl=2
 // Including Workflows
 //---------------------------------------------------------------
 
-include { peripheralWorkflow } from './modules/orthoFinderWorkflow.nf'
+include { peripheralWorkflow } from './modules/peripheral.nf'
 include { coreOrResidualWorkflow } from './modules/core.nf'
 
 //---------------------------------------------------------------
