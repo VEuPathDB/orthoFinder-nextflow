@@ -2,9 +2,6 @@
 
 set -euo pipefail
 
-PATH=/home/jbrestel/project_home/orthoFinder/bin:\$PATH
-
-
 IS_RESIDUAL_PARAM=""
 OUTPUT="groupStats.txt"
 

@@ -2,7 +2,6 @@
 
 set -euo pipefail
 
-# TODO:  check that sort
-cat ${bestRepsBlast} | sort -k 1 > sorted.out
+ sort -k 1 ${bestRepsBlast} > sorted.tmp
 
-formatSimilarOrthogroups.pl --input sorted.out --output similarOrthogroups.txt
+formatSimilarOrthogroups.pl --input sorted.tmp --output similarOrthogroups.txt

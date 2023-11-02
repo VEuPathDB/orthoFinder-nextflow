@@ -12,7 +12,7 @@ include { coreOrResidualWorkflow } from './modules/core.nf'
 // core
 //---------------------------------------------------------------
 
-workflow core {
+workflow coreEntry {
 
     if(params.proteomes) {
         inputFile = Channel.fromPath( params.proteomes )
@@ -33,7 +33,7 @@ workflow core {
 // peripheral
 //---------------------------------------------------------------
 
-workflow peripheral {
+workflow peripheralEntry {
   if(params.peripheralProteomes) {
     inputFile = Channel.fromPath(params.peripheralProteomes)
   }

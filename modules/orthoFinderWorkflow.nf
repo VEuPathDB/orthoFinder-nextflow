@@ -20,43 +20,6 @@ process createCompressedFastaDir {
 }
 
 
-
-// process splitOrthogroupsFile {
-//   container = 'veupathdb/orthofinder'
-
-//   input:
-//     path results
-
-//   output:
-//     path 'OG*', emit: orthoGroupsFiles
-
-//   script:
-//     template 'splitOrthogroupsFile.bash'
-// }
-
-
-process combineSimilarOrthogroups {
-  container = 'veupathdb/orthofinder'
-
-  publishDir "$params.outputDir", mode: "copy"
-
-  input:
-    // Avoid file name collision
-    path 'coreAndResidual.txt'
-    path coreAndCore
-
-  output:
-    path 'similarOrthogroupsFinal.txt'
-
-  script:
-    """
-    touch similarOrthogroupsFinal.txt
-    cat coreAndResidual.txt >> similarOrthogroupsFinal.txt
-    cat $coreAndCore >> similarOrthogroupsFinal.txt
-    """
-}
-
-
 process createDatabase {
   container = 'veupathdb/orthofinder'
 
@@ -252,32 +215,6 @@ process createGeneTrees {
 }
 
 
-
-
-
-
-// process calculatePeripheralGroupResults {
-//   container = 'veupathdb/orthofinder'
-
-//   publishDir "$params.outputDir/peripheralAndCoreGroupStats", mode: "copy"
-
-//   input:
-//     path groupResultsToBestReps
-//     val evalueColumn
-//     val isResidual
-
-//   output:
-//     path '*final.tsv'
-
-//   script:
-//     template 'calculateGroupResults.bash'
-// }
-
-
-
-
-
-
 process combinePeripheralAndCoreSimilaritiesToBestReps {
   container = 'veupathdb/orthofinder'
 
@@ -306,7 +243,7 @@ workflow peripheralWorkflow {
     cleanPeripheralDiamondCacheResults = cleanPeripheralDiamondCache(params.outdatedOrganisms, params.peripheralDiamondCache)
 
     // Run Diamond (forks so we get one process per organism; )
-    similarities = peripheralDiamond(uncompressAndMakePeripheralFastaResults.proteomes.flatten(), database, cleanPeripheralDiamondCacheResults, params.orthoFinderDiamondOutput)
+    similarities = peripheralDiamond(uncompressAndMakePeripheralFastaResults.proteomes.flatten(), database, cleanPeripheralDiamondCacheResults, params.orthoFinderDiamondOutputFields)
 
     // Assigning Groups
     groupsAndSimilarities = assignGroups(similarities.similarities, similarities.fasta)

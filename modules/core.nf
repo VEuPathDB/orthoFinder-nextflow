@@ -1,7 +1,11 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
-include { calculateGroupResults; collectDiamondSimilaritesPerGroup} from './shared.nf'
+include {bestRepsSelfDiamond as coreBestRepsToCoreDiamond;
+         bestRepsSelfDiamond as residualBestRepsToCoreAndResidualDiamond;
+         bestRepsSelfDiamond as coreBestRepsToResidualDiamond;
+         calculateGroupResults; collectDiamondSimilaritesPerGroup
+} from './shared.nf'
 
 
 /**
@@ -295,51 +299,23 @@ process retrieveResultsToBestRepresentative {
 
 
 
-process bestRepsSelfDiamond {
-  container = 'veupathdb/diamondsimilarity'
-
-  input:
-    path bestRepSubset
-    path bestRepsFasta
-    val blastArgs
-
-  output:
-    path 'bestReps.out'
-
-  script:
-    template 'bestRepsSelfDiamond.bash'
-}
 
 
-// process bestRepsSelfDiamondTwo {
-//   container = 'veupathdb/diamondsimilarity'
+
+// process formatSimilarOrthogroups {
+//   container = 'veupathdb/orthofinder'
+
+//   publishDir "$params.outputDir", mode: "copy"
 
 //   input:
-//     path bestRepSubset
-//     path bestRepsFasta
-//     val blastArgs
+//     path bestRepsBlast
 
 //   output:
-//     path 'bestReps.out'
+//     path 'similarOrthogroups.txt'
 
 //   script:
-//     template 'bestRepsSelfDiamond.bash'
+//     template 'formatSimilarOrthogroups.bash'
 // }
-
-process formatSimilarOrthogroups {
-  container = 'veupathdb/orthofinder'
-
-  publishDir "$params.outputDir", mode: "copy"
-
-  input:
-    path bestRepsBlast
-
-  output:
-    path 'similarOrthogroups.txt'
-
-  script:
-    template 'formatSimilarOrthogroups.bash'
-}
 
 
 process createEmptyDir {
@@ -417,7 +393,7 @@ workflow coreOrResidualWorkflow {
     // process X number pairs at a time
     speciesPairsAsTuple = listToPairwiseComparisons(speciesIds, 100);
 
-    diamondResults = diamond(speciesPairsAsTuple, setup.orthofinderWorkingDir.collect(), mappedCachedBlasts.collect(), params.orthoFinderDiamondOutput)
+    diamondResults = diamond(speciesPairsAsTuple, setup.orthofinderWorkingDir.collect(), mappedCachedBlasts.collect(), params.orthoFinderDiamondOutputFields)
     collectedDiamondResults = diamondResults.blast.collect()
     orthofinderGroupResults = computeGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
 
@@ -444,33 +420,33 @@ workflow coreOrResidualWorkflow {
 
     if (coreOrResidual === 'core') {
         calculateGroupResults(groupResultsOfBestRep.flatten().collate(250), 10, false).collectFile(name: "core_stats.txt", storeDir: params.outputDir + "/groupStats" )
-        bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, bestRepresentativeFasta, params.bestRepDiamondOutput)
 
-        formatSimilarOrthogroups(bestRepsSelfDiamondResults.collectFile())
+        // core bestRepSubset compared to core bestRep DB
+        bestRepsSelfDiamondResults = coreBestRepsToCoreDiamond(bestRepSubset, bestRepresentativeFasta).collectFile(name: "core_best_reps_self_blast.txt", storeDir: params.outputDir );
+
         translatedSingletonsFile = translateSingletonsFile(fullSingletonsFile, setup.sequenceMapping)
         reformatGroupsFile(orthofinderGroupResults.orthologgroups, translatedSingletonsFile, params.buildVersion)
     }
     else { // residual
 
-         calculateGroupResults(groupResultsOfBestRep.flatten().collate(250), 10, true).collectFile(name: "residual_stats.txt", storeDir: params.outputDir + "/groupStats" )
-         coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta, params.coreBestReps)
-         bestRepsSelfDiamondResults = bestRepsSelfDiamond(bestRepSubset, coreAndResidualBestRepFasta, params.bestRepDiamondOutput)
+        calculateGroupResults(groupResultsOfBestRep.flatten().collate(250), 10, true).collectFile(name: "residual_stats.txt", storeDir: params.outputDir + "/groupStats" )
 
-        // TODO: below are unreviewd
-        // coreBestRepsChannel = Channel.fromPath( params.coreBestReps )
-        // coreBestRepSubset = coreBestRepsChannel.splitFasta(by:1000, file:true)
+        coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta, params.coreBestReps)
 
-        // // Core to residuals only
-        // coreToResidualBestRepsSelfDiamondResults = bestRepsSelfDiamondTwo(coreBestRepSubset, bestRepresentativeFasta.collect(), params.peripheralDiamondOutput)
+        // residual bestRepSubset compared to core+residual bestRep DB
+        residualBestRepsSimilarities = residualBestRepsToCoreAndResidualDiamond(bestRepSubset, coreAndResidualBestRepFasta).collectFile()
 
-        // // Collect orthogroup similarity results
-        // allResidualBestRepsSelfDiamondResults = residualBestRepsSelfDiamondResults.collectFile()
-        // allCoreToResidualBestRepsSelfDiamondResults = coreToResidualBestRepsSelfDiamondResults.collectFile()
+        coreBestRepsFasta = Channel.fromPath( params.coreBestReps )
+        coreBestRepsFastaSubset = coreBestRepsFasta.splitFasta(by:1000, file:true)
 
-        // // Format group similairity results
-        // formatSimilarOrthogroupsResults = formatSimilarOrthogroups(allResidualBestRepsSelfDiamondResults.concat(allCoreToResidualBestRepsSelfDiamondResults))
+        // core bestRep Subset compared to residual bestRep DB
+        coreToResidualBestRepsSimilarities = coreBestRepsToResidualDiamond(coreBestRepsFastaSubset, bestRepresentativeFasta).collectFile()
 
-        // // Combine residual vs core and residual, core vs residual and cached core vs core to get final results
-        // combineSimilarOrthogroups(formatSimilarOrthogroupsResults.collectFile(), params.coreSimilarOrthogroups)
+        // combine all bestreps self blast
+        Channel.fromPath(params.coreBestRepsSelfBlast)
+            .concat(residualBestRepsSimilarities)
+            .concat(coreToResidualBestRepsSimilarities)
+            .collectFile(name: "all_best_reps_self_blast.txt", storeDir: params.outputDir )
+
     }
 }

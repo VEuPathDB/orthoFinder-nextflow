@@ -42,3 +42,20 @@ process calculateGroupResults {
   script:
     template 'calculateGroupResults.bash'
 }
+
+
+process bestRepsSelfDiamond {
+  container = 'veupathdb/diamondsimilarity'
+
+  publishDir "$params.outputDir", mode: "copy"
+
+  input:
+    path bestRepSubset
+    path bestRepsFasta
+
+  output:
+    path 'bestReps.out'
+
+  script:
+    template 'bestRepsSelfDiamond.bash'
+}
