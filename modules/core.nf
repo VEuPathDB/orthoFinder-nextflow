@@ -279,7 +279,7 @@ process makeBestRepresentativesFasta {
 }
 
 
-process retrieveResultsToBestRepresentative {
+process filterSimilaritiesByBestRepresentative {
   container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir/coreSimilarityToBestReps", mode: "copy"
@@ -293,29 +293,8 @@ process retrieveResultsToBestRepresentative {
     path '*.tsv'
 
   script:
-    template 'retrieveResultsToBestRepresentative.bash'
+    template 'filterSimilaritiesByBestRepresentative.bash'
 }
-
-
-
-
-
-
-
-// process formatSimilarOrthogroups {
-//   container = 'veupathdb/orthofinder'
-
-//   publishDir "$params.outputDir", mode: "copy"
-
-//   input:
-//     path bestRepsBlast
-
-//   output:
-//     path 'similarOrthogroups.txt'
-
-//   script:
-//     template 'formatSimilarOrthogroups.bash'
-// }
 
 
 process createEmptyDir {
@@ -403,7 +382,8 @@ workflow coreOrResidualWorkflow {
 
     allDiamondSimilaritiesPerGroup = collectDiamondSimilaritesPerGroup(diamondSimilaritiesPerGroup)
 
-    allDiamondSimilarities = allDiamondSimilaritiesPerGroup.collect()
+        allDiamondSimilarities = allDiamondSimilaritiesPerGroup.collect()
+
     singletonFiles = speciesOrthologs.singletons.collect()
 
     fullSingletonsFile = makeFullSingletonsFile(singletonFiles)
@@ -414,7 +394,7 @@ workflow coreOrResidualWorkflow {
 
     bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives, setup.orthofinderWorkingDir, false)
 
-    groupResultsOfBestRep = retrieveResultsToBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives.splitText( by: 1000, file: true ), fullSingletonsFile).collect()
+    groupResultsOfBestRep = filterSimilaritiesByBestRepresentative(allDiamondSimilarities, combinedBestRepresentatives.splitText( by: 1000, file: true ), fullSingletonsFile).collect()
 
     bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
 

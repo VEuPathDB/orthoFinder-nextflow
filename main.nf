@@ -6,7 +6,7 @@ nextflow.enable.dsl=2
 //---------------------------------------------------------------
 
 include { peripheralWorkflow } from './modules/peripheral.nf'
-include { coreOrResidualWorkflow } from './modules/core.nf'
+include { coreOrResidualWorkflow as coreWorkflow } from './modules/core.nf'
 
 //---------------------------------------------------------------
 // core
@@ -25,7 +25,7 @@ workflow coreEntry {
         throw new Exception("Missing params.diamondSimilarityCache")
     }
 
-    coreOrResidualWorkflow(inputFile, "core")
+    coreWorkflow(inputFile, "core")
 
 }
 
@@ -50,5 +50,5 @@ workflow peripheralEntry {
 //---------------------------------------------------------------
 
 workflow {
-    core();
+    coreEntry();
 }

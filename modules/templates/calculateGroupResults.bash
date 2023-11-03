@@ -12,4 +12,4 @@ fi
 
 tail -n +1 *.tsv > combined.tsv
 
-calculateGroupResults.pl --outputFile \$OUTPUT --bestRepResults combined.tsv --evalueColumn $evalueColumn \$IS_RESIDUAL_PARAM
+calculateGroupResults.pl --outputFile "\$OUTPUT" --bestRepResults combined.tsv --evalueColumn $evalueColumn \$IS_RESIDUAL_PARAM

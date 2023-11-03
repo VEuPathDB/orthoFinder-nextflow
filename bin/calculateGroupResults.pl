@@ -13,7 +13,6 @@ my ($bestRepResults, $evalueColumn, $isResidual, $outputFile);
             "isResidual"=> \$isResidual,
             "outputFile=s" => \$outputFile);
 
-
 # Open file that contains pairwise results of sequences involving the groups best rep
 open(my $data, '<', $bestRepResults) || die "Could not open file $bestRepResults: $!";
 
@@ -52,12 +51,7 @@ close $data;
 sub calculateStatsAndPrint {
     my ($group, $evalues) = @_;
 
-    # print the number of similarities (sim+1 should equal the number of sequences in the group)
-    # print min,mean,median,....
-
     my $simCount = scalar(@$evalues);
-
-
 
     if ($simCount >= 1) {
         my $stat = Statistics::Descriptive::Full->new();
@@ -73,3 +67,5 @@ sub calculateStatsAndPrint {
     }
 
 }
+close OUT;
+1;
