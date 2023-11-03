@@ -2,7 +2,7 @@
 nextflow.enable.dsl=2
 
 include { calculateGroupResults; uncompressFastas; uncompressFastas as uncompressPeripheralFastas; collectDiamondSimilaritesPerGroup} from './shared.nf'
-include { coreOrResidualWorkflow  } from './core.nf'
+include { coreOrResidualWorkflow as residualWorkflow  } from './core.nf'
 
 
 process createCompressedFastaDir {
@@ -281,5 +281,5 @@ workflow peripheralWorkflow {
     // Residual Processing
     compressedFastaDir = createCompressedFastaDir(residualFasta)
 
-    coreOrResidualWorkflow(compressedFastaDir.fastaDir, "residual")
+    residualWorkflow(compressedFastaDir.fastaDir, "residual")
 }
