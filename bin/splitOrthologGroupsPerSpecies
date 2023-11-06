@@ -14,6 +14,9 @@ my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $spec
             "build_version=s" => \$buildVersion, # Integer indicating build. Is appended to group ids that are output 
            );
 
+
+my $orthoGroupPrefix = "OG";
+
 my %speciesMap = &makeSpeciesMap($speciesMapping);
 
 my $internalSpecies = $speciesMap{$species};
@@ -44,7 +47,7 @@ my $index = 0;
 my %headerMap = map { $_ => $index++} split(/\t/, $header);
 
 # Get index of OG column
-my $ogIndex = $headerMap{"OG"};
+my $ogIndex = $headerMap{$orthoGroupPrefix};
 
 # Get the species name from the species argument Ex: ahos.fasta => ahos
 my $speciesNoFileSuffix = $species;
@@ -67,7 +70,7 @@ while(<GROUP>) {
 
     # change the orthologGroup id to add some version
     # replace "OG" with "OG${version}_"
-    $orthologGroup =~ s/^OG(\d+)/OG${buildVersion}_$1/;
+    $orthologGroup =~ s/^${orthoGroupPrefix}(\d+)/${orthoGroupPrefix}${buildVersion}_$1/;
     $prevGroupIntegers=  $1;
 
     # Retrieve string of all sequences in orthogroup for this species
@@ -147,7 +150,7 @@ sub printSingletons {
 	# Increase group number
         $prevGroupIntegers++;
 	# Create new group
-        my $singletonGroup = "OG${buildVersion}_${prevGroupIntegers}";
+        my $singletonGroup = "${orthoGroupPrefix}${buildVersion}_${prevGroupIntegers}";
 	# Retrieve the internal id
         my $internalSeq = $sequenceMapping{$seqName};
         print SINGLETONS "$singletonGroup\t$internalSeq\n";
