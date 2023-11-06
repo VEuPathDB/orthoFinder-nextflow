@@ -2,4 +2,9 @@
 
 set -euo pipefail
 
-for f in *.singletons; do makeFullSingletonsFile.pl --groups $orthogroups --buildVersion $buildVersion --singletons "\$f"; done
+LASTGROUP=\$(cut -f2 $orthogroups | tail -n1) 
+
+makeFullSingletonsFile.pl --lastGroup \$LASTGROUP \
+			  --buildVersion $buildVersion \
+			  --fileSuffix "singletons" \
+			  --outputFile singletonsFull.dat
