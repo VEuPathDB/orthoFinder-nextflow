@@ -6,6 +6,21 @@ use Getopt::Long;
 use Statistics::Basic::Median;
 use Statistics::Descriptive::Weighted;
 
+=head1
+Description: 
+=head4 
+Calculate group statistics from input of pairwise blast results, for a group, between sequences in the group and the best representative of the same group.
+=cut
+
+=head1
+Input Parameters
+=over
+=item bestRepResults The group specific pairwise results file
+=item evalueColumn The (0th indexed) column number that contains the e-value
+=item isResidual A boolean indicating if these are residual or core groups (if residual, OG7_0000000 becomes OGR7_0000000)
+=item outputFile The path to where the group stats will be written
+=back 
+=cut
 my ($bestRepResults, $evalueColumn, $isResidual, $outputFile);
 
 &GetOptions("bestRepResults=s"=> \$bestRepResults,
@@ -27,10 +42,12 @@ while (my $line = <$data>) {
 
     next unless($line);
 
+    # Singleton group processing
     if($line =~ /==> (\S+)_bestRep.tsv <==/) {
         &calculateStatsAndPrint($group, \@evalues) if($group);
         $group = $1;
 
+	# Add R if residual
         if ($isResidual) {
             $group =~ s/OG/OGR/;
         }
@@ -48,15 +65,23 @@ while (my $line = <$data>) {
 
 close $data;
 
+=item calculateStatsAndPrint()
+The process takes the group id and the evalues retrieve from the group pairwise results and calculates the group statistics.
+=cut
+
 sub calculateStatsAndPrint {
     my ($group, $evalues) = @_;
 
+    # Cut number of similarities
     my $simCount = scalar(@$evalues);
 
     if ($simCount >= 1) {
+	# Create stats object
         my $stat = Statistics::Descriptive::Full->new();
+	# Add evalues
         $stat->add_data(@$evalues);
 
+	# Calculate values
         my $min = $stat->min();
         my $twentyfifth = $stat->percentile(25);
         my $mean = $stat->mean();
