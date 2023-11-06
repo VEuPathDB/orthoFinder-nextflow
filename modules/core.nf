@@ -191,6 +191,12 @@ process makeOrthogroupDiamondFiles {
 }
 
 
+
+/**
+* combine species singletons file. this will create new ortholog group IDS based on
+* the last row in the orthologgroups file.  the resulting id will also include the version
+*/
+
 process makeFullSingletonsFile {
   container = 'veupathdb/orthofinder'
 
@@ -206,6 +212,9 @@ process makeFullSingletonsFile {
     template 'makeFullSingletonsFile.bash'
 }
 
+/**
+* write singleton files with original seq ids in place of internal ids
+*/
 
 process translateSingletonsFile {
   container = 'veupathdb/orthofinder'
@@ -222,6 +231,9 @@ process translateSingletonsFile {
 }
 
 
+/**
+* write groups file for use in peripheral wf or to be loaded into relational db
+*/
 process reformatGroupsFile {
   container = 'veupathdb/orthofinder'
 
@@ -239,7 +251,9 @@ process reformatGroupsFile {
     template 'reformatGroupsFile.bash'
 }
 
-
+/**
+*  for each group, determine which sequence has the lowest average evalue
+*/
 process findBestRepresentatives {
   container = 'veupathdb/orthofinder'
 
@@ -247,11 +261,16 @@ process findBestRepresentatives {
     path groupData
 
   output:
-    path 'best_representative.txt', emit: groupCalcs
+    path 'best_representative.txt'
 
   script:
     template 'findBestRepresentatives.bash'
 }
+
+
+/**
+*  orthofinder outputs a line "empty" which we don't care about
+*/
 
 process removeEmptyGroups {
     input:
@@ -266,7 +285,9 @@ process removeEmptyGroups {
     """
 }
 
-
+/**
+*  grab all best representative sequences.  use the group id as the defline
+*/
 process makeBestRepresentativesFasta {
   container = 'veupathdb/orthofinder'
 

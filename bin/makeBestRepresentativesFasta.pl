@@ -35,11 +35,9 @@ while ( my $seq = $in->next_seq() ) {
     my $group = $map{$seqId};
     die "No Group defined for Seq $seqId" unless($group);
     if ($isResidual) {
-	print "Ding\n";
-	print "$group\n";
+        # FIXME:  why are we doing this here?  if we need to why not add the version too?
         $group =~ s/OG/OGR/;
-	print "$group\n";
-    }  
+    }
     $seq->id($group);
     $bestRepsFasta->write_seq($seq);
 }
