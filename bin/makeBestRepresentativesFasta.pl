@@ -13,6 +13,8 @@ my ($bestReps,$isResidual,$outputFile);
             "outputFile=s"=> \$outputFile,
             "isResidual=s"=> \$isResidual);
 
+my $groupPrefix = "OG";
+
 my $in  = Bio::SeqIO->new(-fh => \*STDIN,
                           -format => 'Fasta');
 
@@ -36,7 +38,7 @@ while ( my $seq = $in->next_seq() ) {
     die "No Group defined for Seq $seqId" unless($group);
     if ($isResidual) {
         # FIXME:  why are we doing this here?  if we need to why not add the version too?
-        $group =~ s/OG/OGR/;
+        $group =~ s/${groupPrefix}/${groupPrefix}R/;
     }
     $seq->id($group);
     $bestRepsFasta->write_seq($seq);
