@@ -477,9 +477,7 @@ workflow bestRepresentativesAndStats {
     bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250))
 
     // collect File of best representatives
-    combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile.concat(bestRepresentatives)
-                                                    .flatten()
-                                                    .collectFile(name: "combined_best_representative.txt"))
+    combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile.concat(bestRepresentatives.flatten().collectFile()))
 
     // fasta file with all seqs for best representative sequence.
     // (defline contains group id like:  OG_XXXX)
@@ -509,7 +507,7 @@ workflow bestRepresentativesAndStats {
         translatedSingletonsFile = translateSingletonsFile(fullSingletonsFile,
                                                            setupSequenceMapping)
 
-        // FIXME:  Final output of groups should be 2 column file "groupId\tseqId"
+        // Final output format of groups. Sent to peripheral workflow to identifiy which sequences are contained in which group in the core.
         reformatGroupsFile(orthofinderGroupResultsOrthologgroups,
                            translatedSingletonsFile,
                            params.buildVersion)
