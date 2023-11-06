@@ -4,6 +4,26 @@ use strict;
 use warnings;
 use Getopt::Long;
 
+=pod
+
+=head1 Description
+
+Filter group similarity files by only storing pairwise results that involve sequences being blasted against the best representative of the group to which they w
+
+=head1 Input Parameters
+
+=over 4
+
+=item bestReps 
+
+Tsv file containing a group ID and the sequence that best represents it
+
+=item singletons Tsv file containing a group ID and the singleton sequence that represents it (and is the only sequence contained in it)
+
+=back 
+
+=cut
+
 my ($bestReps, $singletons);
 
 &GetOptions("bestReps=s"=> \$bestReps,

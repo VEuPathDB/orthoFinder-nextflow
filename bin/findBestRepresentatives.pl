@@ -5,9 +5,22 @@ use warnings;
 use Getopt::Long;
 use Data::Dumper;
 
+=head1
+Description: 
+=head4 
+Determine the best representative per group by calculating the lowest average e-value across all sequences within a group.
+=cut
+
+=head1
+Input Parameters
+=over
+=item groupFile The pairwise blast results file. Results are split by group within the file.
+=back 
+=cut
+
 my ($groupFile);
 
-&GetOptions("groupFile=s"=> \$groupFile); # Pairwise blast results per group
+&GetOptions("groupFile=s"=> \$groupFile);
 
 my $QSEQ_COLUMN = 0;
 my $EVALUE_COLUMN = 10;
@@ -22,6 +35,7 @@ while (my $line = <$data>) {
     chomp $line;
     next unless($line);
 
+    # Calculate values for the last group
     if($line =~ /==> (\S+).sim <==/) {
         &calculateAverageAndPrintGroup($group, \%values) if($group);
         $group = $1;
@@ -47,6 +61,9 @@ while (my $line = <$data>) {
 
 1;
 
+=item calculateAverageAndPrintGroup()
+This process takes the group ID and the values object. The values object contains the sum of the total evalues and the number of pairs that involved this sequence that passed the e-value threshold. This process is called once per group. I will run through all of the qseqs in the values object and determine which sequence has the lowest average e-value. This sequence is identified as the best representative for this group.
+=cut
 
 sub calculateAverageAndPrintGroup {
     my ($group, $values) = @_;
