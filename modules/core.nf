@@ -196,6 +196,8 @@ process makeFullSingletonsFile {
 
   input:
     path singletonFiles
+    path orthogroups
+    val buildVersion
 
   output:
     path 'singletonsFull.dat'
@@ -461,7 +463,7 @@ workflow bestRepresentativesAndStats {
 
     singletonFiles = speciesOrthologsSingletons.collect()
 
-    fullSingletonsFile = makeFullSingletonsFile(singletonFiles)
+    fullSingletonsFile = makeFullSingletonsFile(singletonFiles, orthofinderGroupResultsOrthologgroups, params.buildVersion)
 
     bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250))
 

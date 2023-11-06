@@ -4,12 +4,13 @@ use strict;
 use warnings;
 use Getopt::Long;
 
-my ($singletons);
+my ($singletons,$groups,$buildVersion);
 
-&GetOptions("singletons=s"=> \$singletons);
+&GetOptions("singletons=s"=> \$singletons,
+            "groups=s"=> \$groups,
+            "buildVersion=s"=> \$buildVersion);
 
 if (-e "singletonsFull.dat") {
-
     # Get last line from full singletons file so we know what the last group number was
     my $lastLineOfFullFile = `tail -n 1 singletonsFull.dat`;
     chomp $lastLineOfFullFile;
@@ -24,10 +25,6 @@ if (-e "singletonsFull.dat") {
     
     while (my $line = <$data>) {
         chomp $line;
-	# Get Group and Seq ID
-        my ($group, $seqID) = split(/\t/, $line);
-	# Split out integer
-	my ($groupVersion, $groupInteger) = split(/\_/, $group);
 	# Create New Group
 	$lastGroupInteger+=1;
 	# Get New Length of Last Group Integer
@@ -35,15 +32,38 @@ if (-e "singletonsFull.dat") {
 	# Add zeros in front of group to keep consistent formatting
 	my $numberOfZerosToAddToStart = 7 - $lengthOfLastGroupInteger;
 	my $zeroLine = "0" x $numberOfZerosToAddToStart;
-	print OUT "${groupVersion}_${zeroLine}${lastGroupInteger}\t$seqID\n";
+	print OUT "${lastGroupVersion}_${zeroLine}${lastGroupInteger}\t$line\n";
     }
     close $data;
+    close OUT;
 }
 else {
+    open(my $group, '<', $groups) || die "Could not open file $groups: $!";
+    my $lastGroupID;
+    while (my $line = <$group>) {
+        chomp $line;
+	# Get Values
+        my @values = split(/\t/, $line);
+	# Split out groupID
+	my $groupID = $values[1];
+	$groupID =~ s/OG//g;
+	$lastGroupID = $groupID;
+    }
     # Create full singletons file
-    `touch singletonsFull.dat`;
-    # First file can just have the same mappings
-    `cat $singletons > singletonsFull.dat`;
+    open(OUT, ">singletonsFull.dat") || die "Could not open full singletons file: $!";
+    open(my $data, '<', $singletons) || die "Could not open file $singletons: $!";
+    while (my $line = <$data>) {
+        chomp $line;
+	$lastGroupID+=1;
+	# Get New Length of Last Group Integer
+	my $lengthOfLastGroupInteger = length($lastGroupID);
+	# Add zeros in front of group to keep consistent formatting
+	my $numberOfZerosToAddToStart = 7 - $lengthOfLastGroupInteger;
+	my $zeroLine = "0" x $numberOfZerosToAddToStart;
+	my $groupWithBuild = "OG${buildVersion}_${zeroLine}${lastGroupID}";
+	print OUT "$groupWithBuild\t$line\n";
+    }
+    close OUT;
 }
 
 

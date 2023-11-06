@@ -60,7 +60,7 @@ unless($speciesIndex) {
     die "Could not map species $species to ortholog group file header";
 }
 
-my (%seenSequences, $prevGroupIntegers);
+my %seenSequences;
 
 while(<GROUP>) {
     chomp;
@@ -71,7 +71,6 @@ while(<GROUP>) {
     # change the orthologGroup id to add some version
     # replace "OG" with "OG${version}_"
     $orthologGroup =~ s/^${orthoGroupPrefix}(\d+)/${orthoGroupPrefix}${buildVersion}_$1/;
-    $prevGroupIntegers=  $1;
 
     # Retrieve string of all sequences in orthogroup for this species
     my $speciesField =  $line[$speciesIndex];
@@ -97,10 +96,10 @@ while(<GROUP>) {
 close GROUP;
 close OUT;
 
-# Print out singletons to their own group
+# Print out singletons
 
 print "$singletonsFile\n";
-&printSingletons($buildVersion, $prevGroupIntegers, $singletonsFile, \%sequenceMapping, \%seenSequences);
+&printSingletons($singletonsFile, \%sequenceMapping, \%seenSequences);
 
 # ============================= Subroutines =========================================
 
@@ -137,23 +136,16 @@ sub makeSequenceMapping {
 
 # Prints out singleton sequence to their own group
 sub printSingletons {
-    my $buildVersion = $_[0];
-    my $prevGroupIntegers = $_[1];
-    my $singletonsFile = $_[2];
-    my %sequenceMapping = %{ $_[3] };
-    my %seenSequences = %{ $_[4] };
+    my $singletonsFile = $_[0];
+    my %sequenceMapping = %{ $_[1] };
+    my %seenSequences = %{ $_[2] };
     open(SINGLETONS, ">$singletonsFile") or die "Cannot open file $singletonsFile for writing: $!";
     # For evert sequence in sequence mapping
     foreach my $seqName (keys %sequenceMapping) {
 	# That has not be seen before
         next if($seenSequences{$seqName});
-	# Increase group number
-        $prevGroupIntegers++;
-	# Create new group
-        my $singletonGroup = "${orthoGroupPrefix}${buildVersion}_${prevGroupIntegers}";
-	# Retrieve the internal id
         my $internalSeq = $sequenceMapping{$seqName};
-        print SINGLETONS "$singletonGroup\t$internalSeq\n";
+        print SINGLETONS "$internalSeq\n";
     }
     close SINGLETONS;
 }
