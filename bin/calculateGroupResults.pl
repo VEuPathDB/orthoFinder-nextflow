@@ -6,21 +6,50 @@ use Getopt::Long;
 use Statistics::Basic::Median;
 use Statistics::Descriptive::Weighted;
 
-=head1
-Description: 
-=head4 
+=pod
+
+=head1 Description
+
 Calculate group statistics from input of pairwise blast results, for a group, between sequences in the group and the best representative of the same group.
+
+=head1 Input Parameters
+
+=over 4
+
+=item bestRepResults
+
+The group specific pairwise results file
+
+=back
+
+=over 4
+
+=item evalueColumn
+
+The (0th indexed) column number that contains the e-value
+
+=back
+
+=over 4
+
+=item isResidual
+
+A boolean indicating if these are residual or core groups (if residual, OG7_0000000 becomes OGR7_0000000)
+
+=back
+
+=over 4
+
+=item outputFile
+
+The path to where the group stats will be written
+
+=back
+
+=head1 Subroutines
+
 =cut
 
-=head1
-Input Parameters
-=over
-=item bestRepResults The group specific pairwise results file
-=item evalueColumn The (0th indexed) column number that contains the e-value
-=item isResidual A boolean indicating if these are residual or core groups (if residual, OG7_0000000 becomes OGR7_0000000)
-=item outputFile The path to where the group stats will be written
-=back 
-=cut
 my ($bestRepResults, $evalueColumn, $isResidual, $outputFile);
 
 &GetOptions("bestRepResults=s"=> \$bestRepResults,
@@ -65,8 +94,15 @@ while (my $line = <$data>) {
 
 close $data;
 
+
+=over 4
+
 =item calculateStatsAndPrint()
+
 The process takes the group id and the evalues retrieve from the group pairwise results and calculates the group statistics.
+
+=back
+
 =cut
 
 sub calculateStatsAndPrint {
