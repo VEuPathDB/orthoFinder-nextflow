@@ -5,6 +5,72 @@ use Getopt::Long;
 use File::Basename;
 use Data::Dumper;
 
+=pod
+
+=head1 Description
+
+Create a new cached directory of blast results from the last core run. All file names are moved from their old organism orthofinder internal id to their new. Additionally, all organisms whose proteome have changed (are in outdated.txt) are removed.
+
+=head1 Input Parameters
+
+=over 4
+
+=item outdated
+
+The file holding organism abbrevs of outdated organisms
+
+=back
+
+=over 4
+
+=item cachedSpeciesMapping
+
+The orthofinder species mapping file from the last run.
+
+=back
+
+=over 4
+
+=item cachedSequenceMapping
+
+The cached sequence mapping file from the last run.
+
+=back
+
+=over 4
+
+=item newSpeciesMapping
+
+The new species mapping file from orthofinder.
+
+=back
+
+=over 4
+
+=item newSequenceMapping
+
+The new sequence mapping file from orthofinder.
+
+=back
+
+=over 4
+
+=item diamondCacheDir
+
+The path to where the blasts from the last run are stored
+
+=back
+
+=over 4
+
+=item outputDir
+
+The directory where the mapped and filtered blast files will be placed.
+
+=back
+
+=cut
+
 my ($outdated, $cachedSpeciesMapping, $cachedSequenceMapping, $newSpeciesMapping, $newSequenceMapping, $outputDir, $diamondCacheDir);
 
 &GetOptions("outdated=s"=> \$outdated, # File indicating outdated/new species, one species per line
@@ -125,6 +191,20 @@ foreach my $cachedBlastFile (@cachedBlastFiles) {
         die "Could not find species mapping for $org1 or $org2";
     }
 }
+
+=pod
+
+=head1 Subroutines
+
+=over 4
+
+=item organismIsOutdated()
+
+The process is a check to insure that the sequence ids from the last run and the current run for an organism (not labeled as outdated) are indeed the same.
+
+=back
+
+=cut
 
 sub organismIsOutdated {
     my ($cachedOrganismId, $newOrganismId, $cachedSequenceMapping, $newSequenceMapping) = @_;

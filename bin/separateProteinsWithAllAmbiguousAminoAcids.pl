@@ -3,19 +3,52 @@
 use strict;
 use warnings;
 use Getopt::Long;
-
 use Bio::SeqIO;
 
+=pod
+
+=head1 Description
+
+Take a fasta file and separate it into a fasta file with ambigious sequences and a fasta file with unambiguous sequences. This is done by seeing if the sequence contains any of a certain set of characters. This is needed because orthofinder will fail if isn't a sequence with unambiguous characters in the first 10 sequences. I.E. it complains that it can't tell if this is a proteome or not.
+
+=head1 Input Parameters
+
+=over 4
+
+=item input
+
+The input fasta file
+
+=back
+
+=over 4
+
+=item ambiguous
+
+The output file to write ambiguous sequences
+
+=back
+
+=over 4
+
+=item unambiguous
+
+The output file to write unambiguous sequences
+
+=back
+
+=cut
+
 my ($input,$ambiguousOutput, $unambiguousOutput);
+
 
 &GetOptions("input=s"=> \$input,
             "ambiguous=s"=> \$ambiguousOutput,
             "unambiguous=s"=> \$unambiguousOutput
-    );
+           );
 
-# The point of this script is to ensure that a sequence with unambigous amino acids is in the first 10 sequences of the fasta. This is due to orthofinder throwing an error, indicating it cannot identify if the sequence is NA or AA.
 
-# SeqIO object for organism fasta
+# Creation of SeqIO object for organism fasta
 my $in  = Bio::SeqIO->new(-file => $input ,
                          -format => 'Fasta');
 
@@ -38,6 +71,8 @@ while ( my $seq = $in->next_seq() ) {
     }
 }
 
-# The ambigous file is concatenated to the end of the unambigous file, ensuring that we have the full fasta and that an unambigous sequence is in the first 10 sequences
+=head4 
+The ambigous file is concatenated to the end of the unambigous file, ensuring that we have the full fasta and that an unambigous sequence is in the first 10 sequences.
+=cut
 
 1;

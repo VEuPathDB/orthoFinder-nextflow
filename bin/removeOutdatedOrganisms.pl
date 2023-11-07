@@ -3,6 +3,32 @@
 use strict;
 use warnings;
 
+=pod
+
+=head1 Description
+
+Create a new cache directory for peripherals. Remove all blast files that involve an organism that was marked as outdated.
+
+=head1 Input Parameters
+
+=over 4
+
+=item outdated
+
+File holding organism abbrevs of organisms whose proteomes have changed since the last run.
+
+=back
+
+=over 4
+
+=item peripheralCache
+
+The output directory to write the cached blast files.
+
+=back
+
+=cut
+
 my $outdatedFile = $ARGV[0]; # File containing organism abbrev, one per line
 my $peripheralCache = $ARGV[1]; # Directory of cache files
 

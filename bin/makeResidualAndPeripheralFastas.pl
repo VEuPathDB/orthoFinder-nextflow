@@ -6,6 +6,48 @@ use Getopt::Long;
 use Bio::SeqIO;
 use Data::Dumper;
 
+=pod
+
+=head1 Description
+
+Per organism, takes a file with sequence group assignments and the organism's proteome. All sequences with group assignments are sent to the peripheral fasta and all those without are sent to the residuals fasta.
+
+=head1 Input Parameters
+
+=over 4
+
+=item groups
+
+The group assignments file
+
+=back
+
+=over 4
+
+=item seqFile
+
+Organism proteome fasta
+
+=back
+
+=over 4
+
+=item residuals
+
+The residual fasta to write the residual sequences to
+
+=back
+
+=over 4
+
+=item peripherals
+
+The peripheral fasta to write the peripheral sequences to
+
+=back
+
+=cut
+
 my ($groups,$seqFile,$residuals,$peripherals);
 
 &GetOptions("groups=s"=> \$groups, # File contains sequence group mappings

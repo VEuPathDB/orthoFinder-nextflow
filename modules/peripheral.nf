@@ -373,5 +373,5 @@ workflow peripheralWorkflow {
     // Split residual proteome into one fasta per organism and compress. Needed input for orthofinder.
     compressedFastaDir = createCompressedFastaDir(residualFasta)
 
-    // residualWorkflow(compressedFastaDir.fastaDir, "residual")
+    residualWorkflow(compressedFastaDir.fastaDir, "residual")
 }

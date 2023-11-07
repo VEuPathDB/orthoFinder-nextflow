@@ -5,17 +5,22 @@ use warnings;
 use Getopt::Long;
 use Data::Dumper;
 
-=head1
-Description: 
-=head4 
-Determine the best representative per group by calculating the lowest average e-value across all sequences within a group.
-=cut
+=pod
 
-=head1
-Input Parameters
-=over
-=item groupFile The pairwise blast results file. Results are split by group within the file.
+=head1 Description: 
+
+Determine the best representative per group by calculating the lowest average e-value across all sequences within a group.
+
+=head1 Input Parameters
+
+=over 4
+
+=item groupFile 
+
+The pairwise blast results file. Results are split by group within the file.
+
 =back 
+
 =cut
 
 my ($groupFile);
@@ -61,8 +66,18 @@ while (my $line = <$data>) {
 
 1;
 
+=pod
+
+=head1 Subroutines
+
+=over 4
+
 =item calculateAverageAndPrintGroup()
+
 This process takes the group ID and the values object. The values object contains the sum of the total evalues and the number of pairs that involved this sequence that passed the e-value threshold. This process is called once per group. I will run through all of the qseqs in the values object and determine which sequence has the lowest average e-value. This sequence is identified as the best representative for this group.
+
+=back
+
 =cut
 
 sub calculateAverageAndPrintGroup {

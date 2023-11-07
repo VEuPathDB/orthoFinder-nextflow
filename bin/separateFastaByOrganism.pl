@@ -4,6 +4,32 @@ use strict;
 use warnings;
 use Getopt::Long;
 
+=pod
+
+=head1 Description
+
+Receive a fasta file and split into into separate organism fastas. Needed for orthofinder.
+
+=head1 Input Parameters
+
+=over 4
+
+=item input
+
+The fasta file to be split
+
+=back
+
+=over 4
+
+=item outputDir
+
+The directory to write the output files
+
+=back
+
+=cut
+
 my ($input,$outputDir);
 
 &GetOptions("input=s"=> \$input,

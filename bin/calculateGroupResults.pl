@@ -46,8 +46,6 @@ The path to where the group stats will be written
 
 =back
 
-=head1 Subroutines
-
 =cut
 
 my ($bestRepResults, $evalueColumn, $isResidual, $outputFile);
@@ -94,6 +92,9 @@ while (my $line = <$data>) {
 
 close $data;
 
+=pod
+
+=head1 Subroutines
 
 =over 4
 

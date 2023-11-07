@@ -4,6 +4,32 @@ use strict;
 use warnings;
 use Getopt::Long;
 
+=pod
+
+=head1 Description
+
+Takes a file containing singleton sequences and their group assignments and a file with the internal orthofinder sequence mappings. Used the sequence mappings to translate the sequences in the singletons file to their real sequence name.
+
+=head1 Input Parameters
+
+=over 4
+
+=item singletons
+
+The singletons file
+
+=back
+
+=over 4
+
+=item sequenceMapping
+
+The file containing the orthofinder internal sequence mappings
+
+=back
+
+=cut
+
 my ($singletons,$sequenceMapping);
 
 &GetOptions("singletons=s"=> \$singletons,
@@ -26,6 +52,20 @@ close OUT;
 
 # ========================== Subroutines =================================
 
+=pod
+
+=head1 Subroutines
+
+=over 4
+
+=item makeGroupMappingHash()
+
+This process take the singletons file and creates a hash object that contains value mapping pairs of the singletons and their group assignments.
+
+=back
+
+=cut
+
 sub makeGroupMappingHash {
     my ($singletons) = @_;
     my %group_mapping;
@@ -39,10 +79,22 @@ sub makeGroupMappingHash {
     return %group_mapping;
 }
 
+=pod
+
+=over 4
+
+=item makeGroupMappingHash()
+
+This process take the internal sequence file and creates a hash object that contains value mapping pairs of the internal and true sequence name.
+
+=back
+
+=cut
+
 sub makeMappingSequenceHash {
-    my ($singletons) = @_;
+    my ($sequenceMapFile) = @_;
     my $mapping_sequence;
-    open(my $map, '<', $sequenceMapping) || die "Could not open file $sequenceMapping: $!";
+    open(my $map, '<', $sequenceMapFile) || die "Could not open file $sequenceMapFile: $!";
     while (my $line = <$map>) {
         chomp $line;
         my ($mapping, $sequence) = split(/:\s/, $line);

@@ -4,6 +4,48 @@ use strict;
 use warnings;
 use Getopt::Long;
 
+=pod
+
+=head1 Description
+
+Takes a set of blast results between two organisms and the group assignments for the sequences of those two organisms. The blast results are filtered by only retainging results where the query and subject sequence are in the same group. The output from this script is sent to splitBlastsIntoGroupFiles. This script splits the output from this process by group. This process will be parallelized and the outputs of this process will by joined with other runs. We will end up with all of the blast data being split by group.
+
+=head1 Input Parameters
+
+=over 4
+
+=item diamondFile
+
+The pairwise results file.
+
+=back
+
+=over 4
+
+=item species0File
+
+File containing sequence group assignments for the query organism
+
+=back
+
+=over 4
+
+=item species1File
+
+File containing sequence group assignments for the subject organism
+
+=back
+
+=over 4
+
+=item outputFile
+
+The path to where the filtered data will be written
+
+=back
+
+=cut
+
 my ($species0File, $species1File, $diamondFile, $outputFile);
 
 &GetOptions("diamondFile=s" => \$diamondFile,
@@ -38,6 +80,20 @@ close BLAST;
 close OUT;
 
 # ===================== Subroutines ===================================
+
+=pod
+
+=head1 Subroutines
+
+=over 4
+
+=item makeOrthologsFromFile()
+
+Returns a hash item with value mapping pairs of sequences to their group assignments
+
+=back
+
+=cut
 
 sub makeOrthologsFromFile {
     my ($speciesFile) = @_;

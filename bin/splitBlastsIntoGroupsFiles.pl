@@ -4,8 +4,31 @@ use strict;
 
 use Getopt::Long;
 
+=pod
 
+=head1 Description
 
+Takes a set of file of filtered blast results from makeOrthogroupDiamondFiles. This process filtered the blast data to only contain sequences that were assigned to the same group. splitBlastsIntoGroupsFiles splits this output by group. This process will be parallelized and the outputs of this process will by joined with other runs. We will end up with all of the blast data being split by group.
+
+=head1 Input Parameters
+
+=over 4
+
+=item input_file
+
+File of filtered blast results from makeOrthogroupsDiamondFiles
+
+=back
+
+=over 4
+
+=item output_file_suffix
+
+The files will be named by group, but the suffix to these files is set here
+
+=back
+
+=cut
 
 my ($inputFile, $outputFileSuffix);
 

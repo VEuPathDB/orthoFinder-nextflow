@@ -4,6 +4,32 @@ use strict;
 use warnings;
 use Getopt::Long;
 
+=pod
+
+=head1 Description
+
+Split a proteome into multiple group files using group assignments.
+
+=head1 Input Parameters
+
+=over 4
+
+=item groups
+
+The file containing sequence group assignments.
+
+=back
+
+=over 4
+
+=item proteome
+
+The proteome file you wish to split
+
+=back
+
+=cut
+
 my ($groups,$proteome);
 
 &GetOptions("groups=s"=> \$groups,
