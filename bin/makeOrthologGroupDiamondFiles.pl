@@ -70,9 +70,14 @@ while(<BLAST>) {
     next if($a[0] eq $a[1]);
 
     # If sequences are in the same group
-    if($species0Orthologs{$a[0]} && $species1Orthologs{$a[1]} && $species0Orthologs{$a[0]} eq $species1Orthologs{$a[1]}) {
-        unshift @a, $species0Orthologs{$a[0]};
-        print OUT join("\t", @a) . "\n";
+    if($species0Orthologs{$a[0]} && $species1Orthologs{$a[1]}) {
+	if ($species0Orthologs{$a[0]} eq $species1Orthologs{$a[1]}) {
+            unshift @a, $species0Orthologs{$a[0]};
+            print OUT join("\t", @a) . "\n";
+        }
+	else {
+            print "Warning: Missing sequence in orthogroups file\n";
+	}
     }
 }
 
