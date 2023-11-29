@@ -5,10 +5,10 @@ include { calculateGroupResults; uncompressFastas; uncompressFastas as uncompres
 include { coreOrResidualWorkflow as residualWorkflow  } from './core.nf'
 
 /**
- * Splits residual proteome into one fasta per organism. Place these into a singular directory and compress.
+ * Splits peripheral proteome into one fasta per organism. Place these into a singular directory and compress.
  * This is the input for orthofinder.
  *
- * @param inputFasta:  The fasta file containing all of the residual sequences
+ * @param inputFasta:  The fasta file containing all of the peripheral sequences
  * @return fastaDir A compressed directory of proteomes fastas
 */
 process createCompressedFastaDir {
