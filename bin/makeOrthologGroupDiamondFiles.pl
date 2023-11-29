@@ -75,9 +75,6 @@ while(<BLAST>) {
             unshift @a, $species0Orthologs{$a[0]};
             print OUT join("\t", @a) . "\n";
         }
-	else {
-            print "Warning: Missing sequence in orthogroups file\n";
-	}
     }
 }
 
