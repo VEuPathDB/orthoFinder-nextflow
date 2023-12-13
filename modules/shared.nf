@@ -47,8 +47,6 @@ process calculateGroupResults {
 process bestRepsSelfDiamond {
   container = 'veupathdb/diamondsimilarity'
 
-  publishDir "$params.outputDir", mode: "copy"
-
   input:
     path bestRepSubset
     path bestRepsFasta
