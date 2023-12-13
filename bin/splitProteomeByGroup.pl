@@ -39,20 +39,26 @@ open(my $data, '<', $groups) || die "Could not open file $groups: $!";
 
 while (my $line = <$data>) {
     chomp $line;
+
     if ($line =~ /^(\S+):\s(.+)/) {
 	my $groupId = $1;
         my @seqs = split(/\s/, $2);
-        `touch ${groupId}.temp`;
-        `touch ${groupId}.fasta`;
-	open(TEMP,">${groupId}.temp");
+
+	open(OUT,">${groupId}.fasta")  || die "Could not open file ${groupId}.fasta: $!";
+	open(TMP,">${groupId}.tmp")  || die "Could not open file ${groupId}.tmp: $!";
+
 	foreach my $seq (@seqs) {
-	    print TEMP "$seq\n";
+            print TMP "$seq\n";
 	}
-	`seqtk subseq ${proteome} ${groupId}.temp > ${groupId}.fasta`;
-	close TEMP;
-	`rm ${groupId}.temp`
+	close TMP;
+
+	print OUT `samtools faidx $proteome -r ${groupId}.tmp`;
+	close OUT;
+	
     }
+
     else {
 	die "Improper format of groups file $groups";
     }
+
 }	

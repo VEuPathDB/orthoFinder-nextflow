@@ -91,7 +91,7 @@ process assignGroups {
     path fasta
         
   output:
-    path 'sortedGroups.txt', emit: groups
+    path 'groups.txt', emit: groups
     path diamondInput, emit: similarities
     path fasta, emit: fasta
 
@@ -349,11 +349,11 @@ workflow peripheralWorkflow {
 									      .collect();
 
     // for X number of groups (100?), calculate stats on evalue
-    // calculateGroupResults(allSimilaritiesToBestRep.flatten().collate(100),
-    //                      10,
-    //			  false)
-    //			  .collectFile(name: "peripheral_stats.txt",
-    //			               storeDir: params.outputDir + "/groupStats" )
+    calculateGroupResults(allSimilaritiesToBestRep.flatten().collate(100),
+                          10,
+    			  false)
+    			  .collectFile(name: "peripheral_stats.txt",
+    			               storeDir: params.outputDir + "/groupStats" )
 
     // Creating Core + Peripheral Gene Trees
 
@@ -361,12 +361,10 @@ workflow peripheralWorkflow {
     combinedProteome = combineProteomes(uncompressAndMakeCoreFastaResults.combinedProteomesFasta,
                                         peripheralFasta)
 
-
     // TODO: these 4 steps need work
        makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, groupAssignments)
-         splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults.splitText( by: 100, file: true ), params.outdatedOrganisms)
-    //   keepSeqIdsFromDeflinesResults = keepSeqIdsFromDeflines(splitProteomesByGroupResults.collect().flatten().collate(100))
-    //   createGeneTrees(keepSeqIdsFromDeflinesResults.collect().flatten().collate(100))
+       splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults.splitText( by: 100, file: true ), params.outdatedOrganisms)
+       createGeneTrees(splitProteomesByGroupResults)
 
     // Residual Processing
 

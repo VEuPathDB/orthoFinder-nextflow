@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 use Getopt::Long;
+use Data::Dumper;
 
 =pod
 
@@ -16,7 +17,7 @@ Take the core groups file from the core workflow, and integrate peripheral seque
 
 =item coreGroup
 
-The groups file generate from the core workflow
+The groups file generated from the core workflow
 
 =back
 
@@ -40,6 +41,30 @@ open(my $core, '<', $coreGroup) || die "Could not open file $coreGroup: $!";
 open(my $peripheral, '<', $peripheralGroup) || die "Could not open file $peripheralGroup: $!";
 open(OUT,">$output");
 
+my %groupSeqs;
+
+# For each Peripheral Assignment
+while (my $line = <$peripheral>) {
+    chomp $line;
+    my @sequenceAssignment = split(/\t/, $line);
+    # Get the sequence
+    my $sequence = $sequenceAssignment[0];
+    # Get the group assignment
+    my $groupId = $sequenceAssignment[1];
+
+    # If group hash array exists, add sequence to group array
+    if ($groupSeqs{$groupId}) {
+        push( @{$groupSeqs{$groupId}}, $sequence);
+    }
+    # Else create group hash array and add sequence
+    else {
+	$groupSeqs{$groupId} = ();
+        push( @{$groupSeqs{$groupId}}, "$sequence");
+    }
+}
+
+close $peripheral;
+
 # For each core group
 while (my $line = <$core>) {
     chomp $line;
@@ -47,33 +72,36 @@ while (my $line = <$core>) {
 	# Get the groupID
 	my $groupId = $1;
 	# Get the group sequences
-	my $groupSeqs = $2;
+	my $sequences = $2;
 	# Create array of sequences
-	my @sequences = split(/\s/, $groupSeqs);
-	# Place all sequences that have been assigned to this core group into a temp group file
-	`grep "${groupId}" $peripheralGroup > ${groupId}.tmp`;
-	open(my $idFile, "<${groupId}.tmp") || die "Could not open file ${groupId}.txt: $!";
-	# For every peripheral sequence assigned to this group
-	while (my $idLine = <$idFile>) {
-	    chomp $idLine;
-	    # Format is group \t sequence
-	    if ($idLine =~ /^(\S+)\t(\S+)/) {
-		my $peripheralSeq = $1;
-		# Push the peripheral sequence to the core sequences array
-	        push(@sequences,$peripheralSeq);
-	    }
-	    else {
-		die "Improper peripheralFile format\n";
-	    }	
-        }
-	close $idFile;
-	my $sequenceString = join(' ', @sequences);
-	# Print out the group ID and all of the core and peripheral sequence assigned to it
-        print OUT "$groupId: $sequenceString\n";
-	# Remove the temp file
-	unlink "${groupId}.tmp" or warn "Could not unlink ${groupId} temp file: $!";
+	my @coreSequences = split(/\s/, $sequences);
+
+	my $groupSeqsString;
+
+	# If peripheral sequences have been assigned this group
+	if ($groupSeqs{$groupId}) {
+	    # Get the peripheral sequences assigned to this group
+            my @peripheralSequences = @{$groupSeqs{$groupId}};
+	    # Combine the core and peripheral sequences
+	    my @allGroupSeqs = (@coreSequences,@peripheralSequences);
+	     $groupSeqsString = join(' ', @allGroupSeqs);
+	}
+
+	# If no peripheral sequences have been assigned this group
+        else {
+	    $groupSeqsString = join(' ', @coreSequences);
+	}
+
+	# Print out groupId and all sequences assigned to this group
+	print OUT "$groupId: $groupSeqsString\n";
+
     }
+
     else {
-	die "Improper groupFile format\n$line\n";
+        die "Improper groupFile format\n$line\n";
     }   
+
 }	
+
+close $core;
+close OUT;
