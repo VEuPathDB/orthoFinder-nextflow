@@ -274,14 +274,16 @@ process findBestRepresentatives {
 
 process removeEmptyGroups {
     input:
-    path f
+    path singletons
+    path bestReps
 
     output:
-    path "unique_${f}"
+    path "unique_best_representative.txt"
 
     script:
     """
-    grep -v '^empty' $f> unique_${f}
+    cat $singletons >> $bestReps
+    grep -v '^empty' $bestReps > unique_best_representative.txt
     """
 }
 
@@ -492,13 +494,13 @@ workflow bestRepresentativesAndStats {
     singletonFiles = speciesOrthologsSingletons.collect()
 
     // combine all singletons and assign a group id
-    fullSingletonsFile = makeFullSingletonsFile(singletonFiles, orthofinderGroupResultsOrthologgroups, params.buildVersion)
+    fullSingletonsFile = makeFullSingletonsFile(singletonFiles, orthofinderGroupResultsOrthologgroups, params.buildVersion).collectFile()
 
     // in batches, process group similarity files and determine best representative for each group
     bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250))
 
     // collect File of best representatives
-    combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile.concat(bestRepresentatives.flatten().collectFile()))
+    combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile, bestRepresentatives.flatten().collectFile())
 
     // fasta file with all seqs for best representative sequence.
     // (defline contains group id like:  OG_XXXX)
