@@ -60,6 +60,8 @@ open(my $data, '<', $bestRepResults) || die "Could not open file $bestRepResults
 
 open(OUT, ">$outputFile") or die "Cannot open output file $outputFile for writing: $!";
 
+print OUT "group\tmin\ttwentyfifth\tmedian\tseventyfifth\tmax\tsimCount\n";
+
 # Make array to hold evalues
 my @evalues;
 my $group;
@@ -125,7 +127,7 @@ sub calculateStatsAndPrint {
         my $median = $stat->percentile(50);
         my $seventyfifth = $stat->percentile(75);
         my $max = $stat->max();
-        print OUT "$group\t$min\t$twentyfifth\t$mean\t$median\t$seventyfifth\t$max\n";
+        print OUT "Group: $group\tMin: $min\t25th: $twentyfifth\tMedian: $median\t75th: $seventyfifth\tMax: $max\tSimCount: $simCount\n";
     }
 
 }
