@@ -66,7 +66,8 @@ while (my $line = <$data>) {
 	    }
 	}
 	# Get the group id
-	my $group = $valuesArray[1];
+	my $group = $valuesArray[0];
+	my $group =~ s/N0.H//g;
 	# Add in build version and formatting
 	$group =~ s/OG/OG${buildVersion}_/;
 	# Print out data in new format
