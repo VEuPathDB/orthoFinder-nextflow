@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-LASTGROUP=\$(cut -f2 $orthogroups | tail -n1) 
+LASTGROUP=\$(cut -f1 $orthogroups | tail -n1) 
 
 makeFullSingletonsFile.pl --lastGroup \$LASTGROUP \
 			  --buildVersion $buildVersion \

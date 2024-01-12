@@ -55,11 +55,14 @@ my ($fileSuffix,$lastGroup,$buildVersion,$outputFile);
 
 # Setting variables in case they ever change
 my $groupIntDigits = 7;
-my $groupPrefix = "OG";
+my $groupPrefix = "N0.HOG";
 
 # Remove the last group prefix to just get the integer so we can iterate from it
 my $lastGroupInteger = $lastGroup;
+
 $lastGroupInteger =~ s/^$groupPrefix//;
+
+$groupPrefix = "OG";
 
 # Get all organism specific singleton files
 my @singletonFiles = glob("*.${fileSuffix}");
