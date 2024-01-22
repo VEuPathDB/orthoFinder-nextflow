@@ -364,7 +364,7 @@ workflow peripheralWorkflow {
     // TODO: these 4 steps need work
        makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, groupAssignments)
        splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults.splitText( by: 100, file: true ), params.outdatedOrganisms)
-       createGeneTrees(splitProteomesByGroupResults)
+    createGeneTrees(splitProteomesByGroupResults)
 
     // Residual Processing
 

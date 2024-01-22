@@ -43,7 +43,7 @@ my ($bestReps,$isResidual,$outputFile);
 
 &GetOptions("bestReps=s"=> \$bestReps, # Tab seperated file with group and seqID
             "outputFile=s"=> \$outputFile,
-            "isResidual=s"=> \$isResidual);
+            "isResidual"=> \$isResidual);
 
 my $groupPrefix = "OG";
 

@@ -505,7 +505,7 @@ workflow bestRepresentativesAndStats {
     // fasta file with all seqs for best representative sequence.
     // (defline contains group id like:  OG_XXXX)
     bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives,
-                                                           setupOrthofinderWorkingDir, false)
+                                                           setupOrthofinderWorkingDir, coreOrResidual)
 
     // in batches of bestReps, filter the group.sim file to create a file per group with similarities where the query seq is the bestRep
     // collect up resulting files
@@ -516,7 +516,7 @@ workflow bestRepresentativesAndStats {
     // split bestRepresentative into chunks for parallel processing
     bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
 
-    if (coreOrResidual === 'core') {
+    if (coreOrResidual == 'core') {
 
         // in batches of group similarity files filted by best representative, calculate group stats from evalues (min, max, median, ...)
         calculateGroupResults(groupResultsOfBestRep.flatten().collate(250), 10, false)

@@ -15,8 +15,8 @@ cut -f 2 $bestRepresentatives >\$SEQIDS
 
 # this will get fasta for all seq ids
 
-if [ "$isResidual" = true ]; then
-    samtools faidx -r \$SEQIDS \$FASTA | makeBestRepresentativesFasta.pl --bestReps $bestRepresentatives --outputFile \$OUTPUT --isResidual true
+if [ "$isResidual" = "residual" ]; then
+    samtools faidx -r \$SEQIDS \$FASTA | makeBestRepresentativesFasta.pl --bestReps $bestRepresentatives --outputFile \$OUTPUT --isResidual
     
 else
     samtools faidx -r \$SEQIDS \$FASTA | makeBestRepresentativesFasta.pl --bestReps $bestRepresentatives --outputFile \$OUTPUT
