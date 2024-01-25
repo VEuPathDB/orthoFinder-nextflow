@@ -371,6 +371,32 @@ process mergeCoreAndResidualBestReps {
     """
 }
 
+/**
+* combine the core and residual best rep similar groups files
+*
+*/
+process mergeCoreAndResidualSimilarGroups {
+  container = 'veupathdb/orthofinder'
+
+  publishDir "$params.outputDir/", mode: "copy"
+
+  input:
+    // Avoid file name collision
+    path 'coreSimilarGroups'
+    path 'coreAndResidualSimilarGroups'
+    path 'residualSimilarGroups'
+
+  output:
+    path 'all_best_reps_self_blast.txt'
+
+  script:
+    """
+    cp coreSimilarGroups all_best_reps_self_blast.txt
+    cat coreAndResidualSimilarGroups >> all_best_reps_self_blast.txt
+    cat residualSimilarGroups >> all_best_reps_self_blast.txt
+    """
+}
+
 
 /**
 * take a list and find all possible pairwise combinations.
@@ -560,10 +586,7 @@ workflow bestRepresentativesAndStats {
                                                                            bestRepresentativeFasta).collectFile()
 
         // combine all bestreps self blast
-        Channel.fromPath(params.coreBestRepsSelfBlast)
-            .concat(residualBestRepsSimilarities)
-            .concat(coreToResidualBestRepsSimilarities)
-            .collectFile(name: "all_best_reps_self_blast.txt", storeDir: params.outputDir )
+        mergeCoreAndResidualSimilarGroups(params.coreBestRepsSelfBlast,coreToResidualBestRepsSimilarities,residualBestRepsSimilarities)
 
     }
 }
