@@ -21,7 +21,6 @@ for query in ${queries.join(' ')}; do
 		--more-sensitive \
 		-p 1 \
 		--quiet \
-		-e 0.001 \
 		--compress 1
         gunzip Blast*.gz
     fi
