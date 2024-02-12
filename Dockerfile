@@ -1,4 +1,4 @@
-FROM davidemms/orthofinder:2.5.5.1
+FROM davidemms/orthofinder:2.5.5.2
 
 Label maintainer="rdemko2332@gmail.com"
 
