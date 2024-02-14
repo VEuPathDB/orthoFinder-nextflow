@@ -2,6 +2,6 @@
 
 set -euo pipefail
 
-reformatGroupsFile.pl --groupFile $groupsFile --buildVersion $buildVersion
+reformatGroupsFile.pl --groupFile $groupsFile --buildVersion $buildVersion --coreOrResidual $coreOrResidual
 
 cat $translatedSingletons >> reformattedGroups.txt

@@ -30,10 +30,11 @@ An integer indicating the build version of orthomcl
 
 =cut
 
-my ($groupFile,$buildVersion);
+my ($groupFile,$buildVersion,$coreOrResidual);
 
 &GetOptions("groupFile=s"=> \$groupFile,
-            "buildVersion=i"=> \$buildVersion);
+            "buildVersion=i"=> \$buildVersion,
+            "coreOrResidual=s"=> \$coreOrResidual);
 
 open(my $data, '<', $groupFile) || die "Could not open file $groupFile: $!";
 open(OUT, '>reformattedGroups.txt') || die "Could not open file reformattedGroups.txt: $!";
@@ -71,7 +72,15 @@ while (my $line = <$data>) {
 	$group =~ s/N0.H//g;
 	print "Reformat group is $group\n";
 	# Add in build version and formatting
-	$group =~ s/OG/OG${buildVersion}_/;
+	if ($coreOrResidual eq 'core') {
+	    $group =~ s/OG/OG${buildVersion}_/;
+	}
+	elsif ($coreOrResidual eq 'residual') {
+            $group =~ s/OG/OGR${buildVersion}_/;
+	}
+	else {
+	    die "Improper value for coreOrResidual parameter. Must be core or residual, but it is $coreOrResidual";
+	}
 	# Print out data in new format
         print OUT "$group: @allSequences\n";
     }

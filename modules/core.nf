@@ -243,6 +243,7 @@ process reformatGroupsFile {
     path groupsFile
     path translatedSingletons
     val buildVersion
+    val coreOrResidual
 
   output:
     path 'reformattedGroups.txt'
@@ -559,9 +560,18 @@ workflow bestRepresentativesAndStats {
         // Final output format of groups. Sent to peripheral workflow to identifiy which sequences are contained in which group in the core.
         reformatGroupsFile(orthofinderGroupResultsOrthologgroups,
                            translatedSingletonsFile,
-                           params.buildVersion)
+                           params.buildVersion,
+			   coreOrResidual)
     }
     else { // residual
+
+        translatedSingletonsFile = translateSingletonsFile(fullSingletonsFile,setupSequenceMapping)
+
+        // Final output format of residual groups. Adding R for residual, and build version.
+        reformatGroupsFile(orthofinderGroupResultsOrthologgroups,
+                           translatedSingletonsFile,
+                           params.buildVersion,
+			   coreOrResidual)
 
         // same as above but for residuals
         calculateGroupResults(groupResultsOfBestRep.flatten().collate(250), 10, true)
