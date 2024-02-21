@@ -128,18 +128,32 @@ process diamond {
 process computeGroups {
   container = 'veupathdb/orthofinder'
 
-  publishDir "$params.outputDir", mode: "copy", pattern: "Results"
-
   input:
     path blasts
     path orthofinderWorkingDir
 
   output:
     path 'Results/Phylogenetic_Hierarchical_Orthogroups/N0.tsv', emit: orthologgroups
-    path 'Results'
+    path 'Results', emit: results
 
   script:
     template 'computeGroups.bash'
+}
+
+process publishOFResults {
+  container = 'veupathdb/orthofinder'
+  
+  publishDir "$params.outputDir", mode: "copy"
+
+  input:
+    path 'OrthoFinderResults'
+  
+  output:
+    path 'Results'
+
+  '''
+  cp -r OrthoFinderResults Results
+  '''
 }
 
 /**
@@ -476,6 +490,9 @@ workflow coreOrResidualWorkflow {
 
     // run orthofinder
     orthofinderGroupResults = computeGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
+
+    // publish results
+    publishOFResults(orthofinderGroupResults.results)    
 
     //make one file per species containing all ortholog groups for that species
     speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(),
