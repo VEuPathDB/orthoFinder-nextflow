@@ -18,7 +18,7 @@ for query in ${queries.join(' ')}; do
 		-q ${orthofinderWorkingDir}/Species\${query}.fa \
 		-o Blast\${query}_${target}.txt.gz \
 		-f 6 $outputList \
-		--more-sensitive \
+		--very-sensitive \
 		-p 1 \
 		--quiet \
 		--compress 1
