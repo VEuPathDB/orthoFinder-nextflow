@@ -17,7 +17,7 @@ RUN mv miniconda3/bin/fasttree fasttree
 
 RUN cpanm Statistics::Basic Statistics::Descriptive::Weighted
 
-RUN wget http://github.com/bbuchfink/diamond/releases/download/v2.1.4/diamond-linux64.tar.gz
+RUN wget http://github.com/bbuchfink/diamond/releases/download/v2.0.15/diamond-linux64.tar.gz
 RUN tar xzf diamond-linux64.tar.gz
 
 # Making all tools executable

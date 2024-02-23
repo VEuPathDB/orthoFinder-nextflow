@@ -30,15 +30,33 @@ Output file to which to write the sequence and it's group assignment
 
 =cut
 
-my ($result,$output);
+my ($result,$output,$groupFile);
 
-&GetOptions("result=s"=> \$result, # Sorted diamond similarity results
-            "output=s"=> \$output);
+&GetOptions("result=s"=> \$result,
+            "output=s"=> \$output,
+	    "groupFile=s"=> \$groupFile
+            );
 
 open(my $data, '<', $result) || die "Could not open file $result: $!";
 open(OUT,">$output");
+open(GRP,"<$groupFile");
 
-my %seqToGroup;
+my %coreGroupAssignments;
+while (my $line = <GRP>) {
+    chomp $line;
+    if ($line =~ /^(OG\d+_\d+):\s(.+)/) {
+        my $groupID = $1;
+        my @seqArray = split(/\s/, $2);
+	foreach my $seq (@seqArray) {
+            $coreGroupAssignments{$seq} = $groupID;
+	}
+    }
+    else {
+	die "Improper group file format: $!";
+    }
+}
+
+my %seqBestHit;
 
 # for each pair wise result
 while (my $line = <$data>) {
@@ -49,26 +67,27 @@ while (my $line = <$data>) {
 
     # Retrieve the qseq, seq (best reps are identified by the group they represent) and the evalue
     my $qseq = $lineAr[0];
-    my $group = $lineAr[1];
+    my $sseq = $lineAr[1];
     my $evalue = $lineAr[10];
 
     # If first result for this sequence
-    unless($seqToGroup{$qseq}) {
+    unless($seqBestHit{$qseq}) {
 	# Set the sequences group and e-value
-        $seqToGroup{$qseq}->{evalue} = $evalue;
-        $seqToGroup{$qseq}->{group} = $group;
+        $seqBestHit{$qseq}->{evalue} = $evalue;
+        $seqBestHit{$qseq}->{sseq} = $sseq;
     }
 
     # If we found a better match
-    if($seqToGroup{$qseq}->{evalue} > $evalue) {
+    if($seqBestHit{$qseq}->{evalue} > $evalue) {
 	# Set the new evalue and group
-        $seqToGroup{$qseq}->{evalue} = $evalue;
-        $seqToGroup{$qseq}->{group} = $group;
+        $seqBestHit{$qseq}->{evalue} = $evalue;
+        $seqBestHit{$qseq}->{sseq} = $sseq;
     }
 
 }
 
 # For each sequence, print out it's group assignment
-foreach my $seq (keys %seqToGroup) {
-    print OUT "$seq\t" . $seqToGroup{$seq}->{group} . "\n";
+foreach my $seq (keys %seqBestHit) {
+    my $seqBestMatch = $seqBestHit{$seq}->{sseq};
+    print OUT "$seq\t" . $coreGroupAssignments{$seqBestMatch} . "\n";
 }

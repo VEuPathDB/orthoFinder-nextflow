@@ -3,5 +3,6 @@
 set -euo pipefail
 
 assignGroupsForPeripherals.pl --result $diamondInput \
-			      --output groups.txt
+			      --output groups.txt \
+			      --groupFile $groupFile
 

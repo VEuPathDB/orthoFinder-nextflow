@@ -10,5 +10,6 @@ diamond blastp \
   -e 0.1 \
   -f 6 $params.bestRepDiamondOutputFields \
   --comp-based-stats 0 \
-  --no-self-hits
+  --no-self-hits \
+  --very-sensitive
 

@@ -84,7 +84,9 @@ while (my $line = <$data>) {
     }
 
     my @results = split(/\t/, $line);
-    push(@evalues,$results[$evalueColumn]);
+    my $evalue = $results[$evalueColumn];
+    $evalue = 1 if ($evalue == -1);
+    push(@evalues,$evalue);
 }
 
 # do the last one

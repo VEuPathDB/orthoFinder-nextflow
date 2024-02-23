@@ -3,4 +3,5 @@
 set -euo pipefail
 
 getPeripheralResultsToBestRep.pl --similarity $similarityResults \
-				 --group $groupAssignments
+				 --group $groupAssignments \
+				 --bestReps bestReps.txt

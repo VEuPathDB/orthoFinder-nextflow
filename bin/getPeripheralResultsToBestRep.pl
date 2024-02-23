@@ -30,13 +30,15 @@ A file containing the list of peripheral sequences and their group assignments
 
 =cut
 
-my ($similarity,$groups);
+my ($similarity,$bestReps,$groups);
 
 &GetOptions("similarity=s"=> \$similarity, # Sorted diamond similarity results
+            "bestReps=s"=> \$bestReps,
             "groups=s"=> \$groups); # Sorted group assignments
 
 open(my $group, '<', $groups) || die "Could not open file $groups: $!";
 open(my $sim, '<', $similarity) || die "Could not open file $similarity: $!";
+open(my $reps, '<', $bestReps) || die "Could not open file $bestReps: $!";
 
 # Make hash to store sequence group assignments
 my %seqToGroup;
@@ -50,14 +52,38 @@ while (my $line = <$group>) {
 }
 close $group;
 
+# Make hash to store group to best rep assignments
+my %groupToRep;
+
+# For each line in groups file
+while (my $line = <$reps>) {
+    chomp $line;
+    my ($groupId,$rep) = split(/\t/, $line);
+    # Record the group assignment for each sequence
+    $groupToRep{$groupId} = $rep;
+}
+close $reps;
+
 my $currentGroupId = "";
 while (my $line = <$sim>) {
     chomp $line;
-    my ($seq,$groupId, @rest) = split(/\t/, $line);
+    my $groupId;
+    my ($qseq,$sseq, @rest) = split(/\t/, $line);
 
+    my $testGroup = $seqToGroup{$qseq};
+    my $testRep = $groupToRep{$testGroup};
+
+    #print "$sseq\t$testRep\n";
+
+    if ($sseq eq $testRep) {
+	print "DING\n";
+    }
+    
     # Skip result unless shared between sequence and the best representative of it's group assignment
-    next unless($seqToGroup{$seq} eq $groupId);
+    next unless($groupToRep{$seqToGroup{$qseq}} eq $sseq);
 
+    $groupId = $seqToGroup{$qseq};
+    
     # If same group that's currently opened, output.
     if ($groupId eq $currentGroupId) {
         print OUT "$line\n";

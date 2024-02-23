@@ -323,6 +323,26 @@ process makeBestRepresentativesFasta {
 }
 
 
+/**
+*  Translate best rep file to hold actual sequenceIds, not OF internal ids
+*/
+process translateBestRepsFile {
+  container = 'veupathdb/orthofinder'
+
+  publishDir "$params.outputDir", mode: "copy"
+
+  input:
+    path sequenceMapping
+    path bestReps
+    val isResidual
+
+  output:
+    path 'bestReps.txt'
+
+  script:
+    template 'translateBestRepsFile.bash'
+}
+
 
 /**
 *  In batches of ortholog groups, Read the file of bestReps (group->seq)
@@ -546,6 +566,9 @@ workflow bestRepresentativesAndStats {
     // collect File of best representatives
     combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile, bestRepresentatives.flatten().collectFile())
 
+    // make best rep file with actual sequence Ids
+    translateBestRepsFile(setupSequenceMapping, combinedBestRepresentatives, coreOrResidual)
+
     // fasta file with all seqs for best representative sequence.
     // (defline contains group id like:  OG_XXXX)
     bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives,
@@ -604,7 +627,7 @@ workflow bestRepresentativesAndStats {
 
         // as we get new residual groups we need to compare core best reps
         // (core best reps are input to peripheral/residual workflow)
-        coreBestRepsFasta = Channel.fromPath( params.coreBestReps )
+        coreBestRepsFasta = Channel.fromPath( params.coreBestRepsFasta )
         coreBestRepsFastaSubset = coreBestRepsFasta.splitFasta(by:1000, file:true)
 
         // run diamond for core best representatives compared to residual bestRep DB

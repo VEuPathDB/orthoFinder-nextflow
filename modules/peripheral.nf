@@ -89,6 +89,7 @@ process assignGroups {
   input:
     path diamondInput
     path fasta
+    path groupFile
         
   output:
     path 'groups.txt', emit: groups
@@ -114,9 +115,10 @@ process getPeripheralResultsToBestRep {
   input:
     path similarityResults
     path groupAssignments
+    path coreBestReps
         
   output:
-    path '*.tsv', emit: groupSimilarities
+    path '*.tsv', emit: groupSimilarities, optional: true
 
   script:
     template 'getPeripheralResultsToBestRep.bash'
@@ -235,6 +237,48 @@ process splitProteomeByGroup {
     template 'splitProteomeByGroup.bash'
 }
 
+process splitPeripheralProteomeByGroup {
+  container = 'veupathdb/orthofinder'
+
+  input:
+    path proteome
+    path groups
+
+  output:
+    path 'OG*.fasta', emit: peripheralGroupFastas
+
+  script:
+    template 'splitPeripheralProteomeByGroup.bash'
+}
+
+process splitCoreBestRepFasta {
+  container = 'veupathdb/orthofinder'
+
+  input:
+    path bestRepFasta
+
+  output:
+    path 'bestReps', emit: bestRepsFastas
+
+  script:
+    template 'splitCoreBestRepFasta.bash'
+}
+
+process peripheralGroupsToBestRepDiamond {
+  container = 'veupathdb/orthofinder'
+
+  input:
+    path groupFastas
+    path bestRepFastas
+    val outputList
+
+  output:
+    path '*.tsv', emit: groupSimilarities
+
+  script:
+    template 'peripheralGroupsToBestRepDiamond.bash'
+}
+
 /**
  * Keep only the sequence Ids in the deflines of the fasta files. Remove all other information. Needed for the createGeneTrees software.
  *
@@ -310,7 +354,7 @@ workflow peripheralWorkflow {
     uncompressAndMakeCoreFastaResults = uncompressFastas(params.coreProteomes)
 
     // Create a diamond database from a fasta file of the core best representatives
-    database = createDatabase(params.coreBestReps)
+    database = createDatabase(uncompressAndMakeCoreFastaResults.combinedProteomesFasta)
 
     // Remove cached diamond results for organisms proteomes that have changed
     cleanPeripheralDiamondCacheResults = cleanPeripheralDiamondCache(params.outdatedOrganisms,
@@ -324,7 +368,8 @@ workflow peripheralWorkflow {
 
     // Assigning Groups
     groupsAndSimilarities = assignGroups(similarities.similarities,
-                                         similarities.fasta)
+                                         similarities.fasta,
+					 params.coreGroupsFile)
 
     // split out residual and peripheral per organism and then collect into residuals and peripherals fasta
     residualAndPeripheralFastas = makeResidualAndPeripheralFastas(groupsAndSimilarities.groups,
@@ -336,17 +381,18 @@ workflow peripheralWorkflow {
     // collect up the groups
     groupAssignments = groupsAndSimilarities.groups.collectFile(name: 'groups.txt')
 
-    // Calculating Core + Peripheral Group Similarity Results
-    groupSimilarityResultsToBestRep = getPeripheralResultsToBestRep(groupsAndSimilarities.similarities,
-                                                                    groupsAndSimilarities.groups)
+    peripheralProteomesByGroup = splitPeripheralProteomeByGroup(peripheralFasta, groupAssignments)
 
-    // in one file PER GROUP, collect up all peripheral similarities to best Rep
-    peripheralSimilaritiesToBestRep = collectDiamondSimilaritesPerGroup(groupSimilarityResultsToBestRep).collect()
+    coreBestRepFastas = splitCoreBestRepFasta(params.coreBestRepsFasta)
+
+    peripheralSimilaritiesToBestRep =  peripheralGroupsToBestRepDiamond(peripheralProteomesByGroup.peripheralGroupFastas.flatten().collate(100),
+                                                                        coreBestRepFastas.bestRepsFastas.collect(),
+				                                        params.orthoFinderDiamondOutputFields)
+									.collect()
 
     // in one file PER GROUP, combine core + peripheral similarities
     allSimilaritiesToBestRep = combinePeripheralAndCoreSimilaritiesToBestReps(peripheralSimilaritiesToBestRep,
-                                                                              params.coreSimilarityToBestReps)
-									      .collect();
+                                                                              params.coreSimilarityToBestReps);
 
     // for X number of groups (100?), calculate stats on evalue
     calculateGroupResults(allSimilaritiesToBestRep.flatten().collate(100),
@@ -364,12 +410,12 @@ workflow peripheralWorkflow {
     // TODO: these 4 steps need work
        makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, groupAssignments)
        splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome, makeGroupsFileResults.splitText( by: 100, file: true ), params.outdatedOrganisms)
-    createGeneTrees(splitProteomesByGroupResults)
+       createGeneTrees(splitProteomesByGroupResults)
 
     // Residual Processing
 
     // Split residual proteome into one fasta per organism and compress. Needed input for orthofinder.
     compressedFastaDir = createCompressedFastaDir(residualFasta)
 
-    residualWorkflow(compressedFastaDir.fastaDir, "residual")
+    // residualWorkflow(compressedFastaDir.fastaDir, "residual")
 }

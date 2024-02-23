@@ -14,6 +14,7 @@ else
       -o ${fasta}.out \
       -f 6 $outputList \
       -e 0.00001 \
+      --very-sensitive \
       --comp-based-stats 0
 
     sort -k 2 ${fasta}.out > diamondSimilarity.tmp

@@ -11,6 +11,7 @@ if [ -s ${groupFasta} ]; then
 	-f 6 qseqid qlen sseqid slen qstart qend sstart send evalue bitscore length nident pident positive qframe qstrand gaps qcovhsp scovhsp qseq \
         --comp-based-stats 0 \
 	--no-self-hits \
+	--very-sensitive \
 	$blastArgs
 fi 
 
