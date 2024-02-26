@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+sed -i '/^\$/d' $bestRepsFasta
+
 diamond makedb --in $bestRepsFasta --db newdb
 diamond blastp \
   -d newdb.dmnd \

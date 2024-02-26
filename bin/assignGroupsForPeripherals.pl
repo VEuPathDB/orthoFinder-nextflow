@@ -22,9 +22,17 @@ File containing diamond similarity results
 
 =over 4
 
-=item outputFile
+=item output
 
 Output file to which to write the sequence and it's group assignment
+
+=back
+
+=over 4
+
+=item groupFile
+
+File containing groups and the sequenceID of the best representative
 
 =back
 
@@ -41,12 +49,14 @@ open(my $data, '<', $result) || die "Could not open file $result: $!";
 open(OUT,">$output");
 open(GRP,"<$groupFile");
 
+# Making a hash to hold core group assignments
 my %coreGroupAssignments;
 while (my $line = <GRP>) {
     chomp $line;
     if ($line =~ /^(OG\d+_\d+):\s(.+)/) {
         my $groupID = $1;
         my @seqArray = split(/\s/, $2);
+	# Assigning groups to sequences. Will be used later to assign a correct group when we know a peripheral sequence's best hit
 	foreach my $seq (@seqArray) {
             $coreGroupAssignments{$seq} = $groupID;
 	}
@@ -56,6 +66,7 @@ while (my $line = <GRP>) {
     }
 }
 
+# Creating a hash to hold sequences and the IDs of the subject from their pair with the best e-value
 my %seqBestHit;
 
 # for each pair wise result

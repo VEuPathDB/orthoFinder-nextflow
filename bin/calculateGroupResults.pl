@@ -85,6 +85,7 @@ while (my $line = <$data>) {
 
     my @results = split(/\t/, $line);
     my $evalue = $results[$evalueColumn];
+    # An unmapped value was returned
     $evalue = 1 if ($evalue == -1);
     push(@evalues,$evalue);
 }

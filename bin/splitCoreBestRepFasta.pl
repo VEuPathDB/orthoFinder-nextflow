@@ -4,6 +4,32 @@ use strict;
 use warnings;
 use Getopt::Long;
 
+=pod
+
+=head1 Description
+
+Split best reps fasta file into multiple files. Each file is named by their group and contains the sequence of the best representative
+
+=head1 Input Parameters
+
+=over 4
+
+=item bestRepsFasta
+
+Fasta file of core group best reps
+
+=back
+
+=over 4
+
+=item outputDir
+
+Output directory of fasta files 
+
+=back
+
+=cut
+
 my ($bestRepsFasta,$outputDir);
 
 &GetOptions("bestRepsFasta=s"=> \$bestRepsFasta,

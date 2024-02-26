@@ -477,7 +477,7 @@ workflow coreOrResidualWorkflow {
     proteomesForOrthofinder = moveUnambiguousAminoAcidSequencesFirst(inputFile)
     setup = orthoFinderSetup(proteomesForOrthofinder)
 
-    // For rerunning core, we provide a direcotry of cached diamond similarities.
+    // For rerunning core, we provide a directory of cached diamond similarities.
     // the ids in these files were generated in a previous run so need to be mapped
     // to new internal ids using previous species/sequence mapping files
     if (coreOrResidual === 'core') {
@@ -618,7 +618,7 @@ workflow bestRepresentativesAndStats {
             .collectFile(name: "residual_stats.txt", storeDir: params.outputDir + "/groupStats" )
 
         coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta,
-                                                                   params.coreBestReps)
+                                                                   params.coreBestRepsFasta)
 
         // run diamond for residual best representatives compared to core+residual bestRep DB
         // this will be used to find similar ortholog groups

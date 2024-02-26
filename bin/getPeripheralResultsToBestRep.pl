@@ -8,7 +8,7 @@ use Getopt::Long;
 
 =head1 Description
 
-Take a input file of pairwise similarity results of an organism proteome to the core best reps database, and the groups file indicating to which groups these sequences were assigned. Separate this file into a similarity file per group, only containing results between sequences assigned to that group and the groups best representative.
+Take a input file of pairwise similarity results of an organism proteome to the core best reps database, the groups file indicating to which groups these sequences were assigned, and a bestReps file that holds the sequenceID of the best representative for each group. Separate this file into a similarity file per group, only containing results between sequences assigned to that group and the groups best representative.
 
 =head1 Input Parameters
 
@@ -25,6 +25,14 @@ The organism specific specific pairwise results file
 =item groups
 
 A file containing the list of peripheral sequences and their group assignments
+
+=back
+
+=over 4
+
+=item bestReps
+
+A file containing the list of groups and their best representative
 
 =back
 
