@@ -198,7 +198,7 @@ process makeOrthogroupDiamondFiles {
     path orthologs
 
   output:
-    path '*.sim', emit: orthogroupblasts
+    path 'Results/*.sim', emit: orthogroupblasts
 
   script:
     template 'makeOrthogroupDiamondFiles.bash'
