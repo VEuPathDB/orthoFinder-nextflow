@@ -297,8 +297,10 @@ process removeEmptyGroups {
 
     script:
     """
-    cat $singletons >> $bestReps
-    grep -v '^empty' $bestReps > unique_best_representative.txt
+    touch allReps.txt
+    cat $bestReps >> allReps.txt
+    cat $singletons >> allReps.txt
+    grep -v '^empty' allReps.txt > unique_best_representative.txt
     """
 }
 
