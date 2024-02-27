@@ -81,8 +81,6 @@ my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $spec
            );
 
 
-my $orthoGroupPrefix = "OG";
-
 my %speciesMap = &makeSpeciesMap($speciesMapping);
 
 my $internalSpecies = $speciesMap{$species};
@@ -94,13 +92,11 @@ unless(defined $speciesMap{$species}) {
 
 my %sequenceMapping = &makeSequenceMapping($sequenceMapping, $internalSpecies);
 
-
 my $outputFile = "${internalSpecies}.${outputFileSuffix}";
 my $singletonsFile = "${internalSpecies}.${singletonsFileSuffix}";
 print "$singletonsFile\n";
 
 open(OUT, ">$outputFile") or die "Cannot open output file $outputFile for writing: $!";
-
 open(GROUP, $orthologGroups) or die "Cannot open file $orthologGroups for reading: $!";
 
 # Retrieve header line from orthogroups file (output from orthofinder). Ex: HOG\tOG\tGene\tTree\tParent\tClade\tahos\tapis
@@ -112,8 +108,8 @@ my $index = 0;
 # Create a hash. Holds each header column paired with an index. Ex: HOG => 0, OG => 1
 my %headerMap = map { $_ => $index++} split(/\t/, $header);
 
-# Get index of OG column
-my $ogIndex = $headerMap{$orthoGroupPrefix};
+# Get index of HOG column
+my $ogIndex = $headerMap{"HOG"};
 
 # Get the species name from the species argument Ex: ahos.fasta => ahos
 my $speciesNoFileSuffix = $species;
@@ -136,7 +132,7 @@ while(<GROUP>) {
 
     # change the orthologGroup id to add some version
     # replace "OG" with "OG${version}_"
-    $orthologGroup =~ s/^${orthoGroupPrefix}(\d+)/${orthoGroupPrefix}${buildVersion}_$1/;
+    $orthologGroup =~ s/^N0\.HOG(\d+)/OG${buildVersion}_$1/;
 
     # Retrieve string of all sequences in orthogroup for this species
     my $speciesField =  $line[$speciesIndex];

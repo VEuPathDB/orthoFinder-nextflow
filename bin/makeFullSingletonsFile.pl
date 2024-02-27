@@ -55,14 +55,10 @@ my ($fileSuffix,$lastGroup,$buildVersion,$outputFile);
 
 # Setting variables in case they ever change
 my $groupIntDigits = 7;
-my $groupPrefix = "N0.HOG";
 
 # Remove the last group prefix to just get the integer so we can iterate from it
 my $lastGroupInteger = $lastGroup;
-
-$lastGroupInteger =~ s/^$groupPrefix//;
-
-$groupPrefix = "OG";
+$lastGroupInteger =~ s/N0\.HOG//;
 
 # Get all organism specific singleton files
 my @singletonFiles = glob("*.${fileSuffix}");
@@ -81,7 +77,7 @@ foreach my $file(@singletonFiles) {
 	# Add zeros in front of group to keep consistent formatting
 	my $numberOfZerosToAddToStart = $groupIntDigits - $lengthOfLastGroupInteger;
 	my $zeroLine = "0" x $numberOfZerosToAddToStart;
-	print OUT "${groupPrefix}${buildVersion}_${zeroLine}${lastGroupInteger}\t$line\n";
+	print OUT "OG${buildVersion}_${zeroLine}${lastGroupInteger}\t$line\n";
     }
     close $data;
 }
