@@ -4,6 +4,24 @@ set -euo pipefail
 
 SPECIES_0_ORTHOLOGS=${target}.orthologs
 
+mkdir needed
+for query in ${queries.join(' ')}; do
+    SPECIES_1_ORTHOLOGS=\$query.orthologs
+    DIAMOND_FILE=Blast${target}_\${query}.txt
+    mv \$SPECIES_1_ORTHOLOGS needed
+    mv \$DIAMOND_FILE needed
+done
+
+if [ -f "./\$SPECIES_0_ORTHOLOGS" ]; then
+  mv \$SPECIES_0_ORTHOLOGS needed
+fi
+
+rm Blast*
+if [ -f "./*.orthologs" ]; then
+  rm *.orthologs
+fi
+mv needed/* .
+
 for query in ${queries.join(' ')}; do
     SPECIES_1_ORTHOLOGS=\$query.orthologs
 
@@ -21,6 +39,7 @@ for query in ${queries.join(' ')}; do
     splitBlastsIntoGroupsFiles.pl --input_file \$OUTPUT_FILE.sorted \
 				  --output_file_suffix ".sim"
 
+    rm \$DIAMOND_FILE
 done;
 
 mkdir Results

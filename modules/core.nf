@@ -532,7 +532,7 @@ workflow coreOrResidualWorkflow {
     bestRepresentativesAndStats(setup.orthofinderWorkingDir,
                                 setup.sequenceMapping,
                                 orthofinderGroupResults.orthologgroups,
-                                diamondSimilaritiesPerGroup,
+                                diamondSimilaritiesPerGroup.orthogroupblasts,
                                 speciesOrthologs.singletons,
                                 coreOrResidual
     );
@@ -549,12 +549,14 @@ workflow bestRepresentativesAndStats {
     coreOrResidual
 
     main:
-
+    
     // collect up per species diamond similaritiy files (one per group)
     allDiamondSimilaritiesPerGroup = collectDiamondSimilaritesPerGroup(diamondSimilaritiesPerGroup)
 
     // make a collection containing all group similarity files
     allDiamondSimilarities = allDiamondSimilaritiesPerGroup.collect()
+
+    allDiamondSimilarities.view()
 
     // make a collection of singletons files (one for each species)
     singletonFiles = speciesOrthologsSingletons.collect()
@@ -565,8 +567,10 @@ workflow bestRepresentativesAndStats {
     // in batches, process group similarity files and determine best representative for each group
     bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250))
 
+    allBestRepresentatives = bestRepresentatives.flatten().collectFile()
+
     // collect File of best representatives
-    combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile, bestRepresentatives.flatten().collectFile())
+    combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile, allBestRepresentatives)
 
     // make best rep file with actual sequence Ids
     translateBestRepsFile(setupSequenceMapping, combinedBestRepresentatives, coreOrResidual)
