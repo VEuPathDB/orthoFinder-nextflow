@@ -198,7 +198,7 @@ process makeOrthogroupDiamondFiles {
     path orthologs
 
   output:
-    path 'Results/*.sim', emit: orthogroupblasts
+    path '*.sim', emit: orthogroupblasts
 
   script:
     template 'makeOrthogroupDiamondFiles.bash'
@@ -555,8 +555,6 @@ workflow bestRepresentativesAndStats {
 
     // make a collection containing all group similarity files
     allDiamondSimilarities = allDiamondSimilaritiesPerGroup.collect()
-
-    allDiamondSimilarities.view()
 
     // make a collection of singletons files (one for each species)
     singletonFiles = speciesOrthologsSingletons.collect()

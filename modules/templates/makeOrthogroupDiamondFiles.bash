@@ -42,7 +42,4 @@ for query in ${queries.join(' ')}; do
     rm \$DIAMOND_FILE
 done;
 
-mkdir Results
-mv *.sim Results
-
 echo "Done"
