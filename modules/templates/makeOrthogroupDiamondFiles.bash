@@ -42,8 +42,8 @@ for query in ${queries.join(' ')}; do
     rm \$DIAMOND_FILE
 done;
 
+rm -rf needed
 rm *.txt.sorted
 rm *.orthologs
-rm -rf needed
 
 echo "Done"
