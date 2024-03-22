@@ -582,7 +582,7 @@ workflow bestRepresentativesAndStats {
     // collect up resulting files
     groupResultsOfBestRep = filterSimilaritiesByBestRepresentative(allDiamondSimilarities,
                                                                    combinedBestRepresentatives.splitText( by: 1000, file: true ),
-                                                                   fullSingletonsFile).collect()
+                                                                   fullSingletonsFile.collect()).collect()
 
     // split bestRepresentative into chunks for parallel processing
     bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
