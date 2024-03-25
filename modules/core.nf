@@ -218,6 +218,8 @@ process makeFullSingletonsFile {
     path singletonFiles
     path orthogroups
     val buildVersion
+    path sequenceMapping
+    path missingGroups
 
   output:
     path 'singletonsFull.dat'
@@ -258,6 +260,7 @@ process reformatGroupsFile {
     path translatedSingletons
     val buildVersion
     val coreOrResidual
+    path missingGroups
 
   output:
     path 'reformattedGroups.txt'
@@ -434,6 +437,25 @@ process mergeCoreAndResidualSimilarGroups {
     """
 }
 
+/**
+* checkForMissingGroups
+*
+*/
+process checkForMissingGroups {
+  container = 'veupathdb/orthofinder'
+
+  input:
+    path allDiamondSimilarities
+    val buildVersion
+
+  output:
+    path 'missingGroups.txt'
+
+  script:
+    """
+    checkForMissingGroups.pl . $buildVersion
+    """
+}
 
 /**
 * take a list and find all possible pairwise combinations.
@@ -556,11 +578,13 @@ workflow bestRepresentativesAndStats {
     // make a collection containing all group similarity files
     allDiamondSimilarities = allDiamondSimilaritiesPerGroup.collect()
 
+    missingGroups = checkForMissingGroups(allDiamondSimilarities,params.buildVersion)
+
     // make a collection of singletons files (one for each species)
     singletonFiles = speciesOrthologsSingletons.collect()
 
     // combine all singletons and assign a group id
-    fullSingletonsFile = makeFullSingletonsFile(singletonFiles, orthofinderGroupResultsOrthologgroups, params.buildVersion).collectFile()
+    singletonsFull = makeFullSingletonsFile(singletonFiles, orthofinderGroupResultsOrthologgroups, params.buildVersion, setupSequenceMapping, missingGroups).collectFile()
 
     // in batches, process group similarity files and determine best representative for each group
     bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250))
@@ -568,7 +592,7 @@ workflow bestRepresentativesAndStats {
     allBestRepresentatives = bestRepresentatives.flatten().collectFile()
 
     // collect File of best representatives
-    combinedBestRepresentatives = removeEmptyGroups(fullSingletonsFile, allBestRepresentatives)
+    combinedBestRepresentatives = removeEmptyGroups(singletonsFull, allBestRepresentatives)
 
     // make best rep file with actual sequence Ids
     translateBestRepsFile(setupSequenceMapping, combinedBestRepresentatives, coreOrResidual)
@@ -582,7 +606,7 @@ workflow bestRepresentativesAndStats {
     // collect up resulting files
     groupResultsOfBestRep = filterSimilaritiesByBestRepresentative(allDiamondSimilarities,
                                                                    combinedBestRepresentatives.splitText( by: 1000, file: true ),
-                                                                   fullSingletonsFile.collect()).collect()
+                                                                   singletonsFull.collect()).collect()
 
     // split bestRepresentative into chunks for parallel processing
     bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
@@ -598,24 +622,26 @@ workflow bestRepresentativesAndStats {
         bestRepsSelfDiamondResults = coreBestRepsToCoreDiamond(bestRepSubset, bestRepresentativeFasta)
             .collectFile(name: "core_best_reps_self_blast.txt", storeDir: params.outputDir );
 
-        translatedSingletonsFile = translateSingletonsFile(fullSingletonsFile,
+        translatedSingletonsFile = translateSingletonsFile(singletonsFull,
                                                            setupSequenceMapping)
 
         // Final output format of groups. Sent to peripheral workflow to identifiy which sequences are contained in which group in the core.
         reformatGroupsFile(orthofinderGroupResultsOrthologgroups,
                            translatedSingletonsFile,
                            params.buildVersion,
-			   coreOrResidual)
+			   coreOrResidual,
+			   missingGroups)
     }
     else { // residual
 
-        translatedSingletonsFile = translateSingletonsFile(fullSingletonsFile,setupSequenceMapping)
+        translatedSingletonsFile = translateSingletonsFile(singletonsFull,setupSequenceMapping)
 
         // Final output format of residual groups. Adding R for residual, and build version.
         reformatGroupsFile(orthofinderGroupResultsOrthologgroups,
                            translatedSingletonsFile,
                            params.buildVersion,
-			   coreOrResidual)
+			   coreOrResidual,
+			   missingGroups)
 
         // same as above but for residuals
         calculateGroupResults(groupResultsOfBestRep.flatten().collate(250), 10, true)
