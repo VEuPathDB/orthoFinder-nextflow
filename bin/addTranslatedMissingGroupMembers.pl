@@ -27,9 +27,11 @@ while (my $line = <$missing>) {
     my $groupLine = `grep "$line" $groupMapping`;
     if ($groupLine =~ /^N0\.HOG\d+\tOG\d+\tn\d+\t(.*)/) {
         my $groupSequences = $1;
-        $groupSequences =~ s/\t/ /g;
-        $groupSequences =~ s/,//g;
+        $groupSequences =~ s/ //g;
+        $groupSequences =~ s/,/ /g;
+        $groupSequences =~ s/\t+/ /g;
         my @missingSequences = split(/\s/, $groupSequences);
+	@missingSequences = grep { $_ ne '' } @missingSequences;
 	my $addedBestRep = 0;
         for my $sequence (@missingSequences) {
 	    if ($addedBestRep == 0 ) {
