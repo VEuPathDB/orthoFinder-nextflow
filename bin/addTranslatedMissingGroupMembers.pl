@@ -25,7 +25,7 @@ while (my $line = <$missing>) {
     my $missingGroup = $line;
     $line =~ s/OG\d+_/N0\.HOG/g;
     my $groupLine = `grep "$line" $groupMapping`;
-    if ($groupLine =~ /^N0\.HOG\d+\tOG\d+\tn\d+\t(.*)/) {
+    if ($groupLine =~ /^N0\.HOG\d+\tOG\d+\tn\d+\t(.*)/ || $groupLine =~ /^N0\.HOG\d+\tOG\d+\t-\t(.*)/) {
         my $groupSequences = $1;
         $groupSequences =~ s/ //g;
         $groupSequences =~ s/,/ /g;
@@ -49,7 +49,7 @@ while (my $line = <$missing>) {
 	}
     }
     else {
-        die "Improper group file format";
+        die "Improper group file format for line $line\n";
     }
 }
 close $missing;

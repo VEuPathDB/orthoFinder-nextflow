@@ -34,16 +34,9 @@ for query in ${queries.join(' ')}; do
 				     --outputFile \$OUTPUT_FILE;
     sort \$OUTPUT_FILE >\$OUTPUT_FILE.sorted
     rm \$OUTPUT_FILE
-
-    # NOTE:  This script will append to OG files in this directory:   OGXXXXX.sim
-    splitBlastsIntoGroupsFiles.pl --input_file \$OUTPUT_FILE.sorted \
-				  --output_file_suffix ".sim"
-
     rm \$DIAMOND_FILE
 done;
 
 rm -rf needed
-rm *.txt.sorted
-rm *.orthologs
 
 echo "Done"

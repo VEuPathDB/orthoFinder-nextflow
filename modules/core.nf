@@ -189,7 +189,7 @@ process splitOrthologGroupsPerSpecies {
 * @return orthogroupblasts (sim files per group)
 */
 
-process makeOrthogroupDiamondFiles {
+process makeOrthogroupDiamondFile {
   container = 'veupathdb/orthofinder'
 
   input:
@@ -198,10 +198,24 @@ process makeOrthogroupDiamondFiles {
     path orthologs
 
   output:
-    path '*.sim', emit: orthogroupblasts
+    path '*.txt.sorted', emit: blastsByOrthogroup
 
   script:
-    template 'makeOrthogroupDiamondFiles.bash'
+    template 'makeOrthogroupDiamondFile.bash'
+}
+
+
+process splitBlastsIntoGroupsFiles {
+  container = 'veupathdb/orthofinder'
+
+  input:
+    path blastsByOrthogroup
+
+  output:
+    path '*.sim', emit: groupBlastResults
+
+  script:
+    template 'splitBlastsIntoGroupsFiles.bash'
 }
 
 
@@ -360,6 +374,7 @@ process filterSimilaritiesByBestRepresentative {
   container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir/coreSimilarityToBestReps", mode: "copy"
+  afterScript "rm *.sim"
 
   input:
     path groupData
@@ -545,13 +560,14 @@ workflow coreOrResidualWorkflow {
                                                      orthofinderGroupResults.orthologgroups.collect(),
                                                      params.buildVersion);
 
-    // per species, make One file per orthologgroup with all diamond similarities for that group
-    diamondSimilaritiesPerGroup = makeOrthogroupDiamondFiles(speciesPairsAsTuple,
-                                                             collectedDiamondResults,
-                                                             speciesOrthologs.orthologs.collect())
+    // per species, make One file all diamond similarities for that group
+    diamondSimilaritiesPerGroup = makeOrthogroupDiamondFile(speciesPairsAsTuple,
+                                                            collectedDiamondResults,
+                                                            speciesOrthologs.orthologs.collect())
+							     
+    singleFileOfSimilarities = diamondSimilaritiesPerGroup.blastsByOrthogroup.flatten().collectFile(name: 'groupsDiamondFile.txt')
 
-    // collect up per species diamond similaritiy files (one per group)
-    allDiamondSimilaritiesPerGroup = collectDiamondSimilaritesPerGroup(diamondSimilaritiesPerGroup.orthogroupblasts)
+    allDiamondSimilaritiesPerGroup = splitBlastsIntoGroupsFiles(singleFileOfSimilarities).flatten()
 
     // sub workflow to process diamondSimlarities for best representatives and group stats
     bestRepresentativesAndStats(setup.orthofinderWorkingDir,
