@@ -36,16 +36,12 @@ my ($inputFile, $outputFileSuffix);
 
 &GetOptions("input_file=s" => \$inputFile,
             "output_file_suffix=s" => \$outputFileSuffix,
-    );
-
+           );
 
 open(FILE, $inputFile) or die "Cannot open $inputFile for reading: $!";
 
-
-
-my $prevOutputFileName = "BLAH";
+my $prevOutputFileName = "Holder";
 my $fh;
-
 my $count;
 
 while(<FILE>) {
