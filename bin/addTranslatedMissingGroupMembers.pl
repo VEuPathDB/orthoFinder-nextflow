@@ -4,20 +4,13 @@ use strict;
 use warnings;
 use Getopt::Long;
 
-my ($lastGroup,$sequenceMapping,$missingGroups,$groupMapping,$singletonsFile,$version);
+my ($sequenceMapping,$missingGroups,$groupMapping);
 
-&GetOptions("lastGroup=s"=> \$lastGroup,
-            "sequenceMapping=s"=> \$sequenceMapping,
+&GetOptions("sequenceMapping=s"=> \$sequenceMapping,
             "groupMapping=s"=> \$groupMapping,
-            "singletonsFile=s"=> \$singletonsFile,
-            "missingGroups=s"=> \$missingGroups,
-            "version=i"=>\$version);
+            "missingGroups=s"=> \$missingGroups);
 
 my %sequenceMap = &makeSequenceMappingHash($sequenceMapping);
-open(OUT, '>>', $singletonsFile) || die "Could not open file $singletonsFile: $!";
-
-$lastGroup =~ s/OG\d+_//g;
-$lastGroup += 1;
 
 open(my $missing, '<', $missingGroups) || die "Could not open file $missingGroups: $!";
 while (my $line = <$missing>) {
@@ -32,28 +25,14 @@ while (my $line = <$missing>) {
         $groupSequences =~ s/\t+/ /g;
         my @missingSequences = split(/\s/, $groupSequences);
 	@missingSequences = grep { $_ ne '' } @missingSequences;
-	my $addedBestRep = 0;
-        for my $sequence (@missingSequences) {
-	    if ($addedBestRep == 0 ) {
-		my $bestRepSequence = $sequenceMap{$sequence};
-		print OUT "$missingGroup\t$bestRepSequence\n";
-		$addedBestRep = 1;
-		next;
-	    }
-	    else {
-	        my $reformattedGroupInt = sprintf("%07d", $lastGroup);
-	        my $translatedSequence = $sequenceMap{$sequence};
-                print OUT "OG${version}_$reformattedGroupInt\t$translatedSequence\n";
-	        $lastGroup += 1;
-	    }
-	}
+        my $bestRepSequence = $sequenceMap{$missingSequences[0]};
+	print "$missingGroup\t$bestRepSequence\n";
     }
     else {
         die "Improper group file format for line $line\n";
     }
 }
 close $missing;
-close OUT;
 
 sub makeSequenceMappingHash {
     my ($sequenceMapFile) = @_;

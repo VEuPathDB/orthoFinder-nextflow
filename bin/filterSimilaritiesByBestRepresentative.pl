@@ -24,15 +24,24 @@ Tsv file containing a group ID and the sequence that best represents it
 
 =cut
 
-my ($bestReps, $singletons);
+my ($bestReps, $singletons,$missingGroups);
 
 &GetOptions("bestReps=s"=> \$bestReps,
-            "singletons=s"=> \$singletons);
+            "singletons=s"=> \$singletons,
+            "missingGroups=s"=> \$missingGroups);
 
 # Open file that contains ids of best reps and their group
 open(my $data, '<', $bestReps) || die "Could not open file $bestReps: $!";
 # Open singleton file so we can identify singletons
 open(my $single, '<', $singletons) || die "Could not open file $singletons: $!";
+open(my $missing, '<', $missingGroups) || die "Could not open file $missingGroups: $!";
+
+# Make array to hold all missing groups
+my @missingGroups;
+while (my $line = <$missing>) {
+    chomp $line;
+    push(@missingGroups,$line);
+}
 
 # Make array to hold all groups that are singletons
 my @singletonGroups;
@@ -50,10 +59,10 @@ while (my $line = <$data>) {
     # If the group is a singleton, we just make an empty file, as this group does not have any non self blast results to the best rep
 
     open(OUT, ">${group}_bestRep.tsv") or die "Cannot open file ${group}_bestRep.tsv for writing:$!";
-    if ( grep( /^$group/, @singletonGroups ) ) {
+    if ( grep( /^$group/, @singletonGroups ) ||  grep( /^$group/, @missingGroups ) ) {
         close OUT
     }
-    # If the group is not a singleton, go get all pairwise blast results that involve the best representative and output it to a groups file
+    # If the group is not a singleton or missing, go get all pairwise blast results that involve the best representative and output it to a groups file
     else {
         # we want only where the seqId is in the 2nd column to avoid dups
         open(IN, "< ${group}.sim") or die "cannot open file ${group}.sim for reading: $!";
