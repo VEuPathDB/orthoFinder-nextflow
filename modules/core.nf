@@ -632,7 +632,7 @@ workflow bestRepresentativesAndStats {
     if (coreOrResidual == 'core') {
 
         // in batches of group similarity files filted by best representative, calculate group stats from evalues (min, max, median, ...)
-        calculateGroupResults(groupResultsOfBestRep.flatten().collate(250), 10, false)
+        calculateGroupResults(groupResultsOfBestRep.flatten().collate(2500), 10, false)
             .collectFile(name: "core_stats.txt", storeDir: params.outputDir + "/groupStats" )
 
         // run diamond for core best representatives compared to core bestRep DB
@@ -660,7 +660,7 @@ workflow bestRepresentativesAndStats {
 			   coreOrResidual)
 
         // same as above but for residuals
-        calculateGroupResults(groupResultsOfBestRep.flatten().collate(250), 10, true)
+        calculateGroupResults(groupResultsOfBestRep.flatten().collate(2500), 10, true)
             .collectFile(name: "residual_stats.txt", storeDir: params.outputDir + "/groupStats" )
 
         coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta,
