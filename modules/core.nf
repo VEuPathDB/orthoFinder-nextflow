@@ -232,8 +232,6 @@ process makeFullSingletonsFile {
     path singletonFiles
     path orthogroups
     val buildVersion
-    path sequenceMapping
-    path missingGroups
 
   output:
     path 'singletonsFull.dat'
@@ -274,7 +272,6 @@ process reformatGroupsFile {
     path translatedSingletons
     val buildVersion
     val coreOrResidual
-    path missingGroups
 
   output:
     path 'reformattedGroups.txt'
@@ -291,6 +288,9 @@ process findBestRepresentatives {
 
   input:
     path groupData
+    path missingGroups
+    path groupMapping
+    path sequenceMapping
 
   output:
     path 'best_representative.txt'
@@ -380,6 +380,7 @@ process filterSimilaritiesByBestRepresentative {
     path groupData
     path bestReps
     path singletons
+    path missingGroups
 
   output:
     path '*.tsv'
@@ -600,10 +601,10 @@ workflow bestRepresentativesAndStats {
     singletonFiles = speciesOrthologsSingletons.collect()
 
     // combine all singletons and assign a group id
-    singletonsFull = makeFullSingletonsFile(singletonFiles, orthofinderGroupResultsOrthologgroups, params.buildVersion, setupSequenceMapping, missingGroups).collectFile()
+    singletonsFull = makeFullSingletonsFile(singletonFiles, orthofinderGroupResultsOrthologgroups, params.buildVersion).collectFile()
 
     // in batches, process group similarity files and determine best representative for each group
-    bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250))
+    bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250),missingGroups,orthofinderGroupResultsOrthologgroups,setupSequenceMapping)
 
     allBestRepresentatives = bestRepresentatives.flatten().collectFile()
 
@@ -621,8 +622,9 @@ workflow bestRepresentativesAndStats {
     // in batches of bestReps, filter the group.sim file to create a file per group with similarities where the query seq is the bestRep
     // collect up resulting files
     groupResultsOfBestRep = filterSimilaritiesByBestRepresentative(allDiamondSimilarities,
-                                                                   combinedBestRepresentatives.splitText( by: 1000, file: true ),
-                                                                   singletonsFull.collect()).collect()
+                                                                   combinedBestRepresentatives.splitText( by: 10000, file: true ),
+                                                                   singletonsFull.collect(),
+								   missingGroups).collect()
 
     // split bestRepresentative into chunks for parallel processing
     bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
@@ -645,8 +647,7 @@ workflow bestRepresentativesAndStats {
         reformatGroupsFile(orthofinderGroupResultsOrthologgroups,
                            translatedSingletonsFile,
                            params.buildVersion,
-			   coreOrResidual,
-			   missingGroups)
+			   coreOrResidual)
     }
     else { // residual
 
@@ -656,8 +657,7 @@ workflow bestRepresentativesAndStats {
         reformatGroupsFile(orthofinderGroupResultsOrthologgroups,
                            translatedSingletonsFile,
                            params.buildVersion,
-			   coreOrResidual,
-			   missingGroups)
+			   coreOrResidual)
 
         // same as above but for residuals
         calculateGroupResults(groupResultsOfBestRep.flatten().collate(250), 10, true)
