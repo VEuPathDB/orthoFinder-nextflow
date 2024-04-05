@@ -44,34 +44,45 @@ my $numberOfOrganisms;
 while (my $line = <$data>) {
     chomp $line;
     if ($line =~ /^HOG/) {
+
 	# Get the values
         my @headerArray = split(/\t/, $line);
+
 	# Calculate the number of columns
 	my $numberOfColumns = scalar @headerArray;
+
 	# Derive the number of organisms that have sequences in this group
 	$numberOfOrganisms = $numberOfColumns - 3;
     }
+
     else {
 	$line =~ s/,//g;
+
 	# Retrieve sets of sequences by organism
 	my @valuesArray = split(/\t/, $line);
 	my @allSequences;
+
 	# For each organism on this line
 	foreach my $i (1..$numberOfOrganisms) {
+
 	    # Skip first 3 columns as they are unneeded
 	    my $index = 2 + $i;
+
 	    if ($valuesArray[$index]) {
 		# Push the organism sequences to the allSequences object
                 push(@allSequences,$valuesArray[$index]);
 	    }
 	}
+
 	# Get the group id
 	my $group = $valuesArray[0];
 	print "Group is $group\n";
 	$group =~ s/N0.H//g;
 	print "Reformat group is $group\n";
+
 	# Add in build version and formatting
         $group =~ s/OG/OG${buildVersion}_/;
+
 	# Print out data in new format
         print OUT "$group: @allSequences\n";
     }

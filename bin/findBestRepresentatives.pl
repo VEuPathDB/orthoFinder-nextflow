@@ -27,24 +27,30 @@ my ($groupFile);
 
 &GetOptions("groupFile=s"=> \$groupFile);
 
+# Set query sequence column and evalue column for retrieving those values.
 my $QSEQ_COLUMN = 0;
 my $EVALUE_COLUMN = 10;
 
+# Open file of group blast results.
 open(my $data, '<', $groupFile) || die "Could not open file $groupFile: $!";
 
 my $group;
-
 my %values;
 
+# For each group blast result.
 while (my $line = <$data>) {
     chomp $line;
     next unless($line);
 
-    # Calculate values for the last group
+    # We have moved onto a new group. Calculate values for the last group.
     if($line =~ /==> (\S+).sim <==/) {
+
         &calculateAverageAndPrintGroup($group, \%values) if($group);
+
+	# Retrieve new group and clear previous values.
         $group = $1;
         %values = ();
+	
         next;
     }
 
@@ -57,11 +63,12 @@ while (my $line = <$data>) {
     # Retrieve evalue
     my $evalue = $lineAr[$EVALUE_COLUMN];
 
+    # Sum total of evalues and keep track of number of results for calculating average e-value.
     $values{$qseq}->{sum} += $evalue;
     $values{$qseq}->{total}++;
 }
 
-# make sure to do the last group here
+# Calculate results for last group in file.
 &calculateAverageAndPrintGroup($group, \%values) if($group);
 
 1;
@@ -83,19 +90,23 @@ This process takes the group ID and the values object. The values object contain
 sub calculateAverageAndPrintGroup {
     my ($group, $values) = @_;
 
+    # Large place holder value.
     my $minValue = 1000000000;
-
     my $bestRepresentative;
 
-    # For every query sequence
+    # For every query sequence.
     foreach my $qseq (keys %values) {
+
+	# Calculate average evalue for this sequence to all other sequences in the group.
         my $avg = $values{$qseq}->{sum} / $values{$qseq}->{total} ;
+
+	# If this is the lowest average we have seen for this group, mark it as the best representative and save it's average evalue for next comparison.
         if($avg <= $minValue) {
             $bestRepresentative = $qseq;
             $minValue = $avg;
         }
     }
 
-
+    # Print out the group and it's best representative for future processing.
     print "${group}\t${bestRepresentative}\n";
 }

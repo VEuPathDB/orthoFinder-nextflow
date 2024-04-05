@@ -63,6 +63,7 @@ open(RESI,">$residuals");
 open(my $group, '<', $groups);
 
 my %seqsAndGroups;
+
 # Make a hash object that contains sequence group mappings
 while (my $line = <$group>) {
     chomp $line;
@@ -76,10 +77,12 @@ close $group;
 while ( my $seq = $proteome->next_seq() ) {
     my $seqId = $seq->id();
     my $sequence = $seq->seq();
+
     # If the sequence has a group mapping, send it to the peripheral fasta
     if ($seqsAndGroups{$seqId}) {
         print PERI ">${seqId}\n${sequence}\n";
     }
+
     # If the sequence does not have a group mapping, send it to the residual fasta
     else {
         print RESI ">${seqId}\n${sequence}\n";	

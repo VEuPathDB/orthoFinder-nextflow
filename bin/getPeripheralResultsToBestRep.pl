@@ -54,7 +54,10 @@ my %seqToGroup;
 # For each line in groups file
 while (my $line = <$group>) {
     chomp $line;
+
+    # Retrieve sequence and groupID
     my ($seq,$groupId) = split(/\t/, $line);
+    
     # Record the group assignment for each sequence
     $seqToGroup{$seq} = $groupId;
 }
@@ -66,33 +69,32 @@ my %groupToRep;
 # For each line in groups file
 while (my $line = <$reps>) {
     chomp $line;
+
+    # Retrieve group and representative
     my ($groupId,$rep) = split(/\t/, $line);
+    
     # Record the group assignment for each sequence
     $groupToRep{$groupId} = $rep;
 }
 close $reps;
 
 my $currentGroupId = "";
+
+# For each blast results in organism specific blast file
 while (my $line = <$sim>) {
     chomp $line;
     my $groupId;
+
+    # Retrieve blast results
     my ($qseq,$sseq, @rest) = split(/\t/, $line);
-
-    my $testGroup = $seqToGroup{$qseq};
-    my $testRep = $groupToRep{$testGroup};
-
-    #print "$sseq\t$testRep\n";
-
-    if ($sseq eq $testRep) {
-	print "DING\n";
-    }
-    
+  
     # Skip result unless shared between sequence and the best representative of it's group assignment
     next unless($groupToRep{$seqToGroup{$qseq}} eq $sseq);
 
+    # Retrieve group assignment of peripheral sequence
     $groupId = $seqToGroup{$qseq};
     
-    # If same group that's currently opened, output.
+    # If same group that's currently opened, output blast results.
     if ($groupId eq $currentGroupId) {
         print OUT "$line\n";
         next;

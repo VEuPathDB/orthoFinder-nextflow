@@ -16,7 +16,7 @@ Assign peripheral sequences to groups by seeing which group best representative 
 
 =item result
 
-File containing diamond similarity results
+File containing diamond similarity results.
 
 =back
 
@@ -32,7 +32,7 @@ Output file to which to write the sequence and it's group assignment
 
 =item groupFile
 
-File containing groups and the sequenceID of the best representative
+File containing groups and the sequenceID of the best representative.
 
 =back
 
@@ -42,21 +42,27 @@ my ($result,$output,$groupFile);
 
 &GetOptions("result=s"=> \$result,
             "output=s"=> \$output,
-	    "groupFile=s"=> \$groupFile
-            );
+	    "groupFile=s"=> \$groupFile);
 
 open(my $data, '<', $result) || die "Could not open file $result: $!";
 open(OUT,">$output");
 open(GRP,"<$groupFile");
 
-# Making a hash to hold core group assignments
+# Making a hash to hold core group assignments.
 my %coreGroupAssignments;
+
+# For each group.
 while (my $line = <GRP>) {
     chomp $line;
+
+    # Ensure correct file format and retrieve groupID and sequences.
     if ($line =~ /^(OG\d+_\d+):\s(.+)/) {
         my $groupID = $1;
+
+	# Created an array to hold all sequences in this group.
         my @seqArray = split(/\s/, $2);
-	# Assigning groups to sequences. Will be used later to assign a correct group when we know a peripheral sequence's best hit
+
+	# Assigning groups to sequences. Will be used later to assign a correct group when we know a peripheral sequence's best hit.
 	foreach my $seq (@seqArray) {
             $coreGroupAssignments{$seq} = $groupID;
 	}
@@ -66,38 +72,42 @@ while (my $line = <GRP>) {
     }
 }
 
-# Creating a hash to hold sequences and the IDs of the subject from their pair with the best e-value
+# Creating a hash to hold sequences and the IDs of the subject from their pair with the best e-value.
 my %seqBestHit;
 
-# for each pair wise result
+# for each pair wise result...
 while (my $line = <$data>) {
     chomp $line;
 
-    # Retrieve the values
+    # Retrieve the values.
     my @lineAr = split(/\t/, $line);
 
-    # Retrieve the qseq, seq (best reps are identified by the group they represent) and the evalue
+    # Retrieve the qseq, seq (best reps are identified by the group they represent) and the evalue.
     my $qseq = $lineAr[0];
     my $sseq = $lineAr[1];
     my $evalue = $lineAr[10];
 
-    # If first result for this sequence
+    # If first result for this sequence.
     unless($seqBestHit{$qseq}) {
+	
 	# Set the sequences group and e-value
         $seqBestHit{$qseq}->{evalue} = $evalue;
         $seqBestHit{$qseq}->{sseq} = $sseq;
+
     }
 
-    # If we found a better match
+    # If we found a better match.
     if($seqBestHit{$qseq}->{evalue} > $evalue) {
-	# Set the new evalue and group
+	
+	# Set the new evalue and group.
         $seqBestHit{$qseq}->{evalue} = $evalue;
         $seqBestHit{$qseq}->{sseq} = $sseq;
+
     }
 
 }
 
-# For each sequence, print out it's group assignment
+# For each sequence, print out it's group assignment.
 foreach my $seq (keys %seqBestHit) {
     my $seqBestMatch = $seqBestHit{$seq}->{sseq};
     print OUT "$seq\t" . $coreGroupAssignments{$seqBestMatch} . "\n";

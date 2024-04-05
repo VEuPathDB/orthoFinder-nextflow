@@ -122,9 +122,9 @@ while(<CACHE>) {
         next ;
     }
 
-
     # Use the organism name from the cache species mapping and the new species hash to get the new organism id
     my $newOrganismId = $newSpecies{$organismName};
+
     # If the organism has been removed, skip
     unless(defined $newOrganismId) {
         print STDERR "WARN:  SKIP Organism $organismName as it no longer exists in this run of orthofinder\n";
@@ -181,12 +181,15 @@ foreach my $cachedBlastFile (@cachedBlastFiles) {
         close BLASTIN;
         close BLASTOUT;
     }
+
     elsif($newOrg1 eq "outdated" || $newOrg2 eq "outdated") {
 	print STDERR "WARN:  No Need To Map Outdated Organism\n";
     }
+
     elsif($newOrg1 eq "NA" || $newOrg2 eq "NA") {
 	print STDERR "WARN:  No Need To Map Unused Data\n";
     }
+
     else {
         die "Could not find species mapping for $org1 or $org2";
     }

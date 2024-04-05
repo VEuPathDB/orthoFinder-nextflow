@@ -18,7 +18,7 @@ Calculate group statistics from input of pairwise blast results, for a group, be
 
 =item bestRepResults
 
-The group specific pairwise results file
+The group specific pairwise results file.
 
 =back
 
@@ -26,7 +26,7 @@ The group specific pairwise results file
 
 =item evalueColumn
 
-The (0th indexed) column number that contains the e-value
+The (0th indexed) column number that contains the e-value.
 
 =back
 
@@ -34,7 +34,7 @@ The (0th indexed) column number that contains the e-value
 
 =item isResidual
 
-A boolean indicating if these are residual or core groups (if residual, OG7_0000000 becomes OGR7_0000000)
+A boolean indicating if these are residual or core groups (if residual, OG7_0000000 becomes OGR7_0000000).
 
 =back
 
@@ -42,7 +42,7 @@ A boolean indicating if these are residual or core groups (if residual, OG7_0000
 
 =item outputFile
 
-The path to where the group stats will be written
+The path to where the group stats will be written.
 
 =back
 
@@ -64,33 +64,43 @@ open(OUT, ">$outputFile") or die "Cannot open output file $outputFile for writin
 my @evalues;
 my $group;
 
+# For each blast result to group's best representative...
 while (my $line = <$data>) {
     chomp $line;
 
     next unless($line);
 
-    # Singleton group processing
+    # If we have moved on to another group. Retrieve new group id and calculate stats for last group.
     if($line =~ /==> (\S+)_bestRep.tsv <==/) {
         &calculateStatsAndPrint($group, \@evalues) if($group);
+
+	# Redefine group.
         $group = $1;
 
-	# Add R if residual
+	# Add R if residual.
         if ($isResidual) {
             $group =~ s/OG/OGR/;
         }
 
+	# Clear evalue hash as we are starting a new group.
         @evalues = ();
         next;
     }
 
+    # If still previous group, retrieve blast results.
     my @results = split(/\t/, $line);
+
+    # Capture evalue.
     my $evalue = $results[$evalueColumn];
-    # An unmapped value was returned
+    
+    # An unmapped value was returned.
     $evalue = 1 if ($evalue == -1);
+
+    # Add evalue to array.
     push(@evalues,$evalue);
 }
 
-# do the last one
+# Calculate stats for the last group.
 &calculateStatsAndPrint($group, \@evalues) if($group);
 
 close $data;
@@ -112,16 +122,19 @@ The process takes the group id and the evalues retrieve from the group pairwise 
 sub calculateStatsAndPrint {
     my ($group, $evalues) = @_;
 
-    # Cut number of similarities
+    # Count number of similarities.
     my $simCount = scalar(@$evalues);
 
+    # If we have a similarity.
     if ($simCount >= 1) {
-	# Create stats object
+	
+	# Create stats object.
         my $stat = Statistics::Descriptive::Full->new();
-	# Add evalues
+	
+	# Add evalues.
         $stat->add_data(@$evalues);
 
-	# Calculate values
+	# Calculate values and print.
         my $min = $stat->min();
         my $twentyfifth = $stat->percentile(25);
         my $mean = $stat->mean();
@@ -132,5 +145,6 @@ sub calculateStatsAndPrint {
     }
 
 }
+
 close OUT;
 1;

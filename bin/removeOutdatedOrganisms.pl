@@ -35,6 +35,7 @@ my $peripheralCache = $ARGV[1]; # Directory of cache files
 # Open Outdated file
 open my $fh_outdated, '<', $outdatedFile or die "Cannot open $outdatedFile: $!";
 my @outdated;
+
 # Make array object to contain all of the outdated organisms 
 while (my $line = <$fh_outdated>) {
     chomp $line;
@@ -47,9 +48,11 @@ close $fh_outdated;
 
 # For each organism that requires and update
 foreach my $update (@outdated) {
+
     # If there is a cache file for the organism, delete it
     if (-e "$peripheralCache/${update}.fasta.out") {
         unlink "$peripheralCache/${update}.fasta.out";
         print "Removed ${update}.fasta.out from cache\n";
     }
+
 }

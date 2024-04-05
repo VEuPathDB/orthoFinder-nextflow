@@ -46,6 +46,8 @@ my %groupSeqs;
 # For each Peripheral Assignment
 while (my $line = <$peripheral>) {
     chomp $line;
+
+    # Retrieve sequence assignment
     my @sequenceAssignment = split(/\t/, $line);
     # Get the sequence
     my $sequence = $sequenceAssignment[0];
@@ -56,6 +58,7 @@ while (my $line = <$peripheral>) {
     if ($groupSeqs{$groupId}) {
         push( @{$groupSeqs{$groupId}}, $sequence);
     }
+
     # Else create group hash array and add sequence
     else {
 	$groupSeqs{$groupId} = ();
@@ -68,7 +71,10 @@ close $peripheral;
 # For each core group
 while (my $line = <$core>) {
     chomp $line;
+
+    # Check for correct file format and retrieve groupID and sequences
     if ($line =~ /^(OG\d+_\d+):\s(.+)/) {
+
 	# Get the groupID
 	my $groupId = $1;
 	# Get the group sequences
@@ -80,8 +86,10 @@ while (my $line = <$core>) {
 
 	# If peripheral sequences have been assigned this group
 	if ($groupSeqs{$groupId}) {
+
 	    # Get the peripheral sequences assigned to this group
             my @peripheralSequences = @{$groupSeqs{$groupId}};
+
 	    # Combine the core and peripheral sequences
 	    my @allGroupSeqs = (@coreSequences,@peripheralSequences);
 	     $groupSeqsString = join(' ', @allGroupSeqs);

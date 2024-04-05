@@ -32,7 +32,7 @@ The files will be named by group, but the suffix to these files is set here
 
 my ($inputFile, $outputFileSuffix);
 
-# the input file here MUST be sorted by the first column.  the first column will be used to name an output file $col[0]_${outputFileSuffx}
+# the input file here MUST be sorted by the first column. The first column will be used to name an output file $col[0]_${outputFileSuffix}
 
 &GetOptions("input_file=s" => \$inputFile,
             "output_file_suffix=s" => \$outputFileSuffix,
