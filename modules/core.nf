@@ -470,6 +470,7 @@ process checkForMissingGroups {
   script:
     """
     checkForMissingGroups.pl . $buildVersion
+    echo "Done"
     """
 }
 
