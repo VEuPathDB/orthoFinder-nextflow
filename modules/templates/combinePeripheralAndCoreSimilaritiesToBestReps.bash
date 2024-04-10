@@ -5,7 +5,11 @@ set -euo pipefail
 mkdir final
 
 # Need to do the core group results first. There may be core groups that contain not peripherals, but there will be no peripheral groups that do not contain any core proteins (those are the residuals)
-cp $coreGroupSimilarities/*bestRep.tsv final/
+for f in $coreGroupSimilarities/*bestRep.tsv;
+do
+    cp \$f final/
+done
+
 
 # add in the peripherals (base name will be the same)
 for f in *bestRep.tsv;
