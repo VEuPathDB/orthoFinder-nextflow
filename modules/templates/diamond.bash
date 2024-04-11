@@ -16,13 +16,11 @@ for query in ${queries.join(' ')}; do
         diamond blastp --ignore-warnings \
 		-d ${orthofinderWorkingDir}/diamondDBSpecies${target}.dmnd \
 		-q ${orthofinderWorkingDir}/Species\${query}.fa \
-		-o Blast\${query}_${target}.txt.gz \
+		-o Blast\${query}_${target}.txt \
 		-f 6 $outputList \
 		--very-sensitive \
 		-p 1 \
-		--quiet \
-		--compress 1
-        gunzip Blast*.gz
+		--quiet
     fi
 
 done

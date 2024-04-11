@@ -14,6 +14,7 @@ else
       -o ${fasta}.out \
       -f 6 $outputList \
       -e 0.00001 \
+      -k 1 \
       --very-sensitive \
       --comp-based-stats 0
 
