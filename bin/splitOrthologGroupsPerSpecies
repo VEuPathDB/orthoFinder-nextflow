@@ -7,7 +7,7 @@ use Getopt::Long;
 
 =head1 Description
 
-This process is done per organism. Using the N0.tsv group file produced by orthofinder, and the sequence and species files from orthofinder (that contain the sequence, internal mapping pair), create an ortholog file containing sequences and their group assignments. Also, create a singleton file for sequences not assigned to a group.
+This process is done per organism. Using the N0.tsv group file (or Orthogroups.txt for residuals) produced by orthofinder, and the sequence and species files from orthofinder (that contain the sequence, internal mapping pair), create an ortholog file containing sequences and their group assignments. Also, create a singleton file for sequences not assigned to a group.
 
 =head1 Input Parameters
 
@@ -31,7 +31,7 @@ The file containing the internal sequence mapping from orthofinder
 
 =item ortholog_groups
 
-The N0.tsv groups file produced by orthofinder
+The N0.tsv groups file produced by orthofinder, or Orthogroups.txt for residuals
 
 =back
 
@@ -67,9 +67,17 @@ Integer describing build version of omcl
 
 =back
 
+=over 4
+
+=item coreOrResidual
+
+String indicating if step is being run for core or residual 
+
+=back
+
 =cut
 
-my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $species, $singletonsFileSuffix, $orthologGroupsFileWithSingletons, $buildVersion);
+my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $species, $singletonsFileSuffix, $orthologGroupsFileWithSingletons, $buildVersion, $coreOrResidual);
 
 &GetOptions("species_mapping=s" => \$speciesMapping, # Species Mapping file Ex: 0: ahos.fasta
             "sequence_mapping=s" => \$sequenceMapping, # Sequence mapping file Ex: 0_0: ahos|F4B612 gene=F4B612 product=Uncharacterized protein
@@ -77,14 +85,14 @@ my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $spec
             "ortholog_groups=s" => \$orthologGroups, # N0.tsv file produced by orthofinder. Lists groupID and sequences in that group
             "output_file_suffix=s" => \$outputFileSuffix, # orthologs
             "singletons_file_suffix=s" => \$singletonsFileSuffix, # singletons 
-            "build_version=s" => \$buildVersion, # Integer indicating build. Is appended to group ids that are output 
+            "build_version=s" => \$buildVersion, # Integer indicating build. Is appended to group ids that are output
+            "coreOrResidual=s" => \$coreOrResidual 
            );
-
 
 my %speciesMap = &makeSpeciesMap($speciesMapping);
 
 my $internalSpecies = $speciesMap{$species};
-print "$internalSpecies\n";
+print "Internal Species is $internalSpecies\n";
 
 unless(defined $speciesMap{$species}) {
     die "Species $species not found in species mapping file";
@@ -94,37 +102,38 @@ my %sequenceMapping = &makeSequenceMapping($sequenceMapping, $internalSpecies);
 
 my $outputFile = "${internalSpecies}.${outputFileSuffix}";
 my $singletonsFile = "${internalSpecies}.${singletonsFileSuffix}";
-print "$singletonsFile\n";
 
 open(OUT, ">$outputFile") or die "Cannot open output file $outputFile for writing: $!";
 open(GROUP, $orthologGroups) or die "Cannot open file $orthologGroups for reading: $!";
 
-# Retrieve header line from orthogroups file (output from orthofinder). Ex: HOG\tOG\tGene\tTree\tParent\tClade\tahos\tapis
-my $header = <GROUP>;
-chomp $header;
-
-my $index = 0;
-
-# Create a hash. Holds each header column paired with an index. Ex: HOG => 0, OG => 1
-my %headerMap = map { $_ => $index++} split(/\t/, $header);
-
-# Get index of HOG column
-my $ogIndex = $headerMap{"HOG"};
-
-# Get the species name from the species argument Ex: ahos.fasta => ahos
-my $speciesNoFileSuffix = $species;
-$speciesNoFileSuffix =~ s/.fasta$//;
-
-# Get index of species
-my $speciesIndex = $headerMap{$speciesNoFileSuffix};
-
-unless($speciesIndex) {
-    die "Could not map species $species to ortholog group file header";
-}
-
 my %seenSequences;
 
-while(<GROUP>) {
+if ($coreOrResidual eq "core") {
+
+  # Retrieve header line from orthogroups file (output from orthofinder). Ex: HOG\tOG\tGene\tTree\tParent\tClade\tahos\tapis
+  my $header = <GROUP>;
+  chomp $header;
+
+  my $index = 0;
+
+  # Create a hash. Holds each header column paired with an index. Ex: HOG => 0, OG => 1
+  my %headerMap = map { $_ => $index++} split(/\t/, $header);
+
+  # Get index of HOG column
+  my $ogIndex = $headerMap{"HOG"};
+
+  # Get the species name from the species argument Ex: ahos.fasta => ahos
+  my $speciesNoFileSuffix = $species;
+  $speciesNoFileSuffix =~ s/.fasta$//;
+
+  # Get index of species
+  my $speciesIndex = $headerMap{$speciesNoFileSuffix};
+
+  unless($speciesIndex) {
+      die "Could not map species $species to ortholog group file header";
+  }
+
+  while(<GROUP>) {
     chomp;
     my @line = split(/\t/, $_);
 
@@ -151,17 +160,51 @@ while(<GROUP>) {
         print OUT "$orthologGroup\t$internalSequence\n";
 
         $seenSequences{$ogSequence}++;
-    }
+   }
 
+  }
+
+  close GROUP;
+  close OUT;
+
+  # Print out singletons
+  &printSingletons($singletonsFile, \%sequenceMapping, \%seenSequences);
+  
 }
 
-close GROUP;
-close OUT;
+elsif ($coreOrResidual eq "residual") {
+  open(SINGLETONS, ">$singletonsFile") or die "Cannot open file $singletonsFile for writing: $!";
+  while(<GROUP>) {
+    my $line = $_;
+    chomp $line;
+    if ($line =~ /OG(\d+):\s(.+)/) {
+      my $groupNumber = $1;
+      my @seqArray = split(/\s/, $2);
+      my $groupSize = scalar @seqArray;
+      my $orthologGroup = "OG${buildVersion}_${groupNumber}";
+      foreach my $ogSequence (@seqArray) {
+        my $internalSequence = $sequenceMapping{$ogSequence};
+        if ($internalSequence) {
+          if ($groupSize >= 2) {
+	    print OUT "$orthologGroup\t$internalSequence\n";
+	  }
+	  else {
+	    print SINGLETONS "$orthologGroup\t$internalSequence\n";
+	  }
+          $seenSequences{$ogSequence}++;
+	}
+      }
+    }
+    else {
+	die "Improper group file format for $orthologGroups\n";
+    }
+  }
+  close SINGLETONS;
+}
 
-# Print out singletons
-
-print "$singletonsFile\n";
-&printSingletons($singletonsFile, \%sequenceMapping, \%seenSequences);
+else {
+    die "Improper value for isResidual. Should be 'true' or 'false' but it is $coreOrResidual\n";
+}
 
 # ============================= Subroutines =========================================
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
-include { calculateGroupResults; uncompressFastas; uncompressFastas as uncompressPeripheralFastas; collectDiamondSimilaritesPerGroup} from './shared.nf'
+include { calculateGroupResults; uncompressFastas; uncompressFastas as uncompressPeripheralFastas; collectDiamondSimilaritesPerGroup; createGeneTrees} from './shared.nf'
 include { coreOrResidualWorkflow as residualWorkflow  } from './core.nf'
 
 /**
@@ -23,6 +23,20 @@ process createCompressedFastaDir {
 
   script:
     template 'createCompressedFastaDir.bash'
+}
+
+process splitPeripheralProteomeByGroup {
+  container = 'veupathdb/orthofinder'
+
+  input:
+    path proteome
+    path groups
+
+  output:
+    path 'OG*.fasta', emit: peripheralGroupFastas
+
+  script:
+    template 'splitPeripheralProteomeByGroup.bash'
 }
 
 /**
@@ -237,19 +251,6 @@ process splitProteomeByGroup {
     template 'splitProteomeByGroup.bash'
 }
 
-process splitPeripheralProteomeByGroup {
-  container = 'veupathdb/orthofinder'
-
-  input:
-    path proteome
-    path groups
-
-  output:
-    path 'OG*.fasta', emit: peripheralGroupFastas
-
-  script:
-    template 'splitPeripheralProteomeByGroup.bash'
-}
 
 process splitCoreBestRepFasta {
   container = 'veupathdb/orthofinder'
@@ -298,26 +299,7 @@ process keepSeqIdsFromDeflines {
     template 'keepSeqIdsFromDeflines.bash'
 }
 
-/**
- * Create a gene tree per group
- *
- * @param fasta: A group fasta file from the keepSeqIdsFromDeflines process  
- * @return tree Output group tree file
-*/
-process createGeneTrees {
-  container = 'veupathdb/orthofinder'
 
-  publishDir "$params.outputDir/geneTrees", mode: "copy"
-
-  input:
-    path fasta
-
-  output:
-    path '*.tree', optional: true
-
-  script:
-    template 'createGeneTrees.bash'
-}
 
 /**
  * Combines blast similarities. One file per core and peripheral.
@@ -407,10 +389,9 @@ workflow peripheralWorkflow {
     combinedProteome = combineProteomes(uncompressAndMakeCoreFastaResults.combinedProteomesFasta,
                                         peripheralFasta)
 
-    // TODO: these 4 steps need work
-       makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, groupAssignments)
-       splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome.collect(), makeGroupsFileResults.splitText( by: 100, file: true ), params.outdatedOrganisms)
-       createGeneTrees(splitProteomesByGroupResults)
+    makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, groupAssignments)
+    splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome.collect(), makeGroupsFileResults.splitText( by: 100, file: true ), params.outdatedOrganisms)
+    createGeneTrees(splitProteomesByGroupResults)
 
     // Residual Processing
 

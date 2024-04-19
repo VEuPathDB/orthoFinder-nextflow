@@ -29,7 +29,7 @@ process uncompressFastas {
 process calculateGroupResults {
   container = 'veupathdb/orthofinder'
 
-  //publishDir "$params.outputDir/groupStats", mode: "copy"
+  publishDir "$params.outputDir/groupStats", mode: "copy"
 
   input:
     path groupResultsToBestReps
@@ -56,4 +56,26 @@ process bestRepsSelfDiamond {
 
   script:
     template 'bestRepsSelfDiamond.bash'
+}
+
+
+/**
+ * Create a gene tree per group
+ *
+ * @param fasta: A group fasta file from the keepSeqIdsFromDeflines process  
+ * @return tree Output group tree file
+*/
+process createGeneTrees {
+  container = 'veupathdb/orthofinder'
+
+  publishDir "$params.outputDir/geneTrees", mode: "copy"
+
+  input:
+    path fasta
+
+  output:
+    path '*.tree', optional: true
+
+  script:
+    template 'createGeneTrees.bash'
 }
