@@ -48,6 +48,8 @@ while (my $line = <$data>) {
         my $seqLine = $2;
 	my @seqArray = split(/\s/, $seqLine);
 	foreach my $seq (@seqArray) {
+	    # Resolve RNA line discrepency between OG file and fasta
+	    $seq =~ s/_RNA/:RNA/g;
             # Record the group assignment for each sequence
             $seqToGroup{$seq} = $groupId;
 	}
