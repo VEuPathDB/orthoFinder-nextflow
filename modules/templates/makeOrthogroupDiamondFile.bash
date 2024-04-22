@@ -16,11 +16,17 @@ if [ -f "./\$SPECIES_0_ORTHOLOGS" ]; then
   mv \$SPECIES_0_ORTHOLOGS needed
 fi
 
-rm Blast*
+for f in Blast*; do
+    rm \$f
+done
+
 if [ -f "./*.orthologs" ]; then
   rm *.orthologs
 fi
-mv needed/* .
+
+for f in needed/*; do
+    mv \$f .
+done
 
 for query in ${queries.join(' ')}; do
     SPECIES_1_ORTHOLOGS=\$query.orthologs
