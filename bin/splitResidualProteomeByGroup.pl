@@ -46,7 +46,7 @@ while (my $line = <$data>) {
     if ($line =~ /(OG\d+):\s(.+)/) {
 	my $groupId = $1;
         my $seqLine = $2;
-	my @seqArray = split(/\t/, $seqLine);
+	my @seqArray = split(/\s/, $seqLine);
 	foreach my $seq (@seqArray) {
             # Record the group assignment for each sequence
             $seqToGroup{$seq} = $groupId;
@@ -58,23 +58,30 @@ while (my $line = <$data>) {
 }
 close $data;
 
-my $currentGroupId;
+my $currentGroupId = "";
+my $groupId;
 while (my $line = <$pro>) {
     chomp $line;
     if ($line =~ /^>(.*)/) {
-	my $groupId = $seqToGroup{$1};
-	if ($currentGroupId eq $groupId) {
-            print OUT "$line\n";
-	}
-	else {
-            close OUT if($currentGroupId);
-	    open(OUT,">${groupId}.fasta")  || die "Could not open file ${groupId}.fasta: $!";
-	    print OUT "$line\n";
-	    $currentGroupId = $groupId;
+	$groupId = $seqToGroup{$1};
+	# If seq in our group subset
+	if ($groupId) {
+	    if ($currentGroupId eq $groupId) {
+                print OUT "$line\n";
+	    }
+	    else {
+                close OUT if($currentGroupId);
+	        open(OUT,">${groupId}.fasta")  || die "Could not open file ${groupId}.fasta: $!";
+	        print OUT "$line\n";
+	        $currentGroupId = $groupId;
+	    }
 	}
     }
-    else {
+    elsif ($groupId) {
         print OUT "$line\n";
+    }
+    else {
+        next;
     }
 }	
 close OUT;
