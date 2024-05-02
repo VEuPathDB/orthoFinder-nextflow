@@ -71,7 +71,7 @@ while (my $line = <$pro>) {
 	    }
 	    else {
                 close OUT if($currentGroupId);
-	        open(OUT,">${groupId}.fasta")  || die "Could not open file ${groupId}.fasta: $!";
+	        open(OUT,">>${groupId}.fasta")  || die "Could not open file ${groupId}.fasta: $!";
 	        print OUT "$line\n";
 	        $currentGroupId = $groupId;
 	    }
