@@ -5,3 +5,5 @@ set -euo pipefail
 sort -k 1 $groups > sortedGroups.txt
 
 splitResidualProteomeByGroup.pl --groups sortedGroups.txt --proteome $proteome
+
+rm sortedGroups.txt
