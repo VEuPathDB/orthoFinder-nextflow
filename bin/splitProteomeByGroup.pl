@@ -62,7 +62,7 @@ my $currentGroupId = "";
 my $groupId;
 while (my $line = <$pro>) {
     chomp $line;
-    if ($line =~ /^>(.*)/) {
+    if ($line =~ /^>(\S+)\s.+/) {
 	$groupId = $seqToGroup{$1};
 	# If seq in our group subset
 	if ($groupId) {
