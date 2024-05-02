@@ -683,8 +683,8 @@ workflow coreOrResidualWorkflow {
     else {
         orthofinderGroupResults = computeResidualGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
 	residualFasta = createResidualFasta(proteomesForOrthofinder)
-        residualProteomesByGroup = splitResidualProteomeByGroup(residualFasta.collect(), orthofinderGroupResults.orthologgroups.splitText( by: 10, file: true ))
-        createGeneTrees(residualProteomesByGroup)
+        residualProteomesByGroup = splitResidualProteomeByGroup(residualFasta.collect(), orthofinderGroupResults.orthologgroups.splitText( by: 10000, file: true ))
+        createGeneTrees(residualProteomesByGroup.collect().flatten().collate(10))
     }
     
     // publish results
