@@ -66,8 +66,6 @@ process bestRepsSelfDiamond {
  * @return tree Output group tree file
 */
 process createGeneTrees {
-  cpus params.cpus
-
   container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir/geneTrees", mode: "copy"
