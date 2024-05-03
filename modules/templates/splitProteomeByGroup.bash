@@ -2,7 +2,5 @@
 
 set -euo pipefail
 
-splitProteomeByGroup.pl \
-    --groups $groups \
-    --proteome $proteome
+splitProteomeByGroup.pl --groups $groups --proteome $proteome
 
