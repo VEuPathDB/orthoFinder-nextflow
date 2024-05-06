@@ -43,7 +43,7 @@ my %seqToGroup;
 # For each line in groups file
 while (my $line = <$data>) {
     chomp $line;
-    if ($line =~ /(OG\d+):\s(.+)/) {
+    if ($line =~ /^(OG\d+):\s(.+)/) {
 	my $groupId = $1;
         my $seqLine = $2;
 	my @seqArray = split(/\s/, $seqLine);
@@ -73,7 +73,7 @@ while (my $line = <$pro>) {
 	    }
 	    else {
                 close OUT if($currentGroupId);
-	        open(OUT,">${groupId}.fasta")  || die "Could not open file ${groupId}.fasta: $!";
+	        open(OUT,">>${groupId}.fasta")  || die "Could not open file ${groupId}.fasta: $!";
 	        print OUT "$line\n";
 	        $currentGroupId = $groupId;
 	    }
