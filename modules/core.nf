@@ -237,7 +237,7 @@ process makeOrthogroupDiamondFile {
 
   input:
     tuple val(target), val(queries)
-    path blasts
+    path blastsDir
     path orthologs
 
   output:
@@ -245,6 +245,23 @@ process makeOrthogroupDiamondFile {
 
   script:
     template 'makeOrthogroupDiamondFile.bash'
+}
+
+
+process makeDiamondResultsDir {
+  container = 'veupathdb/orthofinder'
+
+  input:
+    path blasts
+
+  output:
+    path 'blastsDir'
+
+  script:
+    """
+    mkdir blastsDir
+    for file in Blast*; do mv \$file blastsDir; done
+    """
 }
 
 
@@ -676,6 +693,8 @@ workflow coreOrResidualWorkflow {
     // collection of all pairwise diamond results
     collectedDiamondResults = diamondResults.blast.collect()
 
+    diamondResultsDirectory = makeDiamondResultsDir(collectedDiamondResults)
+
     // run orthofinder
     if (coreOrResidual == 'core') {
         orthofinderGroupResults = computeGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
@@ -700,7 +719,7 @@ workflow coreOrResidualWorkflow {
 
     // per species, make One file all diamond similarities for that group
     diamondSimilaritiesPerGroup = makeOrthogroupDiamondFile(speciesPairsAsTuple,
-                                                            collectedDiamondResults,
+                                                            diamondResultsDirectory,
                                                             speciesOrthologs.orthologs.collect())
 							     
     singleFileOfSimilarities = diamondSimilaritiesPerGroup.blastsByOrthogroup.flatten().collectFile(name: 'groupsDiamondFile.txt')
