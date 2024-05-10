@@ -717,7 +717,7 @@ workflow coreOrResidualWorkflow {
 
     // per species, make One file all diamond similarities for that group
     diamondSimilaritiesPerGroup = makeOrthogroupDiamondFile(diamondResultsFile.collect(),
-                                                            speciesOrthologs.orthologs.collect().collectFile(name: 'orthologs.txt'))
+                                                            speciesOrthologs.orthologs.collectFile(name: 'orthologs.txt'))
 							     
     allDiamondSimilaritiesPerGroup = diamondSimilaritiesPerGroup.blastsByOrthogroup.flatten()
 

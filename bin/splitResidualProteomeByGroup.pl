@@ -47,6 +47,7 @@ while (my $line = <$data>) {
 	my $groupId = $1;
         my $seqLine = $2;
 	my @seqArray = split(/\s/, $seqLine);
+	$groupId =~ s/OG/OGR/g;
 	foreach my $seq (@seqArray) {
 	    # Resolve RNA line discrepency between OG file and fasta
 	    $seq =~ s/_RNA/:RNA/g;
@@ -65,7 +66,9 @@ my $groupId;
 while (my $line = <$pro>) {
     chomp $line;
     if ($line =~ /^>(.*)/) {
-	$groupId = $seqToGroup{$1};
+	my $tempGroup = $1;
+	$tempGroup =~ s/OG/OGR/g;
+	$groupId = $seqToGroup{$tempGroup};
 	# If seq in our group subset
 	if ($groupId) {
 	    if ($currentGroupId eq $groupId) {
@@ -73,7 +76,7 @@ while (my $line = <$pro>) {
 	    }
 	    else {
                 close OUT if($currentGroupId);
-	        open(OUT,">>${groupId}.fasta")  || die "Could not open file ${groupId}.fasta: $!";
+		open(OUT,">>${groupId}.fasta")  || die "Could not open file ${groupId}.fasta: $!";
 	        print OUT "$line\n";
 	        $currentGroupId = $groupId;
 	    }
