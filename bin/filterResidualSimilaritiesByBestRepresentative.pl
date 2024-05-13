@@ -83,7 +83,7 @@ while (my $line = <$blast>) {
     }
 
     $lineCount += 1;
-    if ($lineCount % 5000 == 0) {
+    if ($lineCount % 5 == 0) {
 	print "Processed $lineCount lines\n";
     }
 }
