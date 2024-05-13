@@ -500,7 +500,7 @@ process filterResidualSimilaritiesByBestRepresentative {
   publishDir "$params.outputDir/residualSimilarityToBestReps", mode: "copy"
 
   input:
-    path groupData
+    path allSimilarities
     path bestReps
     path singletons
 
@@ -825,7 +825,7 @@ workflow bestRepresentativesAndStats {
 
         // in batches of bestReps, filter the group.sim file to create a file per group with similarities where the query seq is the bestRep
         // collect up resulting files
-        groupResultsOfBestRep = filterResidualSimilaritiesByBestRepresentative(allDiamondSimilarities,
+        groupResultsOfBestRep = filterResidualSimilaritiesByBestRepresentative(allDiamondSimilarities.flatten().collectFile(name: "allSimilarities.sim"),
                                                                                combinedBestRepresentatives,
                                                                                singletonsFull.collect()).collect()
 
