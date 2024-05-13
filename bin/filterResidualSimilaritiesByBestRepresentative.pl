@@ -39,6 +39,8 @@ while (my $line = <$data>) {
 close $data;
 
 my $currentGroupId;
+my $previousGroupId="first";
+my $lineCount;
 while (my $line = <$blast>) {
     chomp $line;
 
@@ -55,13 +57,34 @@ while (my $line = <$blast>) {
 	}
 
         if ($currentGroupId) {
-            open(OUT, ">>${currentGroupId}_bestRep.tsv") or die "Cannot open file ${currentGroupId}_bestRep.tsv for writing:$!";
-	    print OUT "$line\n";
-	    close OUT;
+	    
+	    if ($currentGroupId eq $previousGroupId) {
+                print OUT "$line\n";
+	    }
+
+	    else {
+
+		if ($previousGroupId eq "first") {
+		    open(OUT, ">>${currentGroupId}_bestRep.tsv") or die "Cannot open file ${currentGroupId}_bestRep.tsv for writing:$!";
+	            print OUT "$line\n";
+		}
+
+		else {
+		    close OUT;
+                    open(OUT, ">>${currentGroupId}_bestRep.tsv") or die "Cannot open file ${currentGroupId}_bestRep.tsv for writing:$!";
+	            print OUT "$line\n";
+		}
+	    }
+	    $previousGroupId = $currentGroupId;
 	}
     }
     else {
 	die "Improper file format of blast Results: $!";
+    }
+
+    $lineCount += 1;
+    if ($lineCount % 5000 == 0) {
+	print "Processed $lineCount lines\n";
     }
 }
 
