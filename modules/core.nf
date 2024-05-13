@@ -498,7 +498,6 @@ process filterResidualSimilaritiesByBestRepresentative {
   container = 'veupathdb/orthofinder'
 
   publishDir "$params.outputDir/residualSimilarityToBestReps", mode: "copy"
-  afterScript "rm *.sim"
 
   input:
     path groupData
@@ -827,7 +826,7 @@ workflow bestRepresentativesAndStats {
         // in batches of bestReps, filter the group.sim file to create a file per group with similarities where the query seq is the bestRep
         // collect up resulting files
         groupResultsOfBestRep = filterResidualSimilaritiesByBestRepresentative(allDiamondSimilarities,
-                                                                               combinedBestRepresentatives.splitText( by: 10000, file: true ),
+                                                                               combinedBestRepresentatives,
                                                                                singletonsFull.collect()).collect()
 
         // split bestRepresentative into chunks for parallel processing

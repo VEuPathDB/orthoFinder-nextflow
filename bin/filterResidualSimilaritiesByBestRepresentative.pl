@@ -50,6 +50,8 @@ while (my $line = <$data>) {
     
     # Get the group and sequence id
     my ($group, $seqID) = split(/\t/, $line);
+
+    print "Processing Group $group\n";
     
     # If the group is a singleton, we just make an empty file, as this group does not have any non self or internal blast results to the best rep
     open(OUT, ">${group}_bestRep.tsv") or die "Cannot open file ${group}_bestRep.tsv for writing:$!";
@@ -74,6 +76,7 @@ while (my $line = <$data>) {
 
         close IN;
         close OUT;
+        `rm ${group}.sim`;
     }
 }
 
