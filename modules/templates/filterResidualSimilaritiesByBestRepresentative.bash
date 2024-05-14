@@ -2,4 +2,7 @@
 
 set -euo pipefail
 
-filterResidualSimilaritiesByBestRepresentative.pl --bestReps $bestReps --singletons $singletons --blastResults $allSimilarities
+filterResidualSimilaritiesByBestRepresentative.pl \
+    --bestReps $bestReps \
+    --singletons $singletons \
+    --blastResults $allSimilarities
