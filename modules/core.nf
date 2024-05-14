@@ -497,20 +497,17 @@ process filterSimilaritiesByBestRepresentative {
 process filterResidualSimilaritiesByBestRepresentative {
   container = 'veupathdb/orthofinder'
 
-  publishDir "$params.outputDir/residualSimilarityToBestReps", mode: "copy"
-
   input:
     path allSimilarities
     path bestReps
     path singletons
 
   output:
-    path '*.tsv'
+    path 'bestRep.tsv'
 
   script:
     template 'filterResidualSimilaritiesByBestRepresentative.bash'
 }
-
 
 process createEmptyDir {
   container = 'veupathdb/orthofinder'
@@ -612,6 +609,23 @@ process createResidualFasta {
     for f in $residualFastas/*; do cat \$f >> residualFasta.fa; done
     echo "Done"
     """
+}
+
+
+process calculateResidualGroupResults {
+  container = 'veupathdb/orthofinder'
+
+  publishDir "$params.outputDir/groupStats", mode: "copy"
+
+  input:
+    path bestRepsTsv
+    val evalueColumn
+
+  output:
+    path 'residualGroupStats.txt'
+
+  script:
+    template 'calculateResidualGroupResults.bash'
 }
 
 
@@ -841,8 +855,7 @@ workflow bestRepresentativesAndStats {
 			   coreOrResidual)
 
         // same as above but for residuals
-        calculateGroupResults(groupResultsOfBestRep.flatten().collate(2500), 10, true)
-            .collectFile(name: "residual_stats.txt", storeDir: params.outputDir + "/groupStats" )
+        calculateResidualGroupResults(groupResultsOfBestRep, 10).collectFile(name: "residual_stats.txt", storeDir: params.outputDir + "/groupStats" )
 
         coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta,
                                                                    params.coreBestRepsFasta)

@@ -38,44 +38,29 @@ while (my $line = <$data>) {
 
 close $data;
 
-my $currentGroupId;
-my $previousGroupId="first";
+open(OUT, ">>bestRep.tsv") or die "Cannot open file bestRep.tsv for writing:$!";
+
 my $lineCount;
 while (my $line = <$blast>) {
     chomp $line;
 
     if($line =~ /^(\S+)\t(\S+).+/) {
 
+	my $groupId;
         my $queryGroupId = $groupBestRepHash{$1};
         my $subjectGroupId = $groupBestRepHash{$2};
 	
 	if ($queryGroupId) {
-	    $currentGroupId = $queryGroupId;
+	    $groupId = $queryGroupId;
 	}
 	else {
-	    $currentGroupId = $subjectGroupId;
+	    $groupId = $subjectGroupId;
 	}
 
-        if ($currentGroupId) {
+        if ($groupId) {
 	    
-	    if ($currentGroupId eq $previousGroupId) {
-                print OUT "$line\n";
-	    }
+            print OUT "$groupId\t$line\n";
 
-	    else {
-
-		if ($previousGroupId eq "first") {
-		    open(OUT, ">>${currentGroupId}_bestRep.tsv") or die "Cannot open file ${currentGroupId}_bestRep.tsv for writing:$!";
-	            print OUT "$line\n";
-		}
-
-		else {
-		    close OUT;
-                    open(OUT, ">>${currentGroupId}_bestRep.tsv") or die "Cannot open file ${currentGroupId}_bestRep.tsv for writing:$!";
-	            print OUT "$line\n";
-		}
-	    }
-	    $previousGroupId = $currentGroupId;
 	}
     }
     else {
@@ -83,7 +68,7 @@ while (my $line = <$blast>) {
     }
 
     $lineCount += 1;
-    if ($lineCount % 5 == 0) {
+    if ($lineCount % 5000 == 0) {
 	print "Processed $lineCount lines\n";
     }
 }
