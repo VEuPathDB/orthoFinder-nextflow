@@ -841,7 +841,7 @@ workflow bestRepresentativesAndStats {
 			   coreOrResidual)
 
         // same as above but for residuals
-        calculateGroupResults(groupResultsOfBestRep, 10, true)
+        calculateGroupResults(groupResultsOfBestRep.flatten().collate(2500), 10, true)
             .collectFile(name: "residual_stats.txt", storeDir: params.outputDir + "/groupStats" )
 
         coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta,
