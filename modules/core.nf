@@ -357,6 +357,23 @@ process reformatGroupsFile {
     template 'reformatGroupsFile.bash'
 }
 
+
+process reformatResidualGroupsFile {
+  container = 'veupathdb/orthofinder'
+
+  publishDir "$params.outputDir", mode: "copy"
+
+  input:
+    path groupsFile
+    val buildVersion
+
+  output:
+    path 'reformattedGroups.txt'
+
+  script:
+    template 'reformatResidualGroupsFile.bash'
+}
+
 /**
 *  for each group, determine which sequence has the lowest average evalue
 */
@@ -846,13 +863,8 @@ workflow bestRepresentativesAndStats {
         // split bestRepresentative into chunks for parallel processing
         bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
 
-        translatedSingletonsFile = translateSingletonsFile(singletonsFull,setupSequenceMapping)
-
         // Final output format of residual groups. Adding R for residual, and build version.
-        reformatGroupsFile(orthofinderGroupResultsOrthologgroups,
-                           translatedSingletonsFile,
-                           params.buildVersion,
-			   coreOrResidual)
+        reformatResidualGroupsFile(orthofinderGroupResultsOrthologgroups, params.buildVersion)
 
         // same as above but for residuals
         calculateResidualGroupResults(groupResultsOfBestRep, 10).collectFile(name: "residual_stats.txt", storeDir: params.outputDir + "/groupStats" )
