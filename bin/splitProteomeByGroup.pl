@@ -40,6 +40,7 @@ open(my $pro, '<', $proteome) || die "Could not open file $proteome: $!";
 
 # Make hash to store sequence group assignments
 my %seqToGroup;
+my %groupSizeHash;
 # For each line in groups file
 while (my $line = <$data>) {
     chomp $line;
@@ -49,7 +50,8 @@ while (my $line = <$data>) {
 	my @seqArray = split(/\s/, $seqLine);
 	foreach my $seq (@seqArray) {
             # Record the group assignment for each sequence
-            $seqToGroup{$seq} = $groupId;
+	    $seqToGroup{$seq} = $groupId;
+	    $groupSizeHash{$groupId} += 1;
 	}
     }
     else {
@@ -60,12 +62,14 @@ close $data;
 
 my $currentGroupId = "";
 my $groupId;
+my %groupUsedHash;
 while (my $line = <$pro>) {
     chomp $line;
-    if ($line =~ /^>(\S+).+/) {
+    if ($line =~ /^>(\S+).*/) {
 	$groupId = $seqToGroup{$1};
 	# If seq in our group subset
 	if ($groupId) {
+	    $groupUsedHash{$groupId} += 1;
 	    if ($currentGroupId eq $groupId) {
                 print OUT "$line\n";
 	    }
@@ -85,3 +89,9 @@ while (my $line = <$pro>) {
     }
 }	
 close OUT;
+
+foreach my $group (keys %groupUsedHash) {
+    if ($groupUsedHash{$group} != $groupSizeHash{$group}) {
+	die "All group seqs were not put in $group group fasta file. $groupUsedHash{$group} out of $groupSizeHash{$group}";
+    }
+}
