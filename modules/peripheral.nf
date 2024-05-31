@@ -390,8 +390,8 @@ workflow peripheralWorkflow {
                                         peripheralFasta)
 
     makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, groupAssignments)
-    splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome.collect(), makeGroupsFileResults.splitText( by: 10000, file: true ), params.outdatedOrganisms)
-    createGeneTrees(splitProteomesByGroupResults.collect().flatten().collate(50))
+    splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome.collect(), makeGroupsFileResults, params.outdatedOrganisms)
+    createGeneTrees(splitProteomesByGroupResults.collect().flatten().collate(100))
 
     // Residual Processing
 
