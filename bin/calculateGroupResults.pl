@@ -136,10 +136,10 @@ sub calculateStatsAndPrint {
 
 	# Calculate values and print.
         my $min = $stat->min();
-        my $twentyfifth = $stat->percentile(25);
+        my $twentyfifth = $stat->quantile(1);
         my $mean = $stat->mean();
-        my $median = $stat->percentile(50);
-        my $seventyfifth = $stat->percentile(75);
+        my $median = $stat->median();
+        my $seventyfifth = $stat->quantile(3);
         my $max = $stat->max();
         print OUT "$group\t$min\t$twentyfifth\t$median\t$seventyfifth\t$max\t$simCount\n";
     }

@@ -27,4 +27,6 @@ ADD /bin/orthologues.py /opt/OrthoFinder_source/scripts_of/orthologues.py
 ADD /bin/__main__.py /opt/OrthoFinder_source/scripts_of/__main__.py
 ADD /bin/parallel_task_manager.py /opt/OrthoFinder_source/scripts_of/parallel_task_manager.py
 
+ADD /bin/* /usr/bin/
+
 WORKDIR /work
