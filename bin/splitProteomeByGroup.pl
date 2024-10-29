@@ -44,15 +44,21 @@ my %groupSizeHash;
 # For each line in groups file
 while (my $line = <$data>) {
     chomp $line;
-    if ($line =~ /(OG\d+_\d+):\s(.+)/) {
-	my $groupId = $1;
-        my $seqLine = $2;
-	my @seqArray = split(/\s/, $seqLine);
-	foreach my $seq (@seqArray) {
+    if ($line =~ /(OG\w\d+_\d+):\s(.+)/) {
+         my $groupId = $1;
+         my $seqLine = $2;
+         my @seqArray = split(/\s/, $seqLine);
+         foreach my $seq (@seqArray) {
             # Record the group assignment for each sequence
-	    $seqToGroup{$seq} = $groupId;
-	    $groupSizeHash{$groupId} += 1;
-	}
+            if ($seq =~ /_RNA/) {
+                $seq =~ s/_RNA/:RNA/g;
+            }
+            if ($seq =~ /_mRNA/) {
+                $seq =~ s/_mRNA/:mRNA/g;
+            }
+            $seqToGroup{$seq} = $groupId;
+            $groupSizeHash{$groupId} += 1;
+         }
     }
     else {
 	die "Improper file format for groups file $groups\n";
@@ -75,9 +81,9 @@ while (my $line = <$pro>) {
 	    }
 	    else {
                 close OUT if($currentGroupId);
-	        open(OUT,">>${groupId}.fasta")  || die "Could not open file ${groupId}.fasta: $!";
-	        print OUT "$line\n";
-	        $currentGroupId = $groupId;
+		open(OUT,">>${groupId}.fasta")  || die "Could not open file ${groupId}.fasta: $!";
+		print OUT "$line\n";
+		$currentGroupId = $groupId;
 	    }
 	}
     }
@@ -87,7 +93,7 @@ while (my $line = <$pro>) {
     else {
         next;
     }
-}	
+}
 close OUT;
 
 foreach my $group (keys %groupUsedHash) {
