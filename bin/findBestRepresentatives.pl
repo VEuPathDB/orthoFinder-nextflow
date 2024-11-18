@@ -45,7 +45,7 @@ while (my $line = <$data>) {
     # We have moved onto a new group. Calculate values for the last group.
     if($line =~ /==> (\S+).sim <==/) {
 
-        &calculateAverageAndPrintGroup($group, \%values) if($group);
+        &determineBestRepAndPrintGroup($group, \%values) if($group);
 
 	# Retrieve new group and clear previous values.
         $group = $1;
@@ -63,13 +63,21 @@ while (my $line = <$data>) {
     # Retrieve evalue
     my $evalue = $lineAr[$EVALUE_COLUMN];
 
-    # Sum total of evalues and keep track of number of results for calculating average e-value.
+    my $exponent;
+
+    if ($evalue =~ /\S+e-(\d+)/) {
+        $exponent = $1;
+    }
+    else {
+        $exponent = 2;
+    }
+    
+    # Sum total of exponents 
     $values{$qseq}->{sum} += $evalue;
-    $values{$qseq}->{total}++;
 }
 
 # Calculate results for last group in file.
-&calculateAverageAndPrintGroup($group, \%values) if($group);
+&determineBestRepAndPrintGroup($group, \%values) if($group);
 
 1;
 
@@ -79,31 +87,30 @@ while (my $line = <$data>) {
 
 =over 4
 
-=item calculateAverageAndPrintGroup()
+=item determineBestRepAndPrintGroup()
 
-This process takes the group ID and the values object. The values object contains the sum of the total evalues and the number of pairs that involved this sequence that passed the e-value threshold. This process is called once per group. I will run through all of the qseqs in the values object and determine which sequence has the lowest average e-value. This sequence is identified as the best representative for this group.
+This process takes the group ID and the values object. The values object contains the sum of the exponents from the evalues of blast hits. This process is called once per group. I will run through all of the qseqs in the values object and determine which sequence has the highest sum of exponents. This sequence is identified as the best representative for this group.
 
 =back
 
 =cut
 
-sub calculateAverageAndPrintGroup {
+sub determineBestRepAndPrintGroup {
     my ($group, $values) = @_;
 
-    # Large place holder value.
-    my $minValue = 1000000000;
+    # Small place holder value.
+    my $highestExponent = 0;
     my $bestRepresentative;
 
     # For every query sequence.
     foreach my $qseq (keys %values) {
 
-	# Calculate average evalue for this sequence to all other sequences in the group.
-        my $avg = $values{$qseq}->{sum} / $values{$qseq}->{total} ;
+        my $sumExponents = $values{$qseq}->{sum};
 
-	# If this is the lowest average we have seen for this group, mark it as the best representative and save it's average evalue for next comparison.
-        if($avg <= $minValue) {
+	# If this is the highest sum of exponents we have seen for this group, mark it as the best representative and save it's sum of exponents for next comparison.
+        if($sumExponents >= $highestExponent) {
             $bestRepresentative = $qseq;
-            $minValue = $avg;
+            $highestExponent = $sumExponents;
         }
     }
 

@@ -15,6 +15,7 @@ for query in ${queries.join(' ')}; do
 		-o Blast\${query}_${target}.txt \
 		-f 6 $outputList \
 		--very-sensitive \
+		--no-self-hits \
 		-p 1 \
 		--quiet
     fi
