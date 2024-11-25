@@ -51,7 +51,7 @@ The path to where the group stats will be written.
 my ($evalueColumn, $inputDir, $outputFile);
 
 &GetOptions("evalueColumn=i"=> \$evalueColumn,
-            "inputDir"=> \$inputDir,
+            "inputDir=s"=> \$inputDir,
             "outputFile=s" => \$outputFile);
 
 open(OUT, ">$outputFile") or die "Cannot open output file $outputFile for writing: $!";
@@ -59,7 +59,7 @@ open(OUT, ">$outputFile") or die "Cannot open output file $outputFile for writin
 # Creating array of group similarity files.                                                                                                                                                                
 my @files = <$inputDir/*bestRep.tsv>;
 # For every group similarity file.                                                                                                                                                                        
-foreach my $file (@files) { 
+foreach my $file (@files) {
     # Make array to hold evalues
     my @evalues;
     my $group;
@@ -67,7 +67,7 @@ foreach my $file (@files) {
     open(my $data, '<', $file) || die "Could not open file $file: $!";
     $group = $file;
     $group =~ s/${inputDir}\///g;
-    $group =~ s/\.sim//g;  
+    $group =~ s/_bestRep\.tsv//g;  
     # For each blast result to group's best representative...
     while (my $line = <$data>) {
         chomp $line;
