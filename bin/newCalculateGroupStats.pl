@@ -57,7 +57,7 @@ my ($evalueColumn, $inputDir, $outputFile);
 open(OUT, ">$outputFile") or die "Cannot open output file $outputFile for writing: $!";
 
 # Creating array of group similarity files.                                                                                                                                                                
-my @files = <$inputDir/*.sim>;
+my @files = <$inputDir/*bestRep.tsv>;
 # For every group similarity file.                                                                                                                                                                        
 foreach my $file (@files) { 
     # Make array to hold evalues
