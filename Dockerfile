@@ -20,6 +20,10 @@ RUN cpanm Statistics::Basic Statistics::Descriptive::Weighted
 RUN wget http://github.com/bbuchfink/diamond/releases/download/v2.0.15/diamond-linux64.tar.gz
 RUN tar xzf diamond-linux64.tar.gz
 
+RUN wget https://github.com/marbl/Mash/releases/download/v2.3/mash-Linux64-v2.3.tar
+RUN tar xf mash-Linux64-v2.3.tar
+RUN mv mash-Linux64-v2.3/mash /usr/bin
+
 # Making all tools executable
 RUN chmod +x *
 
