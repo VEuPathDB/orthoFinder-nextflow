@@ -40,50 +40,50 @@ open(my $pro, '<', $proteome) || die "Could not open file $proteome: $!";
 
 # Make hash to store sequence group assignments
 my %seqToGroup;
-my %groupSizeHash;
 # For each line in groups file
 while (my $line = <$data>) {
     chomp $line;
-    if ($line =~ /(OG\w*\d+_\d+):\s(.+)/) {
-         my $groupId = $1;
-         my $seqLine = $2;
-         my @seqArray = split(/\s/, $seqLine);
-         foreach my $seq (@seqArray) {
+    if ($line =~ /^HOG\tOG\tGene/) {
+        next;
+    }
+    if ($line =~ /^N0.H(OG\d+)\tOG\d+\t\S+\t(.+)/) {
+	my $groupId = $1;
+        my $seqLine = $2;
+	$seqLine =~ s/^\t//g;
+	$seqLine =~ s/\t/, /g;
+	my @seqArray = split(/,\s/, $seqLine);
+	foreach my $seq (@seqArray) {
+	    # Resolve RNA line discrepency between OG file and fasta
+	    $seq =~ s/_RNA/:RNA/g;
+    	    $seq =~ s/_mRNA/:mRNA/g;
             # Record the group assignment for each sequence
-            if ($seq =~ /_RNA/) {
-                $seq =~ s/_RNA/:RNA/g;
-            }
-            if ($seq =~ /_mRNA/) {
-                $seq =~ s/_mRNA/:mRNA/g;
-            }
+	    print "$seq\t$groupId\n";
             $seqToGroup{$seq} = $groupId;
-            $groupSizeHash{$groupId} += 1;
-         }
+	}
     }
     else {
-	die "Improper file format for groups file $groups\nLine is $line\n";
+	die "Improper file format for groups file $groups.\nError line is $line\n";
     }
 }
 close $data;
 
 my $currentGroupId = "";
 my $groupId;
-my %groupUsedHash;
 while (my $line = <$pro>) {
     chomp $line;
     if ($line =~ /^>(\S+).*/) {
-	$groupId = $seqToGroup{$1};
+	my $tempGroup = $1;
+	$groupId = $seqToGroup{$tempGroup};
 	# If seq in our group subset
 	if ($groupId) {
-	    $groupUsedHash{$groupId} += 1;
 	    if ($currentGroupId eq $groupId) {
                 print OUT "$line\n";
 	    }
 	    else {
                 close OUT if($currentGroupId);
 		open(OUT,">>${groupId}.fasta")  || die "Could not open file ${groupId}.fasta: $!";
-		print OUT "$line\n";
-		$currentGroupId = $groupId;
+	        print OUT "$line\n";
+	        $currentGroupId = $groupId;
 	    }
 	}
     }
@@ -93,11 +93,5 @@ while (my $line = <$pro>) {
     else {
         next;
     }
-}
+}	
 close OUT;
-
-foreach my $group (keys %groupUsedHash) {
-    if ($groupUsedHash{$group} != $groupSizeHash{$group}) {
-	die "All group seqs were not put in $group group fasta file. $groupUsedHash{$group} out of $groupSizeHash{$group}";
-    }
-}

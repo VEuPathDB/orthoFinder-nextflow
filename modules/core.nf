@@ -61,7 +61,6 @@ process orthoFinderSetup {
 }
 
 
-
 /**
  * organisms which are being updated by this run are indicated in an outdated organisms file
  *  this step does a further check to ensure the sequence mapping file is identical;  if not it will discard the cache version
@@ -89,6 +88,7 @@ process mapCachedBlasts {
     script:
     template 'mapCachedBlasts.bash'
 }
+
 
 /**
 * take diamond results from mappedCache dir if they exist OR run diamond to create (and send to cache)
@@ -235,6 +235,8 @@ process splitOrthologGroupsPerSpecies {
 process makeOrthogroupDiamondFile {
   container = 'veupathdb/orthofinder'
 
+  publishDir "$params.outputDir/groupDiamondResults", mode: "copy"
+
   input:
     path blastFile
     path orthologs
@@ -372,25 +374,6 @@ process reformatResidualGroupsFile {
 
   script:
     template 'reformatResidualGroupsFile.bash'
-}
-
-/**
-*  for each group, determine which sequence has the lowest average evalue
-*/
-process findBestRepresentatives {
-  container = 'veupathdb/orthofinder'
-
-  input:
-    path groupData
-    path missingGroups
-    path groupMapping
-    path sequenceMapping
-
-  output:
-    path 'best_representative.txt'
-
-  script:
-    template 'findBestRepresentatives.bash'
 }
 
 
@@ -676,8 +659,6 @@ def speciesFileToList(speciesMapping, index) {
         .toList()
 }
 
-
-
 workflow coreOrResidualWorkflow {
   take:
     inputFile
@@ -687,7 +668,7 @@ workflow coreOrResidualWorkflow {
     // prepare input proteomes in format orthoFinder needs
     // finish setup by running orthoFinder in mode that creates diamond indexes
     // internal fastas and sequence/species id mappings
-    proteomesForOrthofinder = moveUnambiguousAminoAcidSequencesFirst(inputFile)
+    proteomesForOrthofinder = moveUnambiguousAminoAcidSequencesFirst(inputFile).collect()
     setup = orthoFinderSetup(proteomesForOrthofinder)
 
     // For rerunning core, we provide a directory of cached diamond similarities.
@@ -751,144 +732,103 @@ workflow coreOrResidualWorkflow {
 							     
     allDiamondSimilaritiesPerGroup = diamondSimilaritiesPerGroup.blastsByOrthogroup.flatten()
 
-    // sub workflow to process diamondSimlarities for best representatives and group stats
-    bestRepresentativesAndStats(setup.orthofinderWorkingDir,
-                                setup.sequenceMapping,
-                                orthofinderGroupResults.orthologgroups,
-                                allDiamondSimilaritiesPerGroup,
-                                speciesOrthologs.singletons.collect(),
-                                coreOrResidual
-    );
+    if (coreOrResidual == 'core') {
+      // make a collection of singletons files (one for each species)
+      singletonFiles = speciesOrthologs.singletons.collect()
+      singletonsFull = makeFullSingletonsFile(singletonFiles, orthofinderGroupResults.orthologgroups, params.buildVersion).collectFile()
+      translatedSingletonsFile = translateSingletonsFile(singletonsFull,setup.sequenceMapping)
+      reformatGroupsFile(orthofinderGroupResults.orthologgroups,
+                         translatedSingletonsFile,
+                         params.buildVersion,
+			 coreOrResidual)
+    }
+
+    if (coreOrResidual == 'residual') {
+        // sub workflow to process diamondSimlarities for best representatives and group stats
+        residualBestRepresentativesAndStats(setup.orthofinderWorkingDir,
+                                            setup.sequenceMapping,
+                                            orthofinderGroupResults.orthologgroups,
+                                            allDiamondSimilaritiesPerGroup,
+                                            speciesOrthologs.singletons.collect(),
+                                            coreOrResidual
+                                            );
+    }
 }
 
-
-workflow bestRepresentativesAndStats {
+// This is going to need a lot of changing
+workflow residualBestRepresentativesAndStats {
     take:
-    setupOrthofinderWorkingDir
-    setupSequenceMapping
-    orthofinderGroupResultsOrthologgroups
-    allDiamondSimilaritiesPerGroup
-    speciesOrthologsSingletons
-    coreOrResidual
+      setupOrthofinderWorkingDir
+      setupSequenceMapping
+      orthofinderGroupResultsOrthologgroups
+      allDiamondSimilaritiesPerGroup
+      speciesOrthologsSingletons
+      coreOrResidual
 
     main:
     
-    // make a collection containing all group similarity files
-    allDiamondSimilarities = allDiamondSimilaritiesPerGroup.collect()
+      // make a collection containing all group similarity files
+      allDiamondSimilarities = allDiamondSimilaritiesPerGroup.collect()
 
-    // make a collection of singletons files (one for each species)
-    singletonFiles = speciesOrthologsSingletons.collect()
+      // make a collection of singletons files (one for each species)
+      singletonFiles = speciesOrthologsSingletons.collect()
 
-    if (coreOrResidual == 'core') {
 
-        missingGroups = checkForMissingGroups(allDiamondSimilarities,params.buildVersion)
-
-        // combine all singletons and assign a group id
-        singletonsFull = makeFullSingletonsFile(singletonFiles, orthofinderGroupResultsOrthologgroups, params.buildVersion).collectFile()
-
-        // in batches, process group similarity files and determine best representative for each group
-        bestRepresentatives = findBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250),missingGroups.collect(),orthofinderGroupResultsOrthologgroups.collect(),setupSequenceMapping.collect())
-
-        allBestRepresentatives = bestRepresentatives.flatten().collectFile()
-
-        // collect File of best representatives
-        combinedBestRepresentatives = removeEmptyGroups(singletonsFull, allBestRepresentatives)
-
-        // make best rep file with actual sequence Ids
-        translateBestRepsFile(setupSequenceMapping, combinedBestRepresentatives, coreOrResidual)
-
-        // fasta file with all seqs for best representative sequence.
-        // (defline contains group id like:  OG_XXXX)
-        bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives,
-                                                               setupOrthofinderWorkingDir, coreOrResidual)
-
-        // in batches of bestReps, filter the group.sim file to create a file per group with similarities where the query seq is the bestRep
-        // collect up resulting files
-        groupResultsOfBestRep = filterSimilaritiesByBestRepresentative(allDiamondSimilarities,
-                                                                       combinedBestRepresentatives.splitText( by: 10000, file: true ),
-                                                                       singletonsFull.collect(),
-								       missingGroups).collect()
-
-        // split bestRepresentative into chunks for parallel processing
-        bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
-
-        // in batches of group similarity files filted by best representative, calculate group stats from evalues (min, max, median, ...)
-        calculateGroupResults(groupResultsOfBestRep.flatten().collate(2500), 10, false)
-            .collectFile(name: "core_stats.txt", storeDir: params.outputDir + "/groupStats" )
-
-        // run diamond for core best representatives compared to core bestRep DB
-        // this will be used to find similar ortholog groups
-        bestRepsSelfDiamondResults = coreBestRepsToCoreDiamond(bestRepSubset, bestRepresentativeFasta)
-            .collectFile(name: "core_best_reps_self_blast.txt", storeDir: params.outputDir );
-
-        translatedSingletonsFile = translateSingletonsFile(singletonsFull,
-                                                           setupSequenceMapping)
-
-        // Final output format of groups. Sent to peripheral workflow to identifiy which sequences are contained in which group in the core.
-        reformatGroupsFile(orthofinderGroupResultsOrthologgroups,
-                           translatedSingletonsFile,
-                           params.buildVersion,
-			   coreOrResidual)
-    }
-    
-    else { // residual
-
-        // in batches, process group similarity files and determine best representative for each group
-        bestRepresentatives = findResidualBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250),
+      // in batches, process group similarity files and determine best representative for each group
+      bestRepresentatives = findResidualBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250),
 	                                                      orthofinderGroupResultsOrthologgroups.collect(),
 							      setupSequenceMapping.collect())
 
-        allBestRepresentatives = bestRepresentatives.flatten().collectFile()
+      allBestRepresentatives = bestRepresentatives.flatten().collectFile()
 
-        singletonsFull = makeFullResidualSingletonsFile(singletonFiles, params.buildVersion).collectFile()
+      singletonsFull = makeFullResidualSingletonsFile(singletonFiles, params.buildVersion).collectFile()
 
-        // collect File of best representatives
-        combinedBestRepresentatives = removeEmptyGroups(singletonsFull, allBestRepresentatives)
+      // collect File of best representatives
+      combinedBestRepresentatives = removeEmptyGroups(singletonsFull, allBestRepresentatives)
 
-        // make best rep file with actual sequence Ids
-        translateBestRepsFile(setupSequenceMapping, combinedBestRepresentatives, coreOrResidual)
+      // make best rep file with actual sequence Ids
+      translateBestRepsFile(setupSequenceMapping, combinedBestRepresentatives, coreOrResidual)
 
-        // fasta file with all seqs for best representative sequence.
-        // (defline contains group id like:  OG_XXXX)
-        bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives,
-                                                               setupOrthofinderWorkingDir,
-							       coreOrResidual)
+      // fasta file with all seqs for best representative sequence.
+      // (defline contains group id like:  OG_XXXX)
+      bestRepresentativeFasta = makeBestRepresentativesFasta(combinedBestRepresentatives,
+                                                             setupOrthofinderWorkingDir,
+                                                             coreOrResidual)
 
-        // in batches of bestReps, filter the group.sim file to create a file per group with similarities where the query seq is the bestRep
-        // collect up resulting files
-        groupResultsOfBestRep = filterResidualSimilaritiesByBestRepresentative(allDiamondSimilarities.flatten().collectFile(name: "allSimilarities.sim"),
+      // in batches of bestReps, filter the group.sim file to create a file per group with similarities where the query seq is the bestRep
+      // collect up resulting files
+      groupResultsOfBestRep = filterResidualSimilaritiesByBestRepresentative(allDiamondSimilarities.flatten().collectFile(name: "allSimilarities.sim"),
                                                                                combinedBestRepresentatives,
                                                                                singletonsFull.collect()).collect()
 
-        // split bestRepresentative into chunks for parallel processing
-        bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
+      // split bestRepresentative into chunks for parallel processing
+      bestRepSubset = bestRepresentativeFasta.splitFasta(by:1000, file:true)
 
-        // Final output format of residual groups. Adding R for residual, and build version.
-        reformatResidualGroupsFile(orthofinderGroupResultsOrthologgroups, params.buildVersion)
+      // Final output format of residual groups. Adding R for residual, and build version.
+      reformatResidualGroupsFile(orthofinderGroupResultsOrthologgroups, params.buildVersion)
 
-        // same as above but for residuals
-        calculateResidualGroupResults(groupResultsOfBestRep, 10).collectFile(name: "residual_stats.txt", storeDir: params.outputDir + "/groupStats" )
+      // same as above but for residuals
+      calculateResidualGroupResults(groupResultsOfBestRep, 10).collectFile(name: "residual_stats.txt", storeDir: params.outputDir + "/groupStats" )
 
-        coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta,
+      coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta,
                                                                    params.coreBestRepsFasta)
 
-        // run diamond for residual best representatives compared to core+residual bestRep DB
-        // this will be used to find similar ortholog groups
-        residualBestRepsSimilarities = residualBestRepsToCoreAndResidualDiamond(bestRepSubset,
-                                                                                coreAndResidualBestRepFasta).collectFile()
+      // run diamond for residual best representatives compared to core+residual bestRep DB
+      // this will be used to find similar ortholog groups
+      residualBestRepsSimilarities = residualBestRepsToCoreAndResidualDiamond(bestRepSubset,
+                                                                              coreAndResidualBestRepFasta).collectFile()
 
-        // as we get new residual groups we need to compare core best reps
-        // (core best reps are input to peripheral/residual workflow)
-        coreBestRepsFasta = Channel.fromPath( params.coreBestRepsFasta )
-        coreBestRepsFastaSubset = coreBestRepsFasta.splitFasta(by:1000, file:true)
+      // as we get new residual groups we need to compare core best reps
+      // (core best reps are input to peripheral/residual workflow)
+      coreBestRepsFasta = Channel.fromPath( params.coreBestRepsFasta )
+      coreBestRepsFastaSubset = coreBestRepsFasta.splitFasta(by:1000, file:true)
 
-        // run diamond for core best representatives compared to residual bestRep DB
-        // this will be used to find similar ortholog groups
-        coreToResidualBestRepsSimilarities = coreBestRepsToResidualDiamond(coreBestRepsFastaSubset,
-                                                                           bestRepresentativeFasta).collectFile()
+      // run diamond for core best representatives compared to residual bestRep DB
+      // this will be used to find similar ortholog groups
+      coreToResidualBestRepsSimilarities = coreBestRepsToResidualDiamond(coreBestRepsFastaSubset,
+                                                                         bestRepresentativeFasta).collectFile()
 
-        // combine all bestreps self blast
-        mergeCoreAndResidualSimilarGroups(params.coreBestRepsSelfBlast,coreToResidualBestRepsSimilarities,residualBestRepsSimilarities)
+      // combine all bestreps self blast
+      mergeCoreAndResidualSimilarGroups(params.coreBestRepsSelfBlast,coreToResidualBestRepsSimilarities,residualBestRepsSimilarities)
 
-    }
 }

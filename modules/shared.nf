@@ -29,15 +29,11 @@ process uncompressFastas {
 process calculateGroupResults {
   container = 'veupathdb/orthofinder'
 
-  publishDir "$params.outputDir/groupStats", mode: "copy"
-
   input:
     path groupResultsToBestReps
-    val evalueColumn
-    val isResidual
 
   output:
-    path 'groupStats*.txt'
+    path 'groupStats.txt'
 
   script:
     template 'calculateGroupResults.bash'

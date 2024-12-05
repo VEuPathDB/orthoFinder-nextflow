@@ -3,72 +3,14 @@
 use strict;
 use warnings;
 use Getopt::Long;
-use Bio::SeqIO;
 
-=pod
+my ($bestReps,$sequenceIds,$outputFile);
 
-=head1 Description
-
-Translate the best rep file to have real sequence ids not orthofinder internal ids
-
-=head1 Input Parameters
-
-=over 4
-
-=item bestReps
-
-A tsv file indicating the group ID and the internal sequence ID of it's best representative
-
-=back
-
-=over 4
-
-=item sequenceIds
-
-Orthofinder file contain internal and actual sequence id mapping
-
-=back
-
-=over 4
-
-=item isResidual
-
-A boolean indicating if these are residual or core groups (if residual, OG7_0000000 becomes OGR7_0000000)
-
-=back
-
-=over 4
-
-=item outputFile
-
-The path to the new translated bestReps file
-
-=back
-
-=cut
-
-my ($bestReps,$sequenceIds,$isResidual,$outputFile);
-
-&GetOptions("bestReps=s"=> \$bestReps, # Tab seperated file with group and seqID
+&GetOptions("bestReps=s"=> \$bestReps,
 	    "sequenceIds=s"=> \$sequenceIds,
-            "outputFile=s"=> \$outputFile,
-            "isResidual"=> \$isResidual);
-
-my $groupPrefix = "OG";
-
-open(MAP, '<', $bestReps) || die "Could not open file $bestReps: $!";
-
-# Create hash to hold group and best rep id assignments
-my %bestRepsMap;
-while (my $line = <MAP>) {
-    chomp $line;
-    my ($group, $repseq) = split(/\t/, $line);
-    $bestRepsMap{$group} = $repseq;
-}
-close MAP;
+            "outputFile=s"=> \$outputFile);
 
 open(SEQ, '<', $sequenceIds) || die "Could not open file $sequenceIds: $!";
-
 my %sequenceIdsMap;
 while (my $line = <SEQ>) {
     chomp $line;
@@ -83,16 +25,22 @@ while (my $line = <SEQ>) {
 }
 close SEQ;
 
-open(OUT, '>', $outputFile) || die "Could not open file $outputFile: $!";
-# For each group best rep pair, translate the internalId
-foreach my $group (keys(%bestRepsMap)) {
-    my $internalId = $bestRepsMap{$group};
-    my $actualId = $sequenceIdsMap{$internalId};
-    if ($isResidual) {
-        $group =~ s/OG/OGR/g;    
+open(MAP, '<', $bestReps) || die "Could not open file $bestReps: $!";
+open(OUT, '>>', $outputFile) || die "Could not open file $outputFile: $!";
+
+# Create hash to hold group and best rep id assignments
+my %bestRepsMap;
+while (my $line = <MAP>) {
+    chomp $line;
+    my ($group, $repseq) = split(/\t/, $line);
+    if ($repseq !~ /\d+\_\d+/) {
+        print OUT "$group\t$repseq\n";
     }
-    print OUT "$group\t$actualId\n";
+    else {
+        print OUT "$group\t$sequenceIdsMap{$repseq}\n";
+    }
 }
+close MAP;
 close OUT;
 		   
 1;

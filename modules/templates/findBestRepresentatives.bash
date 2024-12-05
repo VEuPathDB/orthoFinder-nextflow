@@ -4,10 +4,11 @@ set -euo pipefail
 
 tail -n +1 *.sim > combined.sim
 
-findBestRepresentatives.pl \
-    --groupFile combined.sim >> best_representative.txt
+findBestRepresentatives.pl --groupFile combined.sim >> untranslated_best_reps.txt
 
-addTranslatedMissingGroupMembers.pl \
+addMissingGroupMembers.pl \
     --missingGroups $missingGroups \
     --groupMapping $groupMapping \
-    -sequenceMapping $sequenceMapping >> best_representative.txt
+    >> untranslated_best_reps.txt
+
+translateBestRepsFile.pl --bestReps untranslated_best_reps.txt --sequenceIds SequenceIDs.txt --outputFile best_representative.txt

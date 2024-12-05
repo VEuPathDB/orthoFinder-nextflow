@@ -265,21 +265,6 @@ process splitCoreBestRepFasta {
     template 'splitCoreBestRepFasta.bash'
 }
 
-process peripheralGroupsToBestRepDiamond {
-  container = 'veupathdb/orthofinder'
-
-  input:
-    path groupFastas
-    path bestRepFastas
-    val outputList
-
-  output:
-    path '*.tsv', emit: groupSimilarities
-
-  script:
-    template 'peripheralGroupsToBestRepDiamond.bash'
-}
-
 /**
  * Keep only the sequence Ids in the deflines of the fasta files. Remove all other information. Needed for the createGeneTrees software.
  *
@@ -302,15 +287,15 @@ process keepSeqIdsFromDeflines {
 
 
 /**
- * Combines blast similarities. One file per core and peripheral.
+ *  Combines blast similarities. One file per core and peripheral.
  *  Core sequences between them and the best representative for the group to which they were assigned. Same for the peripherals.
- *  This will give us all of the needed similarity score to generate group statistics.
+ *  This will give us all of the needed similarity score to determine best representatives.
  *
- * @param peripheralGroupSimilarities: Pairwise blast results between peripheral sequences and the core best representative for the group to which they were assigned
- * @param coreGroupSimilarities: Pairwise blast results between core sequences and the core best representative for the group to which they were assigned
- * @return final Pairwise blast result files per group containing all results involving core and peripheral sequences to the best representative of they group to which they were assigned
+ * @param peripheralGroupSimilarities: Pairwise blast results between peripheral sequences and the core sequences per group
+ * @param coreGroupSimilarities: Pairwise blast results between core sequences and their share core group membets
+ * @return final Pairwise blast result files per group containing all results involving core and peripheral sequences to sequences in the group which they were assigned
 */
-process combinePeripheralAndCoreSimilaritiesToBestReps {
+process combinePeripheralAndCoreSimilarities {
   container = 'veupathdb/orthofinder'
 
   input:
@@ -321,7 +306,100 @@ process combinePeripheralAndCoreSimilaritiesToBestReps {
     path 'final/*'
 
   script:
-    template 'combinePeripheralAndCoreSimilaritiesToBestReps.bash'
+    template 'combinePeripheralAndCoreSimilarities.bash'
+}
+
+
+process makePeripheralOrthogroupDiamondFiles {
+  container = 'veupathdb/orthofinder'
+
+  input:
+    path blastFile
+    path orthologs
+
+  output:
+    path 'OG*.sim', emit: blastsByOrthogroup
+
+  script:
+    template 'makePeripheralOrthogroupDiamondFiles.bash'
+}
+
+/**
+* checkForMissingGroups
+*
+*/
+process checkForMissingGroups {
+  container = 'veupathdb/orthofinder'
+
+  input:
+    path allDiamondSimilarities
+    val buildVersion
+    path groupsFile
+
+  output:
+    path 'missingGroups.txt'
+
+  script:
+    """
+    checkForMissingGroups.pl . $buildVersion $groupsFile
+    """
+}
+
+
+/**
+*  for each group, determine which sequence has the lowest average evalue
+*/
+process findBestRepresentatives {
+  container = 'veupathdb/orthofinder'
+
+  input:
+    path groupData
+    path missingGroups
+    path groupMapping
+    path sequenceMapping
+
+  output:
+    path 'best_representative.txt'
+
+  script:
+    template 'findBestRepresentatives.bash'
+}
+
+
+/**
+*  grab all best representative sequences.  use the group id as the defline
+*/
+process makeCoreBestRepresentativesFasta {
+  container = 'veupathdb/orthofinder'
+
+  publishDir "$params.outputDir", mode: "copy"
+
+  input:
+    path bestRepresentatives
+    path proteome
+
+  output:
+    path 'bestReps.fasta'
+
+  script:
+    template 'makeCoreBestRepresentativesFasta.bash'
+}
+
+
+process runMash {
+  container = 'veupathdb/orthofinder'
+
+  input:
+    path fasta
+    path bestRep
+
+  output:
+    path "*.mash"
+
+  script:
+   """
+   runMash.pl --inputDir . --bestRepFasta $bestRep
+   """
 }
 
 
@@ -335,7 +413,7 @@ workflow peripheralWorkflow {
     uncompressAndMakePeripheralFastaResults = uncompressPeripheralFastas(peripheralDir)
     uncompressAndMakeCoreFastaResults = uncompressFastas(params.coreProteomes)
 
-    // Create a diamond database from a fasta file of the core best representatives
+    // Create a diamond database from a fasta file of the core sequences
     database = createDatabase(uncompressAndMakeCoreFastaResults.combinedProteomesFasta)
 
     // Remove cached diamond results for organisms proteomes that have changed
@@ -360,43 +438,42 @@ workflow peripheralWorkflow {
     residualFasta = residualAndPeripheralFastas.residualFasta.collectFile(name: 'residual.fasta');
     peripheralFasta = residualAndPeripheralFastas.peripheralFasta.collectFile(name: 'peripheral.fasta');
 
-    // collect up the groups
-    groupAssignments = groupsAndSimilarities.groups.collectFile(name: 'groups.txt')
-
-    peripheralProteomesByGroup = splitPeripheralProteomeByGroup(peripheralFasta, groupAssignments)
-
-    coreBestRepFastas = splitCoreBestRepFasta(params.coreBestRepsFasta)
-
-    peripheralSimilaritiesToBestRep =  peripheralGroupsToBestRepDiamond(peripheralProteomesByGroup.peripheralGroupFastas.flatten().collate(100),
-                                                                        coreBestRepFastas.bestRepsFastas.collect(),
-				                                        params.orthoFinderDiamondOutputFields)
-									.collect()
-
-    // in one file PER GROUP, combine core + peripheral similarities
-    allSimilaritiesToBestRep = combinePeripheralAndCoreSimilaritiesToBestReps(peripheralSimilaritiesToBestRep,
-                                                                              params.coreSimilarityToBestReps);
-
-    // for X number of groups (100?), calculate stats on evalue
-    calculateGroupResults(allSimilaritiesToBestRep.flatten().collate(100),
-                          10,
-    			  false)
-    			  .collectFile(name: "peripheral_stats.txt",
-    			               storeDir: params.outputDir + "/groupStats" )
-
-    // Creating Core + Peripheral Gene Trees
-
     // Combine core and peripheral proteomes into a singular file
     combinedProteome = combineProteomes(uncompressAndMakeCoreFastaResults.combinedProteomesFasta,
                                         peripheralFasta)
 
+    // collect up the groups
+    groupAssignments = groupsAndSimilarities.groups.collectFile(name: 'groups.txt')
+
     makeGroupsFileResults = makeGroupsFile(params.coreGroupsFile, groupAssignments)
+
     splitProteomesByGroupResults = splitProteomeByGroup(combinedProteome.collect(), makeGroupsFileResults, params.outdatedOrganisms)
-    createGeneTrees(splitProteomesByGroupResults.collect().flatten().collate(50))
 
-    // Residual Processing
+    peripheralBlastsByGroup = makePeripheralOrthogroupDiamondFiles(similarities.similarities.collectFile(name: 'blasts.out'), makeGroupsFileResults.collect())
 
-    // Split residual proteome into one fasta per organism and compress. Needed input for orthofinder.
-    compressedFastaDir = createCompressedFastaDir(residualFasta)
+    // In one file PER GROUP, combine core + peripheral similarities
+    allSimilarities = combinePeripheralAndCoreSimilarities(peripheralBlastsByGroup.collect(),
+                                                           params.coreGroupSimilarities).collect();
 
-    residualWorkflow(compressedFastaDir.fastaDir, "residual")
+    missingGroups = checkForMissingGroups(allSimilarities,params.buildVersion,makeGroupsFileResults.collect()).collect()
+
+    bestRepresentatives = findBestRepresentatives(allSimilarities, missingGroups, makeGroupsFileResults.collect(),params.coreTranslateSequenceFile);
+
+    bestRepresentativeFasta = makeCoreBestRepresentativesFasta(bestRepresentatives,uncompressAndMakeCoreFastaResults.combinedProteomesFasta)
+
+    mashResults = runMash(splitProteomesByGroupResults.collect().flatten().collate(2000), bestRepresentativeFasta)
+
+    // here we need to determine best reps, run mash, and do group stats
+
+    calculateGroupResults(mashResults.flatten().collate(1000)).collectFile(name: "peripheral_stats.txt", storeDir: params.outputDir + "/groupStats")
+
+    // Creating Core + Peripheral Gene Trees
+    //createGeneTrees(splitProteomesByGroupResults.collect().flatten().collate(50))
+
+    // // Residual Processing
+
+    // // Split residual proteome into one fasta per organism and compress. Needed input for orthofinder.
+    // compressedFastaDir = createCompressedFastaDir(residualFasta)
+
+    // residualWorkflow(compressedFastaDir.fastaDir, "residual")
 }

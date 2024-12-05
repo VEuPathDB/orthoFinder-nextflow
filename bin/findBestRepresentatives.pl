@@ -27,8 +27,8 @@ my ($groupFile);
 
 &GetOptions("groupFile=s"=> \$groupFile);
 
-# Set query sequence column and evalue column for retrieving those values.
-my $QSEQ_COLUMN = 0;
+# Set subject sequence column and evalue column for retrieving those values.
+my $SSEQ_COLUMN = 1;
 my $EVALUE_COLUMN = 10;
 
 # Open file of group blast results.
@@ -58,7 +58,7 @@ while (my $line = <$data>) {
     my @lineAr = split(/\t/, $line);
 
     # Retrieve query sequence
-    my $qseq = $lineAr[$QSEQ_COLUMN];
+    my $sseq = $lineAr[$SSEQ_COLUMN];
 
     # Retrieve evalue
     my $evalue = $lineAr[$EVALUE_COLUMN];
@@ -70,10 +70,10 @@ while (my $line = <$data>) {
     }
     else {
         $exponent = 2;
-    }
+    }   
     
     # Sum total of exponents 
-    $values{$qseq}->{sum} += $evalue;
+    $values{$sseq}->{sum} += $exponent;
 }
 
 # Calculate results for last group in file.
@@ -89,7 +89,7 @@ while (my $line = <$data>) {
 
 =item determineBestRepAndPrintGroup()
 
-This process takes the group ID and the values object. The values object contains the sum of the exponents from the evalues of blast hits. This process is called once per group. I will run through all of the qseqs in the values object and determine which sequence has the highest sum of exponents. This sequence is identified as the best representative for this group.
+This process takes the group ID and the values object. The values object contains the sum of the exponents from the evalues of blast hits. This process is called once per group. I will run through all of the sseqs in the values object and determine which sequence has the highest sum of exponents. This sequence is identified as the best representative for this group.
 
 =back
 
@@ -103,17 +103,18 @@ sub determineBestRepAndPrintGroup {
     my $bestRepresentative;
 
     # For every query sequence.
-    foreach my $qseq (keys %values) {
+    foreach my $sseq (keys %values) {
 
-        my $sumExponents = $values{$qseq}->{sum};
+        my $sumExponents = $values{$sseq}->{sum};
 
 	# If this is the highest sum of exponents we have seen for this group, mark it as the best representative and save it's sum of exponents for next comparison.
         if($sumExponents >= $highestExponent) {
-            $bestRepresentative = $qseq;
+            $bestRepresentative = $sseq;
             $highestExponent = $sumExponents;
         }
     }
 
     # Print out the group and it's best representative for future processing.
     print "${group}\t${bestRepresentative}\n";
+
 }

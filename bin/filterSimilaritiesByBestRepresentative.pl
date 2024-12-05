@@ -75,11 +75,14 @@ while (my $line = <$data>) {
         # We want only where the seqId is in the 2nd column to avoid duplicate values/rows.
         open(IN, "< ${group}.sim") or die "cannot open file ${group}.sim for reading: $!";
 
+
+	$seqID =~ s/\|/\\\|/g;
+	
 	# For each row of similarity results.
         while(<IN>) {
 
 	    # If subject sequence is the group best representative, store the result.
-            if(/\t${seqID}\t/) {
+            if($_ =~ /^\S+\t${seqID}\t.*/) {
                 print OUT $_;
             }
         }

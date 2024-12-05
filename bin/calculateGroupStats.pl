@@ -50,40 +50,40 @@ The path to where the group stats will be written.
 
 my ($evalueColumn, $inputDir, $outputFile);
 
-&GetOptions("evalueColumn=i"=> \$evalueColumn,
-            "inputDir=s"=> \$inputDir,
+&GetOptions("inputDir=s"=> \$inputDir,
             "outputFile=s" => \$outputFile);
 
 open(OUT, ">$outputFile") or die "Cannot open output file $outputFile for writing: $!";
 
 # Creating array of group similarity files.                                                                                                                                                                
-my @files = <$inputDir/*bestRep.tsv>;
-# For every group similarity file.                                                                                                                                                                        
+my @files = <$inputDir/*.mash>;
+# For every mash file.                                                                                                                                                                        
 foreach my $file (@files) {
-    # Make array to hold evalues
-    my @evalues;
+    # Make array to hold percents
+    my @percentArray;
     my $group;
-    # Open file that contains pairwise results of sequences involving the groups best rep
+    # Open file that contains mash results to best rep
     open(my $data, '<', $file) || die "Could not open file $file: $!";
     $group = $file;
     $group =~ s/${inputDir}\///g;
-    $group =~ s/_bestRep\.tsv//g;  
-    # For each blast result to group's best representative...
+    $group =~ s/\.mash//g;  
+    # For each mash result to group's best representative...
     while (my $line = <$data>) {
         chomp $line;
         next unless($line); 
 
         my @results = split(/\t/, $line);
 
-        my $evalue = $results[$evalueColumn];
-    
-        # An unmapped value was returned.
-        $evalue = 1 if ($evalue == -1);
+        my $fraction = $results[4];
 
+        my ($numerator,$denominator) = split(/\//, $fraction);
+
+        my $percent = $numerator / $denominator;
+    
         # Add evalue to array.
-        push(@evalues,$evalue);
+        push(@percentArray,$percent);
     }
-    &calculateStatsAndPrint($group, \@evalues);
+    &calculateStatsAndPrint($group, \@percentArray);
     close $data;
 }
 
@@ -95,17 +95,17 @@ foreach my $file (@files) {
 
 =item calculateStatsAndPrint()
 
-The process takes the group id and the evalues retrieve from the group pairwise results and calculates the group statistics.
+The process takes the group id and the percent shared kmers retrieved from the group pairwise results and calculates the group statistics.
 
 =back
 
 =cut
 
 sub calculateStatsAndPrint {
-    my ($group, $evalues) = @_;
+    my ($group, $percents) = @_;
 
     # Count number of similarities.
-    my $simCount = scalar(@$evalues);
+    my $simCount = scalar(@$percents);
 
     # If we have a similarity.
     if ($simCount >= 1) {
@@ -113,13 +113,12 @@ sub calculateStatsAndPrint {
 	# Create stats object.
         my $stat = Statistics::Descriptive::Full->new();
 	
-	# Add evalues.
-        $stat->add_data(@$evalues);
+	# Add percents.
+        $stat->add_data(@$percents);
 
 	# Calculate values and print.
         my $min = $stat->min();
         my $twentyfifth = $stat->quantile(1);
-        my $mean = $stat->mean();
         my $median = $stat->median();
         my $seventyfifth = $stat->quantile(3);
         my $max = $stat->max();
