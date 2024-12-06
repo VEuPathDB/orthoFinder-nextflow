@@ -3,4 +3,4 @@
 set -euo pipefail
 
 makePeripheralOrthologGroupDiamondFiles.pl --blastFile $blastFile \
-	                                   --groups $orthologs
+	                                   --groups $groupsFile

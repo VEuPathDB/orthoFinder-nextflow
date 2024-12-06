@@ -39,11 +39,11 @@ The path to the new bestReps fasta file
 
 =cut
 
-my ($bestReps,$isResidual,$outputFile);
+my ($bestReps,$outputFile);
 
 &GetOptions("bestReps=s"=> \$bestReps, # Tab seperated file with group and seqID
-            "outputFile=s"=> \$outputFile,
-            "isResidual"=> \$isResidual);
+            "outputFile=s"=> \$outputFile
+           );
 
 my $groupPrefix = "OG";
 
@@ -70,9 +70,6 @@ while ( my $seq = $in->next_seq() ) {
     my $seqId = $seq->id();
     my $group = $map{$seqId};
     die "No Group defined for Seq $seqId" unless($group);
-    if ($isResidual) {
-        $group =~ s/${groupPrefix}/${groupPrefix}R/;
-    }
     $seq->id($group);
     $bestRepsFasta->write_seq($seq);
 }

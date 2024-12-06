@@ -17,7 +17,7 @@ my %seqToGroup;
 # For each line in groups file
 while (my $line = <$data>) {
     chomp $line;
-    if ($line =~ /(OG\d+_\d+)\t(.+)/) {
+    if ($line =~ /(OG\w*\d+_\d+)\t(.+)/) {
 	my $groupId = $1;
         my $seq = $2;
         # Record the group assignment for each sequence

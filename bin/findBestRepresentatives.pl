@@ -9,7 +9,7 @@ use Data::Dumper;
 
 =head1 Description: 
 
-Determine the best representative per group by calculating the lowest average e-value across all sequences within a group.
+Determine the best residual representative per group by summing the e-value exponents from pair wise blast results across all sequences within a group
 
 =head1 Input Parameters
 

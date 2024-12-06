@@ -3,6 +3,6 @@
 set -euo pipefail
 
 touch fullProteome.fasta
-cat $coreProteome >> fullProteome.fasta
+cat 1.fasta >> fullProteome.fasta
 echo "" >> fullProteome.fasta
-cat $peripheralProteome >> fullProteome.fasta
+cat 2.fasta >> fullProteome.fasta

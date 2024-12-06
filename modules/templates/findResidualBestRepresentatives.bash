@@ -4,5 +4,4 @@ set -euo pipefail
 
 tail -n +1 *.sim > combined.sim
 
-findResidualBestRepresentatives.pl \
-    --groupFile combined.sim >> best_representative.txt
+findBestRepresentatives.pl --groupFile combined.sim >> best_representative.txt

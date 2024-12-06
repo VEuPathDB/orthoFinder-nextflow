@@ -43,11 +43,10 @@ my %seqToGroup;
 # For each line in groups file
 while (my $line = <$data>) {
     chomp $line;
-    if ($line =~ /^(OG\d+):\s(.+)/) {
+    if ($line =~ /^(OGR\d+_\d+):\s(.+)/) {
 	my $groupId = $1;
         my $seqLine = $2;
 	my @seqArray = split(/\s/, $seqLine);
-	$groupId =~ s/OG/OGR/g;
 	foreach my $seq (@seqArray) {
 	    # Resolve RNA line discrepency between OG file and fasta
 	    $seq =~ s/_RNA/:RNA/g;

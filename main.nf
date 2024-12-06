@@ -5,8 +5,9 @@ nextflow.enable.dsl=2
 // Including Workflows
 //---------------------------------------------------------------
 
+include { coreWorkflow; } from './modules/core.nf'
 include { peripheralWorkflow } from './modules/peripheral.nf'
-include { listToPairwiseComparisons; coreOrResidualWorkflow as coreWorkflow } from './modules/core.nf'
+include { residualWorkflow;} from './modules/residual.nf'
 
 //---------------------------------------------------------------
 // core
@@ -50,7 +51,5 @@ workflow peripheralEntry {
 //---------------------------------------------------------------
 
 workflow {
-    //listToPairwiseComparisons(channel.of(1..10), 3).view();
-    //listToPairwiseComparisons(channel.of(1..3).collect(), 2).view();
     coreEntry();
 }

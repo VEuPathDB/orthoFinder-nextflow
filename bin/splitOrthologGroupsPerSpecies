@@ -181,7 +181,7 @@ elsif ($coreOrResidual eq "residual") {
       my $groupNumber = $1;
       my @seqArray = split(/\s/, $2);
       my $groupSize = scalar @seqArray;
-      my $orthologGroup = "OG${buildVersion}_${groupNumber}";
+      my $orthologGroup = "OGR${buildVersion}_${groupNumber}";
       foreach my $ogSequence (@seqArray) {
         my $internalSequence = $sequenceMapping{$ogSequence};
         if ($internalSequence) {
