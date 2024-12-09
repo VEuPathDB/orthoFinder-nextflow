@@ -322,7 +322,7 @@ process makeCoreBestRepresentativesFasta {
     path proteome
 
   output:
-    path 'bestReps.fasta'
+    path 'coreBestReps.fasta'
 
   script:
     template 'makeCoreBestRepresentativesFasta.bash'
@@ -418,12 +418,12 @@ workflow peripheralWorkflow {
                                   bestRepresentativeFasta)
 
     // Calculate core group stats
-    calculateCoreGroupResults(coreMashResults).collectFile(name: "core_stats.txt",
-                                                           storeDir: params.outputDir + "/groupStats")
+    calculateCoreGroupResults(coreMashResults.collect().flatten().collate(2000)).collectFile(name: "core_stats.txt",
+                                                                                 storeDir: params.outputDir + "/groupStats")
 
     // Calculate core and peripheral group stats
-    calculateGroupResults(mashResults).collectFile(name: "peripheral_stats.txt",
-                                                   storeDir: params.outputDir + "/groupStats")
+    calculateGroupResults(mashResults.collect().flatten().collate(2000)).collectFile(name: "peripheral_stats.txt",
+                                                                                     storeDir: params.outputDir + "/groupStats")
 
     // Creating Core + Peripheral Gene Trees
     //createGeneTrees(splitCombinedProteomesByGroupResults.collect().flatten().collate(50))

@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-OUTPUT=bestReps.fasta
+OUTPUT=coreBestReps.fasta
 SEQIDS=sequenceIds.txt
 
 samtools faidx $proteome
@@ -10,6 +10,8 @@ samtools faidx $proteome
 cut -f 2 $bestRepresentatives >\$SEQIDS
 
 samtools faidx -r \$SEQIDS $proteome | makeBestRepresentativesFasta.pl --bestReps $bestRepresentatives --outputFile \$OUTPUT
+
+cp $bestRepresentatives coreBestReps.txt
 
 echo "Done"
 

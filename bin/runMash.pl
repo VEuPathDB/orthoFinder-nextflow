@@ -44,5 +44,11 @@ foreach my $file (@files) {
     open(my $temp, '>', 'temp.fasta') || die "Could not open file temp.fasta: $!";
     print $temp ">$currentGroup\n$bestRepSequence";
     close $temp;
-    system("mash dist -a -i -s 10000 -w 1 -k 3 ${currentGroup}.fasta temp.fasta > ${currentGroup}.mash");
+    my $exit_code=system("mash dist -a -i -s 10000 -w 1 -k 3 ${currentGroup}.fasta temp.fasta > ${currentGroup}.mash");
+    if($exit_code==0) {
+        print "Generated mash file for group $currentGroup.\n";
+    }
+    else {
+        die "Mash exited with error core of $exit_code for group $currentGroup";
+    }
 }

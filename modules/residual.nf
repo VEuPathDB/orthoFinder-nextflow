@@ -117,8 +117,6 @@ process removeEmptyGroups {
 process makeResidualBestRepresentativesFasta {
   container = 'veupathdb/orthofinder'
 
-  publishDir "$params.outputDir", mode: "copy"
-
   input:
     path bestRepresentatives
     path orthofinderWorkingDir
@@ -136,8 +134,6 @@ process makeResidualBestRepresentativesFasta {
 */
 process translateBestRepsFile {
   container = 'veupathdb/orthofinder'
-
-  publishDir "$params.outputDir", mode: "copy"
 
   input:
     path sequenceMapping
@@ -196,6 +192,8 @@ process createEmptyDir {
 */
 process mergeCoreAndResidualBestReps {
   container = 'veupathdb/orthofinder'
+
+  publishDir "$params.outputDir/", mode: "copy"
 
   input:
     path residualBestReps
@@ -369,7 +367,7 @@ workflow residualWorkflow {
 
     residualProteomesByGroup = splitProteomeByGroup(residualFasta.collect(), residualGroupsFile.splitText( by: 10000, file: true ))
 
-    createGeneTrees(residualProteomesByGroup.collect().flatten().collate(10))
+    //createGeneTrees(residualProteomesByGroup.collect().flatten().collate(50))
     
     // publish results
     publishOFResults(orthofinderGroupResults.results)    
@@ -424,8 +422,8 @@ workflow residualWorkflow {
                           bestRepresentativeFasta)
 
     // Calculate residual group stats
-    calculateGroupResults(mashResults).collectFile(name: "residual_stats.txt",
-                                                   storeDir: params.outputDir + "/groupStats")
+    calculateGroupResults(mashResults.collect().flatten().collate(2000)).collectFile(name: "residual_stats.txt",
+                                                                                     storeDir: params.outputDir + "/groupStats")
 
     coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta,
                                                                coreBestRepsFasta)
