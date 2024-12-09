@@ -369,7 +369,7 @@ workflow residualWorkflow {
 
     residualProteomesByGroup = splitProteomeByGroup(residualFasta.collect(), residualGroupsFile.splitText( by: 10000, file: true ))
 
-    //createGeneTrees(residualProteomesByGroup.collect().flatten().collate(50))
+    createGeneTrees(residualProteomesByGroup.collect().flatten().collate(50))
     
     // publish results
     publishOFResults(orthofinderGroupResults.results)    
@@ -424,8 +424,8 @@ workflow residualWorkflow {
                           bestRepresentativeFasta.collect())
 
     // Calculate residual group stats
-    calculateGroupResults(mashResults.collect().flatten().collate(2000)).collectFile(name: "residual_stats.txt",
-                                                                                     storeDir: params.outputDir + "/groupStats")
+    calculateGroupResults(mashResults).collectFile(name: "residual_stats.txt",
+                                                   storeDir: params.outputDir + "/groupStats")
 
     coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta,
                                                                coreBestRepsFasta)

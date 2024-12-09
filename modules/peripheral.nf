@@ -426,7 +426,7 @@ workflow peripheralWorkflow {
                                                                                      storeDir: params.outputDir + "/groupStats")
 
     // Creating Core + Peripheral Gene Trees
-    //createGeneTrees(splitCombinedProteomesByGroupResults.collect().flatten().collate(50))
+    createGeneTrees(splitCombinedProteomesByGroupResults.collect().flatten().collate(50))
 
     // Residual Processing
 
