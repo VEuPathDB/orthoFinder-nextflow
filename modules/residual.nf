@@ -419,7 +419,7 @@ workflow residualWorkflow {
 
     // Create a residual specific mash result file for every core group fasta
     mashResults = runMash(residualProteomesByGroup.collect().flatten().collate(2000),
-                          bestRepresentativeFasta)
+                          bestRepresentativeFasta.collect())
 
     // Calculate residual group stats
     calculateGroupResults(mashResults.collect().flatten().collate(2000)).collectFile(name: "residual_stats.txt",
