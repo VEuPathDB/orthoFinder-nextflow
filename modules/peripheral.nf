@@ -291,6 +291,8 @@ process checkForMissingGroups {
 process findBestRepresentatives {
   container = 'veupathdb/orthofinder'
 
+  publishDir "$params.outputDir/", mode: "copy", saveAs: { filename -> "coreBestReps.txt" }
+
   input:
     path groupData
     path missingGroups
@@ -314,8 +316,6 @@ process findBestRepresentatives {
 */
 process makeCoreBestRepresentativesFasta {
   container = 'veupathdb/orthofinder'
-
-  publishDir "$params.outputDir", mode: "copy"
 
   input:
     path bestRepresentatives

@@ -76,6 +76,8 @@ process reformatResidualGroupsFile {
 process findResidualBestRepresentatives {
   container = 'veupathdb/orthofinder'
 
+  publishDir "$params.outputDir/", mode: "copy", saveAs: { filename -> "residualBestReps.txt" }
+
   input:
     path groupData
     path groupMapping
