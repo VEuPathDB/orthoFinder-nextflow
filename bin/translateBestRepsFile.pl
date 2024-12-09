@@ -33,7 +33,7 @@ my %bestRepsMap;
 while (my $line = <MAP>) {
     chomp $line;
     my ($group, $repseq) = split(/\t/, $line);
-    if ($repseq !~ /\d+\_\d+/) {
+    if ($repseq !~ /^\d+\_\d+/) {
         print OUT "$group\t$repseq\n";
     }
     else {
