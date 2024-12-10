@@ -4,7 +4,8 @@ nextflow.enable.dsl=2
 
 include { calculateGroupResults; calculateGroupResults as calculateCoreGroupResults;
           uncompressFastas; uncompressFastas as uncompressPeripheralFastas;
-	  collectDiamondSimilaritesPerGroup; createGeneTrees
+	  collectDiamondSimilaritesPerGroup; splitBySize;
+	  createGeneTrees; createGeneTrees as createLargeGeneTrees;
           runMash; runMash as runCoreMash;
 	  splitProteomeByGroup; combineProteomes;
         } from './shared.nf'
@@ -425,8 +426,12 @@ workflow peripheralWorkflow {
     calculateGroupResults(mashResults.collect().flatten().collate(2000)).collectFile(name: "peripheral_stats.txt",
                                                                                      storeDir: params.outputDir + "/groupStats")
 
+    // Creating Core + Peripheral Group Fasta Channels By Size
+    splitBySizeResults = splitBySize(splitCombinedProteomesByGroupResults.collect().flatten().collate(50))
+
     // Creating Core + Peripheral Gene Trees
-    createGeneTrees(splitCombinedProteomesByGroupResults.collect().flatten().collate(50))
+    createGeneTrees(splitBySizeResults.small)
+    createLargeGeneTrees(splitBySizeResults.large.collect().flatten())
 
     // Residual Processing
 

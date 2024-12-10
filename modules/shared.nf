@@ -339,3 +339,30 @@ process combineProteomes {
   script:
     template 'combineProteomes.bash'
 }
+
+
+process splitBySize {
+  container = 'veupathdb/orthofinder'
+
+  input:
+    path fasta
+
+  output:
+    path 'large/*', optional: true, emit: large
+    path 'small/*', optional: true, emit: small    
+
+  script:
+    """
+    mkdir small
+    mkdir large
+    for f in *.fasta;
+    do
+      SEQ_COUNT=\$(grep ">" \$f | wc -l) 
+      if [ "\$SEQ_COUNT" -le 10000 ]; then
+	mv \$f small
+      else
+        mv \$f large
+      fi	
+    done
+    """
+}
