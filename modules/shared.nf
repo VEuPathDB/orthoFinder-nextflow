@@ -145,7 +145,7 @@ process uncompressFastas {
     path inputDir
 
   output:
-    path 'fastas/*.fasta', emit: proteomes
+    path 'hold/*.fasta', emit: proteomes
     path 'output.fasta', emit: combinedProteomesFasta
 
   script:
