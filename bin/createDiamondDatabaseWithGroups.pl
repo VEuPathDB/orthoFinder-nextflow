@@ -47,6 +47,7 @@ while (my $line = <$pro>) {
             my $fixedId = $seqId;
             $fixedId =~ s/:RNA/_RNA/g;
             $fixedId =~ s/:mRNA/_mRNA/g;
+            $fixedId =~ s/:pseudo/_pseudo/g;	    
             if ($seqToGroup{$fixedId}) {
                 print OUT ">$seqId\t$seqToGroup{$fixedId}\t$header\n";
             }
