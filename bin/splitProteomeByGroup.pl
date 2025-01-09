@@ -56,6 +56,9 @@ while (my $line = <$data>) {
             if ($seq =~ /_mRNA/) {
                 $seq =~ s/_mRNA/:mRNA/g;
             }
+            if ($seq =~ /_pseudo/) {
+                $seq =~ s/_pseudo/:pseudo/g;
+            }	    
             $seqToGroup{$seq} = $groupId;
             $groupSizeHash{$groupId} += 1;
          }
