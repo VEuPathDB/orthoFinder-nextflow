@@ -37,12 +37,13 @@ my $currentGroupFile = &reformatGroup($currentGroupInt, $groupPrefix, $inputDir)
 # Creating array of group similarity files.
 my @files = <$inputDir/*.sim>;
 
+my $fileCounter = 0;
 # For every group similarity file.
 foreach my $file (@files) {
 
     # Until we have made it to the next group.
     until ($currentGroupFile eq $file) {
-
+        
         # Convert current group file into group formatting. Ex: ./OG7_0000000.sim to OG7_0000000.
 	$currentGroupFile =~ s/${inputDir}\///g;
         $currentGroupFile =~ s/\.sim//g;
@@ -56,14 +57,16 @@ foreach my $file (@files) {
         # Convert int to file format.
         $currentGroupFile = &reformatGroup($currentGroupInt,$groupPrefix, $inputDir);
     }
+    if ($currentGroupFile ne $lastGroupFile) {
+ 
+        # We have the file. Move to checking for next.
 
-    # We have the file. Move to checking for next.
+        # Increase currentGroupInt by one to look for the next group.
+        $currentGroupInt += 1;
 
-    # Increase currentGroupInt by one to look for the next group.
-    $currentGroupInt += 1;
-
-    # Convert int to file format.
-    $currentGroupFile = &reformatGroup($currentGroupInt,$groupPrefix, $inputDir);
+        # Convert int to file format.
+        $currentGroupFile = &reformatGroup($currentGroupInt,$groupPrefix, $inputDir);
+    }
 }
 
 until ($currentGroupFile eq $lastGroupFile) {
@@ -80,9 +83,6 @@ until ($currentGroupFile eq $lastGroupFile) {
     $currentGroupFile = &reformatGroup($currentGroupInt,$groupPrefix, $inputDir);
 }
 
-$currentGroupFile =~ s/${inputDir}\///g;
-$currentGroupFile =~ s/\.sim//g;
-print OUT "$currentGroupFile\n";
 close OUT;
 
 sub reformatGroup {
