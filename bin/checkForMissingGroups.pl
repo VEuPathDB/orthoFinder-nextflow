@@ -83,6 +83,10 @@ until ($currentGroupFile eq $lastGroupFile) {
     $currentGroupFile = &reformatGroup($currentGroupInt,$groupPrefix, $inputDir);
 }
 
+if( !-e $lastGroupFile ) {
+    print OUT "$lastGroupFile\n";
+}
+
 close OUT;
 
 sub reformatGroup {
