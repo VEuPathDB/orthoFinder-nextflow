@@ -14,7 +14,7 @@ open(SEQ, '<', $sequenceIds) || die "Could not open file $sequenceIds: $!";
 my %sequenceIdsMap;
 while (my $line = <SEQ>) {
     chomp $line;
-    if ($line =~ /^(\d+_\d+):\s(\S+).+/) {
+    if ($line =~ /^(\d+_\d+):\s(\S+)/) {
 	my $internal = $1;
 	my $actual = $2;
         $sequenceIdsMap{$internal} = $actual;

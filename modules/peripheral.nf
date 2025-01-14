@@ -24,6 +24,7 @@ process createCompressedFastaDir {
 
   input:
     path inputFasta
+    path 'proteomes'
 
   output:
     path 'fastas.tar.gz', emit: fastaDir
@@ -340,6 +341,8 @@ workflow peripheralWorkflow {
     uncompressAndMakePeripheralFastaResults = uncompressPeripheralFastas(peripheralDir)
     uncompressAndMakeCoreFastaResults = uncompressFastas(params.coreProteomes)
 
+    peripheralProteomeDir = uncompressAndMakePeripheralFastaResults.proteomeDir.collect()
+
     // Create a diamond database from a fasta file of the core sequences
     database = createDatabase(uncompressAndMakeCoreFastaResults.combinedProteomesFasta)
 
@@ -435,8 +438,8 @@ workflow peripheralWorkflow {
 
     // Residual Processing
 
-    // // Split residual proteome into one fasta per organism and compress. Needed input for orthofinder.
-    compressedFastaDir = createCompressedFastaDir(residualFasta)
+    // // Split residual proteome into one fasta per organism and compress. Needed input for orthofinder. Needs peripheralProteomes to be able to split sequences up by organism as deflines are inconsistent
+    compressedFastaDir = createCompressedFastaDir(residualFasta, peripheralProteomeDir)
 
     residualWorkflow(compressedFastaDir.fastaDir, bestRepresentativeFasta, combinedProteome, makeGroupsFileResults.collect(), "residual")
 }

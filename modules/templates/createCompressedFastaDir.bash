@@ -2,5 +2,5 @@
 
 set -euo pipefail
 mkdir fastas
-separateFastaByOrganism.pl --input $inputFasta --outputDir fastas
+separateFastaByOrganism.pl --inputFasta $inputFasta --proteomeDir ./proteomes --outputDir fastas
 tar -zcvf fastas.tar.gz fastas

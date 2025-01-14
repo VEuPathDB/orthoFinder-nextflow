@@ -30,51 +30,60 @@ The directory to write the output files
 
 =cut
 
-my ($input,$outputDir);
+my ($inputFasta,$proteomeDir,$outputDir);
 
-&GetOptions("input=s"=> \$input,
+&GetOptions("inputFasta=s"=> \$inputFasta,
+	    "proteomeDir=s"=> \$proteomeDir,
             "outputDir=s"=> \$outputDir);
 
-open(my $data, '<', $input) || die "Could not open file $input: $!";
+open(my $residual, '<', $inputFasta) || die "Could not open file $inputFasta: $!";
 
-my $counter = 0;
 my $organism;
+my %residualSequenceHash;
 
-# Foreach line in peripheral fasta
-while (my $line = <$data>) {
-
+# Foreach line in residual fasta
+while (my $line = <$residual>) {
     # If it is a def line
-    if ($line =~ /^>(\w{4})\|/ || $line =~ /^>(\w{4}-old)\|/) {
-
-	# Retrieve current organism
-	my $currentOrganism = $1;
-
-	# If first organism in file
-	if ($counter == 0) {
-	    $counter +=1;
-	    $organism = $currentOrganism;
-
-	    # Open the organism output file
-            open(OUT,">$outputDir/${organism}.fasta");
-	    print OUT $line;
-        }
-
-	# While the same organism, print out to same file
-        elsif ($organism eq $currentOrganism) {
-	    print OUT $line;
-	}
-
-	# Different organism, reset the organism and print out to new organism file
-	else {
-	    $organism = $currentOrganism;
-            close OUT;
-	    open(OUT,">$outputDir/${organism}.fasta");
-	    print OUT $line;
-	}
+    if ($line =~ /^>(\S+)/) {
+	# Store the sequence id as a residual
+	$residualSequenceHash{$1} = 1;
     }
+}
 
-    # Is a sequence, always follows defline so just print to current output
-    else {
- 	print OUT $line;
-    }   
+# Creating array of fasta files.
+my @files = <$proteomeDir/*.fasta>;
+
+my $isResidual = 0;
+
+# For every fasta file.
+foreach my $file (@files) {
+
+    # Retrieving current organism abbrev
+    my $organismAbbrev = $file;
+    $organismAbbrev =~ s/${proteomeDir}\///g;
+    $organismAbbrev =~ s/\.fasta//g;
+
+    open(my $sequences, '<', $file) || die "Could not open file $file: $!";
+    open(my $organismFasta, '>', "$outputDir/$organismAbbrev.fasta") || die "Could not open file $outputDir/$organismAbbrev.fasta: $!";
+
+    while (my $line = <$sequences>) {
+    # If it is a def line
+	if ($line =~ /^>(\S+)/) {
+	    # If the sequence is residual
+            if($residualSequenceHash{$1} == 1) {
+	        print $organismFasta "$line";
+                $isResidual = 1;
+	    }
+	    else {
+                $isResidual = 0;
+	    }
+        }
+	# Is a sequence line
+        else {
+	    # print sequence if it is a residual sequence
+	    if($isResidual == 1) {
+	        print $organismFasta "$line";
+	    }
+        }
+    }
 }
