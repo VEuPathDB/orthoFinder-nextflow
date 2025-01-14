@@ -84,7 +84,7 @@ until ($currentGroupFile eq $lastGroupFile) {
 }
 
 if( !-e $lastGroupFile ) {
-    print OUT "$lastGroupFile\n";
+    print OUT "$lastGroup\n";
 }
 
 close OUT;
