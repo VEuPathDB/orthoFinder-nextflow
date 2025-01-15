@@ -256,7 +256,9 @@ sub makeSequenceMapping {
         next unless(/^${internalSpecies}_/);
         my ($internal, $name) = split(/: /, $_);
         my @n = split(/ /, $name);
-        $sequenceMapping{$n[0]} = $internal;
+	my $seqId = $n[0];
+	$seqId ~= s/:/_/g;
+        $sequenceMapping{$seqId} = $internal;
     }
     close SEQ;
     return %sequenceMapping;
