@@ -257,7 +257,7 @@ sub makeSequenceMapping {
         my ($internal, $name) = split(/: /, $_);
         my @n = split(/ /, $name);
 	my $seqId = $n[0];
-	$seqId ~= s/:/_/g;
+	$seqId =~ s/:/_/g;
         $sequenceMapping{$seqId} = $internal;
     }
     close SEQ;
