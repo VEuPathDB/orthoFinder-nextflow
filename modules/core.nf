@@ -121,6 +121,7 @@ process reformatGroupsFile {
 
   output:
     path 'reformattedGroups.txt'
+    path 'buildVersion.txt'
 
   script:
     template 'reformatGroupsFile.bash'
