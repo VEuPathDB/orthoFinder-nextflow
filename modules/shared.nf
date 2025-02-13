@@ -260,13 +260,15 @@ process bestRepsSelfDiamond {
 process createGeneTrees {
   container = 'veupathdb/orthofinder'
 
-  publishDir "$params.outputDir/geneTrees", mode: "copy"
+  publishDir "$params.outputDir/geneTrees", mode: "copy", pattern: "*.tree"
+  publishDir "$params.outputDir/groupAlignments", mode: "copy", pattern: "*.alignment"
 
   input:
     path fasta
 
   output:
     path '*.tree', optional: true
+    path '*.alignment', optional: true
 
   script:
     template 'createGeneTrees.bash'
