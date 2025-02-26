@@ -330,7 +330,6 @@ process makeCoreBestRepresentativesFasta {
     template 'makeCoreBestRepresentativesFasta.bash'
 }
 
-
 workflow peripheralWorkflow { 
   take:
     peripheralDir

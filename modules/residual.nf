@@ -288,6 +288,8 @@ process calculateResidualGroupResults {
 process combineGroupFiles {
   container = 'veupathdb/orthofinder'
 
+  publishDir "$params.outputDir", mode: "copy"
+
   input:
     path coreAndPeripheralGroupFile
     path residualGroupFile
@@ -323,6 +325,21 @@ process makeFullDiamondDatabaseWithGroups {
     """
 }
 
+process previousGroups {
+  container = 'veupathdb/orthofinder'
+
+  publishDir "$params.outputDir", mode: "copy"
+
+  input:
+    path newGroupsFile
+    path oldGroupsFile
+
+  output:
+    path 'previousGroups.txt'
+
+  script:
+    template 'previousGroups.bash'
+}
 
 workflow residualWorkflow {
   take:
@@ -441,6 +458,8 @@ workflow residualWorkflow {
     fullOrthoProteome = combineProteomes(coreAndPeripheralProteome,residualFasta)
 
     combinedGroupFile = combineGroupFiles(coreAndPeripheralGroups,residualGroupsFile)
+
+    previousGroups(combinedGroupFile,params.oldGroupsFile)
 
     makeFullDiamondDatabaseWithGroups(fullOrthoProteome,combinedGroupFile,params.buildVersion)
 }

@@ -22,7 +22,6 @@ while (my $line = <$old>) {
         my $seqLine = $2;
         my @seqArray = split(/\s/, $seqLine);
 	my @fixedSeqArray;
-	print "$groupId\n";
         foreach my $seq (@seqArray) {
             # Record the group assignment for each sequence
             $seq =~ s/.RNA//g;
@@ -43,6 +42,8 @@ close $oldGroupsFile;
 
 print "Processing New\n";
 
+my @newGroups;
+
 open(my $new, '<', $newGroupsFile) || die "Could not open file $newGroupsFile: $!";
 my %newSeqToGroup;
 while (my $line = <$new>) {
@@ -51,7 +52,7 @@ while (my $line = <$new>) {
          my $groupId = $1;
          my $seqLine = $2;
          my @seqArray = split(/\s/, $seqLine);
-	 print "$groupId\n";
+	 push(@newGroups,$groupId);
          foreach my $seq (@seqArray) {
             # Record the group assignment for each sequence
 	     $seq =~ s/.RNA//g;
@@ -71,6 +72,8 @@ close $newGroupsFile;
 
 open(OUT, '>', $outputFile) || die "Could not open file $outputFile: $!";
 
+print "Printing old\n";
+
 foreach my $group (keys %oldGroupToSeqs) {
     my @newGroupsArray;
     my @seqArray = @{$oldGroupToSeqs{$group}};
@@ -86,3 +89,11 @@ foreach my $group (keys %oldGroupToSeqs) {
     # Print the distinct values
     print OUT "$group\t" . join(", ", @distinct) . "\n";
 }
+
+print "Printing new\n";
+
+foreach my $group (@newGroups) {
+    print OUT "$group\t$group\n";
+}
+
+close OUT;
