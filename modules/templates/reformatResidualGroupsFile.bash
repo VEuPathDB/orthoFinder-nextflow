@@ -3,6 +3,6 @@
 set -euo pipefail
 
 mv $groupsFile holdReformat.txt
-sed 's/^OG/OGR${buildVersion}_/g' holdReformat.txt > reformattedGroups.txt
+sed 's/^OG/OGR${buildVersion}r${residualBuildVersion}_/g' holdReformat.txt > reformattedGroups.txt
 
 

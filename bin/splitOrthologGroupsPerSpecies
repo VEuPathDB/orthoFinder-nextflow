@@ -77,7 +77,7 @@ String indicating if step is being run for core or residual
 
 =cut
 
-my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $species, $singletonsFileSuffix, $orthologGroupsFileWithSingletons, $buildVersion, $coreOrResidual);
+my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $species, $singletonsFileSuffix, $orthologGroupsFileWithSingletons, $buildVersion, $coreOrResidual, $residualBuildVersion);
 
 &GetOptions("species_mapping=s" => \$speciesMapping, # Species Mapping file Ex: 0: ahos.fasta
             "sequence_mapping=s" => \$sequenceMapping, # Sequence mapping file Ex: 0_0: ahos|F4B612 gene=F4B612 product=Uncharacterized protein
@@ -86,7 +86,8 @@ my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $spec
             "output_file_suffix=s" => \$outputFileSuffix, # orthologs
             "singletons_file_suffix=s" => \$singletonsFileSuffix, # singletons 
             "build_version=s" => \$buildVersion, # Integer indicating build. Is appended to group ids that are output
-            "coreOrResidual=s" => \$coreOrResidual 
+            "coreOrResidual=s" => \$coreOrResidual,
+    	    "residualBuildVersion=i" => \$residualBuildVersion 
            );
 
 my %speciesMap = &makeSpeciesMap($speciesMapping);
@@ -139,10 +140,18 @@ if ($coreOrResidual eq "core") {
 
     my $orthologGroup = $line[$ogIndex];
 
-    # change the orthologGroup id to add some version
-    # replace "OG" with "OG${version}_"
-    $orthologGroup =~ s/^N0\.HOG(\d+)/OG${buildVersion}_$1/;
 
+    if ($coreOrResidual eq "residual") {
+      print "residual1\n";
+      $orthologGroup =~ s/^N0\.HOG(\d+)/OG${buildVersion}r${residualBuildVersion}_$1/;
+    }
+    else {
+      print "core1\n";
+      # change the orthologGroup id to add some version
+      # replace "OG" with "OG${version}_"
+      $orthologGroup =~ s/^N0\.HOG(\d+)/OG${buildVersion}_$1/;
+    }
+      
     # Retrieve string of all sequences in orthogroup for this species
     my $speciesField =  $line[$speciesIndex];
 
@@ -181,7 +190,8 @@ elsif ($coreOrResidual eq "residual") {
       my $groupNumber = $1;
       my @seqArray = split(/\s/, $2);
       my $groupSize = scalar @seqArray;
-      my $orthologGroup = "OGR${buildVersion}_${groupNumber}";
+      my $orthologGroup = "OGR${buildVersion}r${residualBuildVersion}_${groupNumber}";
+
       foreach my $ogSequence (@seqArray) {
         my $internalSequence = $sequenceMapping{$ogSequence};
         if ($internalSequence) {

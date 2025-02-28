@@ -173,6 +173,7 @@ process splitOrthologGroupsPerSpecies {
     path sequenceMapping
     path orthologgroups
     val buildVersion
+    val residualBuildVersion
     val coreOrResidual
 
     output:

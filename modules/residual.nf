@@ -61,6 +61,7 @@ process reformatResidualGroupsFile {
   input:
     path groupsFile
     val buildVersion
+    val residualBuildVersion
 
   output:
     path 'reformattedGroups.txt'
@@ -325,6 +326,7 @@ process makeFullDiamondDatabaseWithGroups {
     """
 }
 
+
 process previousGroups {
   container = 'veupathdb/orthofinder'
 
@@ -381,7 +383,7 @@ workflow residualWorkflow {
     orthofinderGroupResults = computeResidualGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
 
     // Final output format of residual groups. Adding R for residual, and build version.
-    residualGroupsFile = reformatResidualGroupsFile(orthofinderGroupResults.orthologgroups, params.buildVersion)
+    residualGroupsFile = reformatResidualGroupsFile(orthofinderGroupResults.orthologgroups, params.buildVersion, params.residualBuildVersion)
 
     residualFasta = createResidualFasta(proteomesForOrthofinder)
 
@@ -398,6 +400,7 @@ workflow residualWorkflow {
                                                       setup.sequenceMapping.collect(),
                                                       orthofinderGroupResults.orthologgroups.collect(),
                                                       params.buildVersion,
+                                                      params.residualBuildVersion,
                                                       coreOrResidual);
 
     // per species, make One file all diamond similarities for that group

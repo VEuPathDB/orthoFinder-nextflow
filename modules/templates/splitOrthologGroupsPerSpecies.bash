@@ -9,4 +9,6 @@ splitOrthologGroupsPerSpecies --species_mapping $speciesMapping \
     --output_file_suffix orthologs \
     --singletons_file_suffix "singletons" \
     --build_version $buildVersion \
-    --coreOrResidual $coreOrResidual
+    --coreOrResidual $coreOrResidual \
+    --residualBuildVersion $residualBuildVersion
+

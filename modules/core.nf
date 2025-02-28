@@ -178,6 +178,7 @@ workflow coreWorkflow {
                                                      setup.sequenceMapping.collect(),
                                                      orthofinderGroupResults.orthologgroups.collect(),
                                                      params.buildVersion,
+						     "na",
 						     coreOrResidual);
 
     // per species, make One file all diamond similarities for that group
