@@ -65,7 +65,8 @@ process reformatResidualGroupsFile {
     val residualBuildVersion
 
   output:
-    path 'reformattedGroups.txt'
+    path 'reformattedGroups.txt', emit: groups
+    path 'buildVersion.txt'
 
   script:
     template 'reformatResidualGroupsFile.bash'
@@ -388,7 +389,7 @@ workflow residualWorkflow {
 
     residualFasta = createResidualFasta(proteomesForOrthofinder)
 
-    residualProteomesByGroup = splitProteomeByGroup(residualFasta.collect(), residualGroupsFile.splitText( by: 10000, file: true ))
+    residualProteomesByGroup = splitProteomeByGroup(residualFasta.collect(), residualGroupsFile.groups.splitText( by: 10000, file: true ))
 
     // Creating Residual Group Fasta Channels By Size
     splitBySizeResults = splitBySize(residualProteomesByGroup.collect().flatten().collate(50))
@@ -422,7 +423,7 @@ workflow residualWorkflow {
 
     // in batches, process group similarity files and determine best representative for each group
     bestRepresentatives = findResidualBestRepresentatives(allDiamondSimilaritiesPerGroup.collate(250),
-     	                                                  residualGroupsFile.collect(),
+     	                                                  residualGroupsFile.groups.collect(),
      							  setup.sequenceMapping.collect())
 
     allBestRepresentatives = bestRepresentatives.flatten().collectFile()
@@ -465,7 +466,7 @@ workflow residualWorkflow {
 
     fullOrthoProteome = combineProteomes(coreAndPeripheralProteome,residualFasta)
 
-    combinedGroupFile = combineGroupFiles(coreAndPeripheralGroups,residualGroupsFile)
+    combinedGroupFile = combineGroupFiles(coreAndPeripheralGroups,residualGroupsFile.groups)
 
     previousGroups(combinedGroupFile,params.oldGroupsFile)
 

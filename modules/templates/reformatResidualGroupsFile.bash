@@ -5,4 +5,4 @@ set -euo pipefail
 mv $groupsFile holdReformat.txt
 sed 's/^OG/OGR${buildVersion}r${residualBuildVersion}_/g' holdReformat.txt > reformattedGroups.txt
 
-
+echo "$residualBuildVersion" > buildVersion.txt
