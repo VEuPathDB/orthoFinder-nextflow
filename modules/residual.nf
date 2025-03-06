@@ -6,6 +6,7 @@ include {bestRepsSelfDiamond; combineProteomes;
 	 makeDiamondResultsFile; publishOFResults;
 	 splitOrthologGroupsPerSpecies; makeOrthogroupDiamondFile;
 	 runMash; splitProteomeByGroup;
+	 splitBySize;
 } from './shared.nf'
 
 
@@ -389,7 +390,11 @@ workflow residualWorkflow {
 
     residualProteomesByGroup = splitProteomeByGroup(residualFasta.collect(), residualGroupsFile.splitText( by: 10000, file: true ))
 
-    createGeneTrees(residualProteomesByGroup.collect().flatten().collate(50))
+    // Creating Residual Group Fasta Channels By Size
+    splitBySizeResults = splitBySize(residualProteomesByGroup.collect().flatten().collate(50))
+
+    // Create only large gene trees
+    createGeneTrees(splitBySizeResults.large.collect().flatten())
     
     // publish results
     publishOFResults(orthofinderGroupResults.results)    
