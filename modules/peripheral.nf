@@ -437,7 +437,7 @@ workflow peripheralWorkflow {
 
     // Residual Processing
 
-    // // Split residual proteome into one fasta per organism and compress. Needed input for orthofinder. Needs peripheralProteomes to be able to split sequences up by organism as deflines are inconsistent
+    // Split residual proteome into one fasta per organism and compress. Needed input for orthofinder. Needs peripheralProteomes to be able to split sequences up by organism as deflines are inconsistent
     compressedFastaDir = createCompressedFastaDir(residualFasta, peripheralProteomeDir)
 
     residualWorkflow(compressedFastaDir.fastaDir, bestRepresentativeFasta, combinedProteome, makeGroupsFileResults.collect(), "residual")
