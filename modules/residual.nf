@@ -1,6 +1,7 @@
 include {bestRepsSelfDiamond; combineProteomes;
          calculateGroupResults; collectDiamondSimilaritesPerGroup;
-	 createGeneTrees; listToPairwiseComparisons;
+	 createGeneTrees; createGeneTrees as createLargeGeneTrees;
+	 listToPairwiseComparisons;
 	 moveUnambiguousAminoAcidSequencesFirst; orthoFinderSetup;
 	 speciesFileToList; diamond;
 	 makeDiamondResultsFile; publishOFResults;
@@ -395,7 +396,8 @@ workflow residualWorkflow {
     splitBySizeResults = splitBySize(residualProteomesByGroup.collect().flatten().collate(50))
 
     // Create only large gene trees
-    createGeneTrees(splitBySizeResults.large.collect().flatten())
+    createGeneTrees(splitBySizeResults.small)    
+    createLargeGeneTrees(splitBySizeResults.large.collect().flatten())
     
     // publish results
     publishOFResults(orthofinderGroupResults.results)    
