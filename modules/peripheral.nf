@@ -20,7 +20,7 @@ include { residualWorkflow } from './residual.nf'
  * @return fastaDir A compressed directory of proteomes fastas
 */
 process createCompressedFastaDir {
-  container = 'veupathdb/orthofinder:v1.0.0'
+  container = 'veupathdb/orthofinder:1.0.0'
 
   input:
     path inputFasta
@@ -42,7 +42,7 @@ process createCompressedFastaDir {
  * @return newdb.dmnd A diamond database to be used in diamond jobs
 */
 process createDatabase {
-  container = 'veupathdb/orthofinder:v1.0.0'
+  container = 'veupathdb/orthofinder:1.0.0'
 
   input:
     path newdbfasta
@@ -66,7 +66,7 @@ process createDatabase {
  * @return fasta The peripheral organism proteome
 */
 process peripheralDiamond {
-  container = 'veupathdb/diamondsimilarity:v1.0.0'
+  container = 'veupathdb/diamondsimilarity:1.0.0'
 
   publishDir "$params.outputDir/newPeripheralDiamondCache", mode: "copy", pattern: "*.out"
 
@@ -96,7 +96,7 @@ process peripheralDiamond {
  * @return fasta The peripheral organism proteome
 */
 process assignGroups {
-  container = 'veupathdb/orthofinder:v1.0.0'
+  container = 'veupathdb/orthofinder:1.0.0'
 
   input:
     path diamondInput
@@ -122,7 +122,7 @@ process assignGroups {
  * @return peripheralFasta A fasta file containing the peripheral (non-residual) sequences
 */
 process makeResidualAndPeripheralFastas {
-  container = 'veupathdb/orthofinder:v1.0.0'
+  container = 'veupathdb/orthofinder:1.0.0'
 
   publishDir params.outputDir, mode: "copy"
   
@@ -147,7 +147,7 @@ process makeResidualAndPeripheralFastas {
  * @return cleanedCache A new directory that contains diamond results for peripheral organism that have not changed. We can retrieve their results from the cache as they have not changed
 */
 process cleanPeripheralDiamondCache {
-  container = 'veupathdb/orthofinder:v1.0.0'
+  container = 'veupathdb/orthofinder:1.0.0'
 
   input:
     path outdatedOrganisms
@@ -169,7 +169,7 @@ process cleanPeripheralDiamondCache {
  * @return GroupsFile The full groups file containing core and peripheral sequences
 */
 process makeGroupsFile {
-  container = 'veupathdb/orthofinder:v1.0.0'
+  container = 'veupathdb/orthofinder:1.0.0'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -194,7 +194,7 @@ process makeGroupsFile {
  * @return fasta A fasta file per group
 */
 process splitCoreProteomeByGroup {
-  container = 'veupathdb/orthofinder:v1.0.0'
+  container = 'veupathdb/orthofinder:1.0.0'
 
   input:
     path proteome
@@ -219,7 +219,7 @@ process splitCoreProteomeByGroup {
  * @return final Pairwise blast result files per group containing all results involving core and peripheral sequences to sequences in the group which they were assigned
 */
 process combinePeripheralAndCoreSimilarities {
-  container = 'veupathdb/orthofinder:v1.0.0'
+  container = 'veupathdb/orthofinder:1.0.0'
 
   input:
     path peripheralGroupSimilarities
@@ -241,7 +241,7 @@ process combinePeripheralAndCoreSimilarities {
  * @return final Pairwise blast result files per group containing all results involving core and peripheral sequences to sequences in the group which they were assigned
 */
 process makePeripheralOrthogroupDiamondFiles {
-  container = 'veupathdb/orthofinder:v1.0.0'
+  container = 'veupathdb/orthofinder:1.0.0'
 
   input:
     path blastFile
@@ -264,7 +264,7 @@ process makePeripheralOrthogroupDiamondFiles {
  * @return A file that lists all of the groups that do not have a file present due to the group only consisting of a core singleton
 */
 process checkForMissingGroups {
-  container = 'veupathdb/orthofinder:v1.0.0'
+  container = 'veupathdb/orthofinder:1.0.0'
 
   input:
     path allDiamondSimilarities
@@ -291,7 +291,7 @@ process checkForMissingGroups {
  * @return A file that lists all of the groups best representatives
 */
 process findBestRepresentatives {
-  container = 'veupathdb/orthofinder:v1.0.0'
+  container = 'veupathdb/orthofinder:1.0.0'
 
   publishDir "$params.outputDir/", mode: "copy", saveAs: { filename -> "coreBestReps.txt" }
 
@@ -317,7 +317,7 @@ process findBestRepresentatives {
  * @return A fasta file of all the group best reps, with the groupID as the defline
 */
 process makeCoreBestRepresentativesFasta {
-  container = 'veupathdb/orthofinder:v1.0.0'
+  container = 'veupathdb/orthofinder:1.0.0'
 
   input:
     path bestRepresentatives
