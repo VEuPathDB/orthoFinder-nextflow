@@ -4,7 +4,7 @@ nextflow.enable.dsl=2
 include {bestRepsSelfDiamond as coreBestRepsToCoreDiamond;
          bestRepsSelfDiamond as residualBestRepsToCoreAndResidualDiamond;
          bestRepsSelfDiamond as coreBestRepsToResidualDiamond;
-         calculateGroupResults; collectDiamondSimilaritesPerGroup;
+         collectDiamondSimilaritesPerGroup;
 	 createGeneTrees; listToPairwiseComparisons;
 	 moveUnambiguousAminoAcidSequencesFirst; orthoFinderSetup;
 	 speciesFileToList; diamond;

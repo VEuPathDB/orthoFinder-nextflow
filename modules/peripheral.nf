@@ -2,7 +2,8 @@
 nextflow.enable.dsl=2
 
 
-include { calculateGroupResults; calculateGroupResults as calculateCoreGroupResults;
+include { checkForMissingGroups;
+          calculateGroupStats; calculateGroupStats as calculateCoreGroupStats;
           uncompressFastas; uncompressFastas as uncompressPeripheralFastas;
 	  collectDiamondSimilaritesPerGroup; splitBySize;
 	  createGeneTrees; createGeneTrees as createLargeGeneTrees;
@@ -255,31 +256,6 @@ process makePeripheralOrthogroupDiamondFiles {
 }
 
 
-/**
- * checkForMissingGroups
- *
- * @param allDiamondSimilarities: All group specific pairwise blast results between peripheral and core sequences
- * @param buildVersion: Current build version
- * @param groupsFile: Core and periphearl groups file
- * @return A file that lists all of the groups that do not have a file present due to the group only consisting of a core singleton
-*/
-process checkForMissingGroups {
-  container = 'veupathdb/orthofinder:1.0.0'
-
-  input:
-    path allDiamondSimilarities
-    val buildVersion
-    path groupsFile
-
-  output:
-    path 'missingGroups.txt'
-
-  script:
-    """
-    checkForMissingGroups.pl . $buildVersion $groupsFile
-    """
-}
-
 
 /**
  *  for each group, determine which sequence has the lowest average evalue
@@ -328,6 +304,32 @@ process makeCoreBestRepresentativesFasta {
 
   script:
     template 'makeCoreBestRepresentativesFasta.bash'
+}
+
+
+/**
+ * checkForMissingGroups
+ *
+ * @param allDiamondSimilarities: All group specific pairwise blast results between peripheral and core sequences
+ * @param buildVersion: Current build version
+ * @param groupsFile: Core and periphearl groups file
+ * @return A file that lists all of the groups that do not have a file present due to the group only consisting of a core singleton
+*/
+process checkForMissingCoreGroups {
+  container = 'veupathdb/orthofinder:1.0.0'
+
+  input:
+    path allDiamondSimilarities
+    val buildVersion
+    path groupsFile
+
+  output:
+    path 'missingGroups.txt'
+
+  script:
+    """
+    checkForMissingGroups.pl $allDiamondSimilarities $buildVersion $groupsFile
+    """
 }
 
 workflow peripheralWorkflow { 
@@ -396,10 +398,15 @@ workflow peripheralWorkflow {
     allSimilarities = combinePeripheralAndCoreSimilarities(peripheralBlastsByGroup.collect(),
                                                            params.coreGroupSimilarities).collect();
 
-    // Create a file to identify all groups with out similarity file due to group being core singleton
+    // Create a file to identify all groups without similarity file
     missingGroups = checkForMissingGroups(allSimilarities,
                                           params.buildVersion,
 					  makeGroupsFileResults.collect()).collect()
+
+    // Create a file to identify all core groups without similarity file
+    missingCoreGroups = checkForMissingCoreGroups(params.coreGroupSimilarities,
+                                                  params.buildVersion,
+					          params.coreGroupsFile).collect()
 
     // Identify group best representatives
     bestRepresentatives = findBestRepresentatives(allSimilarities,
@@ -407,33 +414,24 @@ workflow peripheralWorkflow {
 						  makeGroupsFileResults.collect(),
 						  params.coreTranslateSequenceFile);
 
-    // Make core best representative fasta tile with group number as defline
-    bestRepresentativeFasta = makeCoreBestRepresentativesFasta(bestRepresentatives,uncompressAndMakeCoreFastaResults.combinedProteomesFasta)
-
-    // make runMash a shared process as well
-
-    // Create a mash result file for every group
-    mashResults = runMash(splitCombinedProteomesByGroupResults.collect().flatten().collate(2000),
-                          bestRepresentativeFasta)
-
-    // Create a core specific mash result file for every core group fasta
-    coreMashResults = runCoreMash(splitCoreProteomesByGroupResults.collect().flatten().collate(2000),
-                                  bestRepresentativeFasta)
+    // At this point, we have best reps, core group similarites, and core and peripheral similarities. Let's use these to calculate stats. What about missing rows? Use group file.
+    // Take group file, add a row for every missing sequence pair
 
     // Calculate core group stats
-    calculateCoreGroupResults(coreMashResults.collect().flatten().collate(2000)).collectFile(name: "core_stats.txt",
-                                                                                 storeDir: params.outputDir + "/groupStats")
+    calculateCoreGroupStats(bestRepresentatives, params.coreGroupSimilarities, makeGroupsFileResults, params.coreTranslateSequenceFile, missingCoreGroups, false).collectFile(name: "core_stats.txt", storeDir: params.outputDir + "/groupStats")
 
     // Calculate core and peripheral group stats
-    calculateGroupResults(mashResults.collect().flatten().collate(2000)).collectFile(name: "peripheral_stats.txt",
-                                                                                     storeDir: params.outputDir + "/groupStats")
+    calculateGroupStats(bestRepresentatives, allSimilarities, makeGroupsFileResults, params.coreTranslateSequenceFile, missingGroups, true).collectFile(name: "peripheral_stats.txt", storeDir: params.outputDir + "/groupStats")
 
     // Creating Core + Peripheral Group Fasta Channels By Size
     splitBySizeResults = splitBySize(splitCombinedProteomesByGroupResults.collect().flatten().collate(50))
 
     // Creating Core + Peripheral Gene Trees
-    createGeneTrees(splitBySizeResults.small)
-    createLargeGeneTrees(splitBySizeResults.large.collect().flatten())
+    //createGeneTrees(splitBySizeResults.small)
+    //createLargeGeneTrees(splitBySizeResults.large.collect().flatten())
+
+    // Make core best representative fasta tile with group number as defline
+    bestRepresentativeFasta = makeCoreBestRepresentativesFasta(bestRepresentatives,uncompressAndMakeCoreFastaResults.combinedProteomesFasta)
 
     // Residual Processing
 

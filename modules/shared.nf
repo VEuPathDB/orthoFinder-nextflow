@@ -222,21 +222,6 @@ process makeDiamondResultsFile {
     """
 }
 
-
-process calculateGroupResults {
-  container = 'veupathdb/orthofinder:1.0.0'
-
-  input:
-    path groupResultsToBestReps
-
-  output:
-    path 'groupStats.txt'
-
-  script:
-    template 'calculateGroupResults.bash'
-}
-
-
 process bestRepsSelfDiamond {
   container = 'veupathdb/diamondsimilarity:1.0.0'
 
@@ -369,4 +354,47 @@ process splitBySize {
       fi	
     done
     """
+}
+
+/**
+ * checkForMissingGroups
+ *
+ * @param allDiamondSimilarities: All group specific pairwise blast results between peripheral and core sequences
+ * @param buildVersion: Current build version
+ * @param groupsFile: Core and periphearl groups file
+ * @return A file that lists all of the groups that do not have a file present due to the group only consisting of a core singleton
+*/
+process checkForMissingGroups {
+  container = 'veupathdb/orthofinder:1.0.0'
+
+  input:
+    path allDiamondSimilarities
+    val buildVersion
+    path groupsFile
+
+  output:
+    path 'missingGroups.txt'
+
+  script:
+    """
+    checkForMissingGroups.pl . $buildVersion $groupsFile
+    """
+}
+
+process calculateGroupStats {
+  container = 'veupathdb/orthofinder:1.0.0'
+
+  input:
+    path bestRepresentatives
+    path similarities
+    path groupsFile
+    path translateFile
+    path missingGroups
+    val isPeripheral
+
+  output:
+    path 'groupStats.txt'
+
+  script:
+    template 'calculateGroupStats.bash'
 }
