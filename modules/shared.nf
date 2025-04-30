@@ -356,31 +356,6 @@ process splitBySize {
     """
 }
 
-/**
- * checkForMissingGroups
- *
- * @param allDiamondSimilarities: All group specific pairwise blast results between peripheral and core sequences
- * @param buildVersion: Current build version
- * @param groupsFile: Core and periphearl groups file
- * @return A file that lists all of the groups that do not have a file present due to the group only consisting of a core singleton
-*/
-process checkForMissingGroups {
-  container = 'veupathdb/orthofinder:1.0.0'
-
-  input:
-    path allDiamondSimilarities
-    val buildVersion
-    path groupsFile
-
-  output:
-    path 'missingGroups.txt'
-
-  script:
-    """
-    checkForMissingGroups.pl . $buildVersion $groupsFile
-    """
-}
-
 process calculateGroupStats {
   container = 'veupathdb/orthofinder:1.0.0'
 
@@ -390,7 +365,7 @@ process calculateGroupStats {
     path groupsFile
     path translateFile
     path missingGroups
-    val isPeripheral
+    val flatFiles
 
   output:
     path 'groupStats.txt'

@@ -2,8 +2,7 @@
 nextflow.enable.dsl=2
 
 
-include { checkForMissingGroups;
-          calculateGroupStats; calculateGroupStats as calculateCoreGroupStats;
+include { calculateGroupStats; calculateGroupStats as calculateCoreGroupStats;
           uncompressFastas; uncompressFastas as uncompressPeripheralFastas;
 	  collectDiamondSimilaritesPerGroup; splitBySize;
 	  createGeneTrees; createGeneTrees as createLargeGeneTrees;
@@ -306,9 +305,33 @@ process makeCoreBestRepresentativesFasta {
     template 'makeCoreBestRepresentativesFasta.bash'
 }
 
-
 /**
  * checkForMissingGroups
+ *
+ * @param allDiamondSimilarities: All group specific pairwise blast results
+ * @param buildVersion: Current build version
+ * @param groupsFile: Residual groups file
+ * @return A file that lists all of the groups that do not have a file present
+*/
+process checkForMissingGroups {
+  container = 'veupathdb/orthofinder:1.0.0'
+
+  input:
+    path allDiamondSimilarities
+    val buildVersion
+    path groupsFile
+
+  output:
+    path 'missingGroups.txt'
+
+  script:
+    """
+    checkForMissingGroups.pl . $buildVersion $groupsFile
+    """
+}
+
+/**
+ * checkForMissingCoreGroups
  *
  * @param allDiamondSimilarities: All group specific pairwise blast results between peripheral and core sequences
  * @param buildVersion: Current build version

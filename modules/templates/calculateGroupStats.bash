@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-if [ "$isPeripheral" = true ]; then
+if [ "$flatFiles" = true ]; then
     mkdir groupDiamondResults
     mv *.sim groupDiamondResults
     calculateGroupStatistics.pl --inputDir groupDiamondResults \
