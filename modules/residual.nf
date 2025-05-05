@@ -21,7 +21,7 @@ include {bestRepsSelfDiamond; combineProteomes;
 */
 
 process computeResidualGroups {
-  container = 'veupathdb/orthofinder:1.0.0'
+  container = 'veupathdb/orthofinder:1.1.0'
 
   input:
     path blasts
@@ -40,7 +40,7 @@ process computeResidualGroups {
 * combine species residual singletons file.
 */
 process makeFullResidualSingletonsFile {
-  container = 'veupathdb/orthofinder:1.0.0'
+  container = 'veupathdb/orthofinder:1.1.0'
 
   input:
     path singletonFiles
@@ -56,7 +56,7 @@ process makeFullResidualSingletonsFile {
 
 
 process reformatResidualGroupsFile {
-  container = 'veupathdb/orthofinder:1.0.0'
+  container = 'veupathdb/orthofinder:1.1.0'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -78,7 +78,7 @@ process reformatResidualGroupsFile {
 *  for each group, determine which residual sequence has the lowest average evalue
 */
 process findResidualBestRepresentatives {
-  container = 'veupathdb/orthofinder:1.0.0'
+  container = 'veupathdb/orthofinder:1.1.0'
 
   input:
     path groupData
@@ -120,7 +120,7 @@ process removeEmptyGroups {
 *  grab all best representative sequences.  use the group id as the defline
 */
 process makeResidualBestRepresentativesFasta {
-  container = 'veupathdb/orthofinder:1.0.0'
+  container = 'veupathdb/orthofinder:1.1.0'
 
   input:
     path bestRepresentatives
@@ -138,7 +138,7 @@ process makeResidualBestRepresentativesFasta {
 *  Translate best rep file to hold actual sequenceIds, not OF internal ids
 */
 process translateBestRepsFile {
-  container = 'veupathdb/orthofinder:1.0.0'
+  container = 'veupathdb/orthofinder:1.1.0'
 
   publishDir "$params.outputDir/", mode: "copy", saveAs: { filename -> "residualBestReps.txt" }
 
@@ -162,7 +162,7 @@ process translateBestRepsFile {
 *
 */
 process filterResidualSimilaritiesByBestRepresentative {
-  container = 'veupathdb/orthofinder:1.0.0'
+  container = 'veupathdb/orthofinder:1.1.0'
 
   input:
     path allSimilarities
@@ -178,7 +178,7 @@ process filterResidualSimilaritiesByBestRepresentative {
 
 
 process createEmptyDir {
-  container = 'veupathdb/orthofinder:1.0.0'
+  container = 'veupathdb/orthofinder:1.1.0'
 
   input:
     path speciesMapping
@@ -198,7 +198,7 @@ process createEmptyDir {
 *
 */
 process mergeCoreAndResidualBestReps {
-  container = 'veupathdb/orthofinder:1.0.0'
+  container = 'veupathdb/orthofinder:1.1.0'
 
   publishDir "$params.outputDir/", mode: "copy"
 
@@ -223,7 +223,7 @@ process mergeCoreAndResidualBestReps {
 *
 */
 process mergeCoreAndResidualSimilarGroups {
-  container = 'veupathdb/orthofinder:1.0.0'
+  container = 'veupathdb/orthofinder:1.1.0'
 
   publishDir "$params.outputDir/", mode: "copy"
 
@@ -247,7 +247,7 @@ process mergeCoreAndResidualSimilarGroups {
 
 
 process createResidualFasta {
-  container = 'veupathdb/orthofinder:1.0.0'
+  container = 'veupathdb/orthofinder:1.1.0'
 
   input:
     path residualFastas
@@ -272,7 +272,7 @@ process createResidualFasta {
  * @return fullGroupFile The combined group file
 */
 process combineGroupFiles {
-  container = 'veupathdb/orthofinder:1.0.0'
+  container = 'veupathdb/orthofinder:1.1.0'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -292,7 +292,7 @@ process combineGroupFiles {
 
 
 process makeFullDiamondDatabaseWithGroups {
-  container = 'veupathdb/orthofinder:1.0.0'
+  container = 'veupathdb/orthofinder:1.1.0'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -313,7 +313,7 @@ process makeFullDiamondDatabaseWithGroups {
 
 
 process previousGroups {
-  container = 'veupathdb/orthofinder:1.0.0'
+  container = 'veupathdb/orthofinder:1.1.0'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -337,7 +337,7 @@ process previousGroups {
  * @return A file that lists all of the groups that do not have a file present
 */
 process checkForMissingGroups {
-  container = 'veupathdb/orthofinder:1.0.0'
+  container = 'veupathdb/orthofinder:1.1.0'
 
   input:
     path allDiamondSimilarities
@@ -355,7 +355,7 @@ process checkForMissingGroups {
 }
 
 process calculateResidualGroupStats {
-  container = 'veupathdb/orthofinder:1.0.0'
+  container = 'veupathdb/orthofinder:1.1.0'
 
   input:
     path bestRepresentatives
