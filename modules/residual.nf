@@ -1,5 +1,5 @@
 include {bestRepsSelfDiamond; combineProteomes;
-         calculateGroupResults; collectDiamondSimilaritesPerGroup;
+         collectDiamondSimilaritesPerGroup;
 	 createGeneTrees; createGeneTrees as createLargeGeneTrees;
 	 listToPairwiseComparisons;
 	 moveUnambiguousAminoAcidSequencesFirst; orthoFinderSetup;
@@ -264,24 +264,6 @@ process createResidualFasta {
 }
 
 
-
-process calculateResidualGroupResults {
-  container = 'veupathdb/orthofinder:1.0.0'
-
-  publishDir "$params.outputDir/groupStats", mode: "copy"
-
-  input:
-    path bestRepsTsv
-    val evalueColumn
-
-  output:
-    path 'residualGroupStats.txt'
-
-  script:
-    template 'calculateResidualGroupResults.bash'
-}
-
-
 /**
  * Combine the core + peripheral and residual groups file
  *
@@ -344,6 +326,48 @@ process previousGroups {
 
   script:
     template 'previousGroups.bash'
+}
+
+/**
+ * checkForMissingGroups
+ *
+ * @param allDiamondSimilarities: All group specific pairwise blast results
+ * @param buildVersion: Current build version
+ * @param groupsFile: Residual groups file
+ * @return A file that lists all of the groups that do not have a file present
+*/
+process checkForMissingGroups {
+  container = 'veupathdb/orthofinder:1.0.0'
+
+  input:
+    path allDiamondSimilarities
+    val buildVersion
+    val residualBuildVersion
+    path groupsFile
+
+  output:
+    path 'missingGroups.txt'
+
+  script:
+    """
+    checkForResidualMissingGroups.pl . $buildVersion $residualBuildVersion $groupsFile
+    """
+}
+
+process calculateResidualGroupStats {
+  container = 'veupathdb/orthofinder:1.0.0'
+
+  input:
+    path bestRepresentatives
+    path similarities
+    path groupsFile
+    path missingGroups
+
+  output:
+    path 'groupStats.txt'
+
+  script:
+    template 'calculateResidualGroupStats.bash'
 }
 
 workflow residualWorkflow {
@@ -418,7 +442,7 @@ workflow residualWorkflow {
     allDiamondSimilaritiesPerGroup = diamondSimilaritiesPerGroup.blastsByOrthogroup.flatten()
 
     // make a collection containing all group similarity files
-    allDiamondSimilarities = allDiamondSimilaritiesPerGroup.collect()
+    allDiamondSimilarities = diamondSimilaritiesPerGroup.blastsByOrthogroup.flatten().collect()
 
     // make a collection of singletons files (one for each species)
     singletonFiles = speciesOrthologs.singletons.collect()
@@ -448,13 +472,13 @@ workflow residualWorkflow {
     bestRepresentativeFasta = makeResidualBestRepresentativesFasta(combinedBestRepresentatives,
                                                                    setup.orthofinderWorkingDir)
 
-    // Create a residual specific mash result file for every core group fasta
-    mashResults = runMash(residualProteomesByGroup.collect().flatten().collate(2000),
-                          bestRepresentativeFasta.collect())
+    missingGroups = checkForMissingGroups(allDiamondSimilarities.flatten().collect(),
+                                          params.buildVersion,
+					  params.residualBuildVersion,
+    					  residualGroupsFile.groups).collect()
 
     // Calculate residual group stats
-    calculateGroupResults(mashResults).collectFile(name: "residual_stats.txt",
-                                                   storeDir: params.outputDir + "/groupStats")
+    calculateResidualGroupStats(combinedBestRepresentatives, allDiamondSimilarities, residualGroupsFile.groups, missingGroups).collectFile(name: "residual_stats.txt", storeDir: params.outputDir + "/groupStats")
 
     coreAndResidualBestRepFasta = mergeCoreAndResidualBestReps(bestRepresentativeFasta,
                                                                coreBestRepsFasta)
@@ -470,6 +494,8 @@ workflow residualWorkflow {
 
     combinedGroupFile = combineGroupFiles(coreAndPeripheralGroups,residualGroupsFile.groups)
 
+
+    // Add new functionality here
     previousGroups(combinedGroupFile,params.oldGroupsFile)
 
     makeFullDiamondDatabaseWithGroups(fullOrthoProteome,combinedGroupFile,params.buildVersion)

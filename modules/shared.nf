@@ -222,21 +222,6 @@ process makeDiamondResultsFile {
     """
 }
 
-
-process calculateGroupResults {
-  container = 'veupathdb/orthofinder:1.0.0'
-
-  input:
-    path groupResultsToBestReps
-
-  output:
-    path 'groupStats.txt'
-
-  script:
-    template 'calculateGroupResults.bash'
-}
-
-
 process bestRepsSelfDiamond {
   container = 'veupathdb/diamondsimilarity:1.0.0'
 
@@ -369,4 +354,22 @@ process splitBySize {
       fi	
     done
     """
+}
+
+process calculateGroupStats {
+  container = 'veupathdb/orthofinder:1.0.0'
+
+  input:
+    path bestRepresentatives
+    path similarities
+    path groupsFile
+    path translateFile
+    path missingGroups
+    val flatFiles
+
+  output:
+    path 'groupStats.txt'
+
+  script:
+    template 'calculateGroupStats.bash'
 }

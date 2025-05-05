@@ -3,97 +3,102 @@
 use strict;
 use warnings;
 use Getopt::Long;
-use Data::Dumper;
 
-my ($oldGroupsFile,$newGroupsFile,$outputFile);
+my ($oldGroupsFile, $newGroupsFile, $outputFile);
 
-&GetOptions("oldGroupsFile=s"=> \$oldGroupsFile,
-	    "newGroupsFile=s"=> \$newGroupsFile,
-	    "outputFile=s"=> \$outputFile);
+GetOptions(
+    "oldGroupsFile=s" => \$oldGroupsFile,
+    "newGroupsFile=s" => \$newGroupsFile,
+    "outputFile=s"    => \$outputFile
+) or die "Error in command line arguments\n";
 
-print "Processing Old\n";
+# Subroutine to clean and lowercase sequence identifiers
+sub clean_seq {
+    my ($seq) = @_;
+    $seq =~ s/\.?(RNA|mRNA|pseudo)//g;
+    $seq =~ s/:?(RNA|mRNA|pseudo)//g;
+    $seq =~ s/-old//g;
+    return lc($seq);
+}
 
-open(my $old, '<', $oldGroupsFile) || die "Could not open file $oldGroupsFile: $!";
+print "Processing Old Groups\n";
+open(my $old, '<', $oldGroupsFile) or die "Could not open file $oldGroupsFile: $!";
+
 my %oldGroupToSeqs;
+my %oldGroupSeqCount;
+my %seqToOldGroups;
+
 while (my $line = <$old>) {
     chomp $line;
     if ($line =~ /(\S+):\s?(.*)/) {
-        my $groupId = $1;
-        my $seqLine = $2;
-        my @seqArray = split(/\s/, $seqLine);
-	my @fixedSeqArray;
+        my ($groupId, $seqLine) = ($1, $2);
+        my @seqArray = split(/\s+/, $seqLine);
+        my @cleanedSeqs;
+
         foreach my $seq (@seqArray) {
-            # Record the group assignment for each sequence
-            $seq =~ s/.RNA//g;
-            $seq =~ s/:RNA//g;
-	    $seq =~ s/.mRNA//g;
-            $seq =~ s/:mRNA//g;
-            $seq =~ s/.pseudo//g;
-	    $seq =~ s/:pseudo//g;
-            push(@fixedSeqArray, $seq);
+            my $cleaned = clean_seq($seq);
+            push @cleanedSeqs, $cleaned;
+            push @{ $seqToOldGroups{$cleaned} }, $groupId;  # Reverse index
         }
-	$oldGroupToSeqs{$groupId} = \@fixedSeqArray;
-    }
-    else {
-	die "Improper file format for groups file $oldGroupsFile\nLine is $line\n";
+
+        $oldGroupToSeqs{$groupId} = \@cleanedSeqs;
+        $oldGroupSeqCount{$groupId} = scalar @cleanedSeqs;
+    } else {
+        die "Improper format in $oldGroupsFile\nLine: $line\n";
     }
 }
-close $oldGroupsFile;
+close($old);
 
-print "Processing New\n";
+print "Processing New Groups\n";
+open(my $new, '<', $newGroupsFile) or die "Could not open file $newGroupsFile: $!";
 
-my @newGroups;
-
-open(my $new, '<', $newGroupsFile) || die "Could not open file $newGroupsFile: $!";
-my %newSeqToGroup;
+my %newGroupToSeqs;
 while (my $line = <$new>) {
     chomp $line;
-    if ($line =~ /(OG\S+):\s(.+)/) {
-         my $groupId = $1;
-         my $seqLine = $2;
-         my @seqArray = split(/\s/, $seqLine);
-	 push(@newGroups,$groupId);
-         foreach my $seq (@seqArray) {
-            # Record the group assignment for each sequence
-	     $seq =~ s/.RNA//g;
-             $seq =~ s/:RNA//g;
-	     $seq =~ s/.mRNA//g;
-             $seq =~ s/:mRNA//g;
-             $seq =~ s/.pseudo//g;
-	     $seq =~ s/:pseudo//g;
-            $newSeqToGroup{$seq} = $groupId;
-         }
-    }
-    else {
-	die "Improper file format for groups file $newGroupsFile\nLine is $line\n";
+    if ($line =~ /(\S+):\s?(.*)/) {
+        my ($groupId, $seqLine) = ($1, $2);
+        my @seqArray = split(/\s+/, $seqLine);
+        my @cleanedSeqs = map { clean_seq($_) } @seqArray;
+        $newGroupToSeqs{$groupId} = \@cleanedSeqs;
+    } else {
+        die "Improper format in $newGroupsFile\nLine: $line\n";
     }
 }
-close $newGroupsFile;
+close($new);
 
-open(OUT, '>', $outputFile) || die "Could not open file $outputFile: $!";
+print "Generating Output\n";
+open(my $out, '>', $outputFile) or die "Could not open file $outputFile: $!";
 
-print "Printing old\n";
+my $totalGroups = scalar keys %newGroupToSeqs;
+my $progress_interval = int($totalGroups / 100) || 1;
+my $processedCount = 0;
 
-foreach my $group (keys %oldGroupToSeqs) {
-    my @newGroupsArray;
-    my @seqArray = @{$oldGroupToSeqs{$group}};
-    foreach my $seq (@seqArray) {
-        if ($newSeqToGroup{$seq}) {
-            push(@newGroupsArray,$newSeqToGroup{$seq});
-	}
+foreach my $newGroup (keys %newGroupToSeqs) {
+    my @seqs = @{ $newGroupToSeqs{$newGroup} };
+    my %hitCount;
+
+    my $newGroupSeqCount = scalar @seqs;
+    
+    foreach my $seq (@seqs) {
+        next unless exists $seqToOldGroups{$seq};
+        foreach my $oldGroup (@{ $seqToOldGroups{$seq} }) {
+            $hitCount{$oldGroup}++;
+        }
     }
-    # Using a hash to get distinct values
-    my %seen;
-    my @distinct = grep { !$seen{$_}++ } @newGroupsArray;
 
-    # Print the distinct values
-    print OUT "$group\t" . join(", ", @distinct) . "\n";
+    my $groupString = join " ",
+        map { "$_:$hitCount{$_}/$oldGroupSeqCount{$_}" }
+        sort keys %hitCount;
+
+    print $out "$newGroup\t$newGroup:$newGroupSeqCount/$newGroupSeqCount $groupString\n";
+
+    $processedCount++;
+    if ($processedCount % $progress_interval == 0) {
+        my $percent = int(($processedCount / $totalGroups) * 100);
+        print "Processed $percent%\n";
+    }
 }
 
-print "Printing new\n";
+close($out);
 
-foreach my $group (@newGroups) {
-    print OUT "$group\t$group\n";
-}
-
-close OUT;
+print "Done. Output written to $outputFile\n";
