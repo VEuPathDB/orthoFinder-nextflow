@@ -94,6 +94,9 @@ foreach my $bestRep (keys %bestRepToGroup) {
 		    if ($evalue < 1.0e-200) {
                         push(@evalueArray, '1.0e-200');
 	            }
+		    elsif ($evalue > 1.0e-5) {
+                        push(@evalueArray, '1.0e-5');
+	            }
 		    else {
                         push(@evalueArray, $evalue);
 		    }
