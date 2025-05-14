@@ -74,44 +74,53 @@ while (my $line = <$translate>) {
 }
 close $translate;
 
+
 foreach my $bestRep (keys %bestRepToGroup) {
     my $group = $bestRepToGroup{$bestRep};
     my $internalBestRep = $actualToInternal{$bestRep};
     my $groupSize = $groupToGroupSize{$group};
-    my $diamondFile = "$inputDir/$group" . ".sim";
+    my $diamondFile = "$inputDir/$group.sim";
     my @evalueArray;
+
     if (!$missingGroupsHash{$group}) {
         open(my $data, '<', $diamondFile) || die "Could not open file $diamondFile: $!";
+
         while (my $line = <$data>) {
             if ($line =~ /(\S+)\t(\S+)\t\S+\t\S+\t\S+\t\S+\t\S+\t\S+\t\S+\t\S+\t(\S+)\t\S+/) {
-		my $query = $1;
-	        my $target = $2;
-	        my $evalue = $3;
-		if($query eq $target) {
-		    next;
-		}
-		if ($target eq $internalBestRep || $target eq $bestRep) {
-		    if ($evalue < 1.0e-200) {
+                my $query = $1;
+                my $target = $2;
+                my $evalue = $3;
+                my $numeric_evalue = 0 + $evalue;  # Force numeric comparison
+
+                if ($query eq $target) {
+                    next;
+                }
+
+                if ($target eq $internalBestRep || $target eq $bestRep) {
+                    if ($numeric_evalue < 1.0e-200) {
                         push(@evalueArray, '1.0e-200');
-	            }
-		    elsif ($evalue > 1.0e-5) {
+                    }
+                    elsif ($numeric_evalue > 1.0e-5) {
                         push(@evalueArray, '1.0e-5');
-	            }
-		    else {
+                    }
+                    else {
                         push(@evalueArray, $evalue);
-		    }
-	        }
-	    }
-	    else {
+                    }
+                }
+            }
+            else {
                 die "Improper file format: $line";
-	    }
-	}
+            }
+        }
+
         my $evalueCount = scalar(@evalueArray);
         my $nonSignificantResultCount = $groupSize - $evalueCount;
-        # Adding rows for non significant diamond results
+
+        # Adding rows for non-significant diamond results
         foreach my $i (1..$nonSignificantResultCount) {
             push(@evalueArray, '1.0e-5');    
         }
+
         &calculateStatsAndPrint($group, \@evalueArray);
         close $data;
     }
@@ -119,7 +128,6 @@ foreach my $bestRep (keys %bestRepToGroup) {
         print OUT "$group\t0\t0\t0\t0\t0\t1\n";
     }
 }
-
 
 =pod
 
@@ -138,28 +146,25 @@ The process takes the group id, group size and the evalue scores to the group be
 sub calculateStatsAndPrint {
     my ($group, $evalues) = @_;
 
-    # Count number of similarities.
+    # Count number of similarities
     my $simCount = scalar(@$evalues);
 
-    # If we have a similarity.
     if ($simCount >= 1) {
-	
-	# Create stats object.
+        # Create stats object
         my $stat = Statistics::Descriptive::Full->new();
-	
-	# Add percents.
         $stat->add_data(@$evalues);
 
-	# Calculate values and print.
+        # Calculate values and print
         my $min = $stat->min();
         my $twentyfifth = $stat->quantile(1);
         my $median = $stat->median();
         my $seventyfifth = $stat->quantile(3);
         my $max = $stat->max();
+
         print OUT "$group\t$min\t$twentyfifth\t$median\t$seventyfifth\t$max\t$simCount\n";
     }
-
 }
+
 
 close OUT;
 1;
