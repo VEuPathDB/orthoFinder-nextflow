@@ -98,10 +98,10 @@ foreach my $bestRep (keys %bestRepToGroup) {
 
                 if ($target eq $internalBestRep || $target eq $bestRep) {
                     if ($numeric_evalue < 1.0e-200) {
-                        push(@evalueArray, '1.0e-200');
+                        push(@evalueArray, 1.0e-200);
                     }
                     elsif ($numeric_evalue > 1.0e-5) {
-                        push(@evalueArray, '1.0e-5');
+                        push(@evalueArray, 1.0e-5);
                     }
                     else {
                         push(@evalueArray, $evalue);
@@ -118,7 +118,7 @@ foreach my $bestRep (keys %bestRepToGroup) {
 
         # Adding rows for non-significant diamond results
         foreach my $i (1..$nonSignificantResultCount) {
-            push(@evalueArray, '1.0e-5');    
+            push(@evalueArray, 1.0e-5);    
         }
 
         &calculateStatsAndPrint($group, \@evalueArray);
