@@ -26,7 +26,7 @@ include {bestRepsSelfDiamond as coreBestRepsToCoreDiamond;
  * @return outputDir contains a directory of Blast*.txt files with mapped ids
  */
 process mapCachedBlasts {
-    container = 'veupathdb/orthofinder:1.1.0'
+    container = 'veupathdb/orthofinder:1.2.0'
 
     input:
     path previousDiamondCacheDirectory
@@ -52,7 +52,7 @@ process mapCachedBlasts {
 */
 
 process computeGroups {
-  container = 'veupathdb/orthofinder:1.1.0'
+  container = 'veupathdb/orthofinder:1.2.0'
 
   input:
     path blasts
@@ -72,7 +72,7 @@ process computeGroups {
 * the last row in the orthologgroups file.  the resulting id will also include the version
 */
 process makeFullSingletonsFile {
-  container = 'veupathdb/orthofinder:1.1.0'
+  container = 'veupathdb/orthofinder:1.2.0'
 
   input:
     path singletonFiles
@@ -91,7 +91,7 @@ process makeFullSingletonsFile {
 * write singleton files with original seq ids in place of internal ids
 */
 process translateSingletonsFile {
-  container = 'veupathdb/orthofinder:1.1.0'
+  container = 'veupathdb/orthofinder:1.2.0'
 
   input:
     path singletonsFile
@@ -109,7 +109,7 @@ process translateSingletonsFile {
 * write groups file for use in peripheral wf or to be loaded into relational db
 */
 process reformatGroupsFile {
-  container = 'veupathdb/orthofinder:1.1.0'
+  container = 'veupathdb/orthofinder:1.2.0'
 
   publishDir "$params.outputDir", mode: "copy"
 
