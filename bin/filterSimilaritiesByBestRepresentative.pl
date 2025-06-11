@@ -4,92 +4,36 @@ use strict;
 use warnings;
 use Getopt::Long;
 
-=pod
-
-=head1 Description
-
-Filter group similarity files by only storing pairwise results that involve sequences being blasted against the best representative of the group to which they were assigned.
-In the case of missingGroups, simply touch an empty file, as these are no blast results for these.
-
-=head1 Input Parameters
-
-=over 4
-
-=item bestReps 
-
-Tsv file containing a group ID and the sequence that best represents it.
-
-=item singletons Tsv file containing a group ID and the singleton sequence that represents it (and is the only sequence contained in it)
-
-=back 
-
-=cut
-
-my ($bestReps, $singletons,$missingGroups);
+my ($bestReps, $blastFile,$outputFile);
 
 &GetOptions("bestReps=s"=> \$bestReps,
-            "singletons=s"=> \$singletons,
-            "missingGroups=s"=> \$missingGroups);
+            "blastFile=s"=> \$blastFile,
+            "outputFile=s"=> \$outputFile);
 
 # Open file that contains ids of best reps and their group.
-open(my $data, '<', $bestReps) || die "Could not open file $bestReps: $!
-";
+open(my $best, '<', $bestReps) || die "Could not open file $bestReps: $!";
 
-# Open singleton file so we can identify singletons.
-open(my $single, '<', $singletons) || die "Could not open file $singletons: $!";
+# Open blast file.
+open(my $blast, '<', $blastFile) || die "Could not open file $blastFile: $!";
 
-# Open missingGroups file so we know what empty blast files to create.
-open(my $missing, '<', $missingGroups) || die "Could not open file $missingGroups: $!";
+# Open output file.
+open(my $out, '>', $outputFile) || die "Could not open file $outputFile: $!";
 
-# Make array to hold all missing groups.
-my @missingGroups;
-while (my $line = <$missing>) {
+# Create hash to hold group and best rep id assignments
+my %bestRepsMap;
+while (my $line = <$best>) {
     chomp $line;
-    push(@missingGroups,$line);
+    my ($group, $repseq) = split(/\t/, $line);
+    $bestRepsMap{$group} = $repseq;
 }
+close $best;
 
-# Make array to hold all groups that are singletons.
-my @singletonGroups;
-while (my $line = <$single>) {
+while (my $line = <$blast>) {
     chomp $line;
-    my ($group, $seqID) = split(/\t/, $line);
-    push(@singletonGroups,$group);
-}
-
-# For each line in best representative file
-while (my $line = <$data>) {
-    chomp $line;
-    
-    # Get the group and sequence id
-    my ($group, $seqID) = split(/\t/, $line);
-    
-    # If the group is a singleton or is missing, we just make an empty file, as this group does not have any non self or internal blast results to the best rep
-    open(OUT, ">${group}_bestRep.tsv") or die "Cannot open file ${group}_bestRep.tsv for writing:$!";
-    if ( grep( /^$group/, @singletonGroups ) ||  grep( /^$group/, @missingGroups ) ) {
-        close OUT
-    }
-    
-    # If the group is not a singleton or missing, go get all pairwise blast results that involve the best representative and output it to a groups file
-    else {
-	
-        # We want only where the seqId is in the 2nd column to avoid duplicate values/rows.
-        open(IN, "< ${group}.sim") or die "cannot open file ${group}.sim for reading: $!";
-
-
-	$seqID =~ s/\|/\\\|/g;
-	
-	# For each row of similarity results.
-        while(<IN>) {
-
-	    # If subject sequence is the group best representative, store the result.
-            if($_ =~ /^\S+\t${seqID}\t.*/) {
-                print OUT $_;
-            }
-        }
-
-        close IN;
-        close OUT;
+    my ($group, $qseq,$sseq,$evalue) = split(/\t/, $line);
+    if ($bestRepsMap{$group} eq $sseq) {
+	print $out "$group\t$qseq\t$sseq\t$evalue\n";
     }
 }
-
-close $data;
+close $blast;
+close $out;
