@@ -470,7 +470,7 @@ workflow peripheralWorkflow {
     splitBySizeResults = splitBySize(splitCombinedProteomesByGroupResults.collect().flatten().collate(50))
 
     // Creating Core + Peripheral Gene Trees
-    //createGeneTrees(splitBySizeResults.small)
+    createGeneTrees(splitBySizeResults.small)
     createLargeGeneTrees(splitBySizeResults.large.collect().flatten())
 
     // Make core best representative fasta tile with group number as defline

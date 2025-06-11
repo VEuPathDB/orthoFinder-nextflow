@@ -439,7 +439,7 @@ workflow residualWorkflow {
     splitBySizeResults = splitBySize(residualProteomesByGroup.collect().flatten().collate(50))
 
     // Create only large gene trees
-    //createGeneTrees(splitBySizeResults.small)    
+    createGeneTrees(splitBySizeResults.small)    
     createLargeGeneTrees(splitBySizeResults.large.collect().flatten())
     
     // publish results
