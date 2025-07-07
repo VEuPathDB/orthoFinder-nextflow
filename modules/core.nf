@@ -9,7 +9,7 @@ include {bestRepsSelfDiamond as coreBestRepsToCoreDiamond;
 	 moveUnambiguousAminoAcidSequencesFirst; orthoFinderSetup;
 	 speciesFileToList; diamond;
 	 makeDiamondResultsFile; publishOFResults;
-	 splitOrthologGroupsPerSpecies; makeOrthogroupDiamondFile;
+	 splitOrthologGroupsPerSpecies;
 } from './shared.nf'
 
 
@@ -106,6 +106,27 @@ process translateSingletonsFile {
 
 
 /**
+* One file per orthologgroup with all diamond output for that group
+* @return orthogroupblasts (sim files per group)
+*/
+process makeCoreOrthogroupDiamondFile {
+  container = 'veupathdb/orthofinder:1.3.0'
+
+  publishDir "$params.outputDir/groupDiamondResults", mode: "copy"
+
+  input:
+    path blastFile
+    path orthologs
+
+  output:
+    path 'OG*.sim', emit: blastsByOrthogroup
+
+  script:
+    template 'makeOrthogroupDiamondFile.bash'
+}
+
+
+/**
 * write groups file for use in peripheral wf or to be loaded into relational db
 */
 process reformatGroupsFile {
@@ -182,7 +203,7 @@ workflow coreWorkflow {
 						     coreOrResidual);
 
     // per species, make One file all diamond similarities for that group
-    diamondSimilaritiesPerGroup = makeOrthogroupDiamondFile(diamondResultsFile.collect(),
+    diamondSimilaritiesPerGroup = makeCoreOrthogroupDiamondFile(diamondResultsFile.collect(),
                                                             speciesOrthologs.orthologs.collectFile(name: 'orthologs.txt'))
 							     
     allDiamondSimilaritiesPerGroup = diamondSimilaritiesPerGroup.blastsByOrthogroup.flatten()
