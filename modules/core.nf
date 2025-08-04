@@ -8,8 +8,7 @@ include {bestRepsSelfDiamond as coreBestRepsToCoreDiamond;
 	 createGeneTrees; listToPairwiseComparisons;
 	 moveUnambiguousAminoAcidSequencesFirst; orthoFinderSetup;
 	 speciesFileToList; diamond;
-	 makeDiamondResultsFile; publishOFResults;
-	 splitOrthologGroupsPerSpecies;
+	 makeDiamondResultsFile; splitOrthologGroupsPerSpecies;
 } from './shared.nf'
 
 
@@ -190,9 +189,6 @@ workflow coreWorkflow {
     // run orthofinder
     orthofinderGroupResults = computeGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
     
-    // publish results
-    publishOFResults(orthofinderGroupResults.results)    
-
     //make one file per species containing all ortholog groups for that species
     speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(),
                                                      setup.speciesMapping.collect(),

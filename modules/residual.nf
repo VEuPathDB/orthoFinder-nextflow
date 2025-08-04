@@ -4,10 +4,9 @@ include {bestRepsSelfDiamond; combineProteomes;
 	 listToPairwiseComparisons;
 	 moveUnambiguousAminoAcidSequencesFirst; orthoFinderSetup;
 	 speciesFileToList; diamond;
-	 makeDiamondResultsFile; publishOFResults;
+	 makeDiamondResultsFile; splitBySize;
 	 splitOrthologGroupsPerSpecies; makeOrthogroupDiamondFile;
 	 runMash; splitProteomeByGroup;
-	 splitBySize;
 } from './shared.nf'
 
 
@@ -442,9 +441,6 @@ workflow residualWorkflow {
     createGeneTrees(splitBySizeResults.small)    
     createLargeGeneTrees(splitBySizeResults.large.collect().flatten())
     
-    // publish results
-    publishOFResults(orthofinderGroupResults.results)    
-
     // make one file per species containing all ortholog groups for that species
     speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(),
                                                       setup.speciesMapping.collect(),
