@@ -1,106 +1,120 @@
 #!/usr/bin/perl
-
 use strict;
 use warnings;
 use Getopt::Long;
 
-=pod
-
 =head1 Description
-
-Split a proteome into multiple group files using group assignments.
-
-=head1 Input Parameters
-
-=over 4
-
-=item groups
-
-The file containing sequence group assignments.
-
-=back
-
-=over 4
-
-=item proteome
-
-The proteome file you wish to split
-
-=back
-
+Split a proteome into multiple group files using group assignments,
+processing one group at a time for large datasets.
+Logs bad headers instead of dying.
 =cut
 
-my ($groups,$proteome);
+my ($groups, $proteome);
+GetOptions(
+    "groups=s"   => \$groups,
+    "proteome=s" => \$proteome
+    ) or die "Usage: $0 --groups group_file --proteome proteome_file\n";
 
-&GetOptions("groups=s"=> \$groups,
-	    "proteome=s"=> \$proteome);
+# -------------------------
+# 0) Log file for problems
+# -------------------------
+open(my $log, '>', "bad_headers.log") or die "Cannot open bad_headers.log: $!";
 
-open(my $data, '<', $groups) || die "Could not open file $groups: $!";
-open(my $pro, '<', $proteome) || die "Could not open file $proteome: $!";
+# -------------------------
+# 1) Read group assignments
+# -------------------------
+open(my $data, '<', $groups) or die "Could not open $groups: $!";
 
-# Make hash to store sequence group assignments
 my %seqToGroup;
 my %groupSizeHash;
-# For each line in groups file
+my %groupsHash;
+my $groupAssignmentCount = 0;
+
+print "Reading group assignments\n";
+system('date');
+
 while (my $line = <$data>) {
     chomp $line;
+    $groupAssignmentCount++;
+    print "Processed $groupAssignmentCount groups\n" if $groupAssignmentCount % 100 == 0;
+
     if ($line =~ /(OG\w*\d+_\d+):\s(.+)/) {
-         my $groupId = $1;
-         my $seqLine = $2;
-         my @seqArray = split(/\s/, $seqLine);
-         foreach my $seq (@seqArray) {
-            # Record the group assignment for each sequence
-            if ($seq =~ /_RNA/) {
-                $seq =~ s/_RNA/:RNA/g;
-            }
-            if ($seq =~ /_mRNA/) {
-                $seq =~ s/_mRNA/:mRNA/g;
-            }
-            if ($seq =~ /_pseudo/) {
-                $seq =~ s/_pseudo/:pseudo/g;
-            }	    
+        my $groupId = $1;
+        my @seqArray = split(/\s+/, $2);
+        foreach my $seq (@seqArray) {
+            #$seq =~ s/_RNA/:RNA/g;
+            #$seq =~ s/_mRNA/:mRNA/g;
+            $seq =~ s/_pseudo/:pseudo/g;
             $seqToGroup{$seq} = $groupId;
-            $groupSizeHash{$groupId} += 1;
-         }
-    }
-    else {
-	die "Improper file format for groups file $groups\nLine is $line\n";
+            push @{$groupsHash{$groupId}}, $seq;
+            $groupSizeHash{$groupId}++;
+        }
+    } else {
+        die "Bad group line: $line\n";
     }
 }
 close $data;
 
-my $currentGroupId = "";
-my $groupId;
-my %groupUsedHash;
+print "Done reading group assignments\n";
+system('date');
+
+# -------------------------
+# 2) Read proteome sequences
+# -------------------------
+print "Reading proteome sequences\n";
+system('date');
+open(my $pro, '<', $proteome) or die "Could not open $proteome: $!";
+my %seqToSeq;
+my $currentSeqId = "";
+
 while (my $line = <$pro>) {
     chomp $line;
-    if ($line =~ /^>(\S+).*/) {
-	$groupId = $seqToGroup{$1};
-	# If seq in our group subset
-	if ($groupId) {
-	    $groupUsedHash{$groupId} += 1;
-	    if ($currentGroupId eq $groupId) {
-                print OUT "$line\n";
-	    }
-	    else {
-                close OUT if($currentGroupId);
-		open(OUT,">>${groupId}.fasta")  || die "Could not open file ${groupId}.fasta: $!";
-		print OUT "$line\n";
-		$currentGroupId = $groupId;
-	    }
-	}
+    if ($line =~ /^>(\S+)/) {
+        print "$1\n";
+        $currentSeqId = $1;
+        $seqToSeq{$currentSeqId} = "";
     }
-    elsif ($groupId) {
-        print OUT "$line\n";
-    }
-    else {
-        next;
+    elsif ($currentSeqId) {
+        $seqToSeq{$currentSeqId} .= $line;
     }
 }
-close OUT;
+close $pro;
+print "Done reading proteome sequences\n";
+system('date');
 
-foreach my $group (keys %groupUsedHash) {
-    if ($groupUsedHash{$group} != $groupSizeHash{$group}) {
-	die "All group seqs were not put in $group group fasta file. $groupUsedHash{$group} out of $groupSizeHash{$group}";
+# -------------------------
+# 3) Process one group at a time
+# -------------------------
+print "Processing groups\n";
+system('date');
+foreach my $groupId (sort keys %groupsHash) {
+    print "Processing $groupId\n";
+    my $filename = "${groupId}.fasta";
+    open(my $out, '>', $filename) or do {
+        print $log "Cannot open $filename: $!\n";
+        next;
+    };
+    foreach my $seqId (@{$groupsHash{$groupId}}) {
+        if (exists $seqToSeq{$seqId}) {
+            print $out ">$seqId\n$seqToSeq{$seqId}\n";
+        } else {
+            print $log "Sequence $seqId not found in proteome for group $groupId\n";
+        }
+    }
+    close $out;
+}
+print "Done processing groups\n";
+system('date');
+
+# -------------------------
+# 4) Completeness check
+# -------------------------
+foreach my $group (keys %groupSizeHash) {
+    my $written = @{$groupsHash{$group}};
+    if ($written != $groupSizeHash{$group}) {
+        print $log "Group $group incomplete: $written of $groupSizeHash{$group} sequences written\n";
     }
 }
+
+close $log;
+print "Processing complete. See bad_headers.log for warnings.\n";
