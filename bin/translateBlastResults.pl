@@ -38,8 +38,16 @@ while (my $line = <STAT>) {
 	my $qseq = $1;
 	my $sseq = $2;
 	my @values = split(/\t/,$3);
-        if ($qseq =~ /^\d+\_\d+/) {
-            print OUT "$group\t$sequenceIdsMap{$qseq}\t$sequenceIdsMap{$sseq}\t$values[-2]\n";
+	if (!$qseq) {
+            die "No value for qseq for line $line\n";
+	}
+        elsif ($qseq =~ /^\d+\_\d+/) {
+	    if ($sequenceIdsMap{$qseq}) {
+                print OUT "$group\t$sequenceIdsMap{$qseq}\t$sequenceIdsMap{$sseq}\t$values[-2]\n";
+	    }
+	    else {
+                die "No value for qseq for line $line\n";
+	    }
         }
         else {
             print OUT "$group\t$qseq\t$sseq\t$values[-2]\n";

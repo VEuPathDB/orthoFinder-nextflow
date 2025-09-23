@@ -12,6 +12,8 @@ RUN bash ~/miniconda3/miniconda.sh -b -u -p /usr/bin/miniconda3
 RUN rm -rf ~/miniconda3/miniconda.sh
 RUN miniconda3/bin/conda init bash
 RUN miniconda3/bin/conda init zsh
+RUN miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+RUN miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 RUN miniconda3/bin/conda install -c bioconda fasttree
 RUN mv miniconda3/bin/fasttree fasttree
 

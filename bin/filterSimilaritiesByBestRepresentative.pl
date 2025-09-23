@@ -31,6 +31,9 @@ close $best;
 while (my $line = <$blast>) {
     chomp $line;
     my ($group, $qseq,$sseq,$evalue) = split(/\t/, $line);
+    if (!$qseq || !$sseq) {
+        die "Missing value for either qseq: $qseq or sseq: $sseq\n";
+    }
     if ($bestRepsMap{$group} eq $sseq) {
 	print $out "$group\t$qseq\t$sseq\t$evalue\n";
     }
