@@ -294,6 +294,8 @@ process runMash {
 process splitProteomeByGroup {
   container = 'veupathdb/orthofinder:1.6.0'
 
+  publishDir "$params.outputDir/groupFastas", mode: "copy"
+
   input:
     path proteome
     path groups
