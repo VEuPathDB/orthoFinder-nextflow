@@ -4,7 +4,7 @@ nextflow.enable.dsl=2
 
 include { calculateGroupStats; calculateGroupStats as calculateCoreGroupStats;
           uncompressFastas; uncompressFastas as uncompressPeripheralFastas;
-	  collectDiamondSimilaritesPerGroup; splitBySize;
+	  collectDiamondSimilaritesPerGroup; //splitBySize;
 	  createGeneTrees; createGeneTrees as createLargeGeneTrees;
           runMash; runMash as runCoreMash;
 	  splitProteomeByGroup; combineProteomes;
@@ -467,7 +467,8 @@ workflow peripheralWorkflow {
     calculateGroupStats(bestRepresentatives, allSimilarities, makeGroupsFileResults, params.coreTranslateSequenceFile, missingGroups, true).collectFile(name: "peripheral_stats.txt", storeDir: params.outputDir + "/groupStats")
 
     // Creating Core + Peripheral Group Fasta Channels By Size
-    splitBySizeResults = splitBySize(splitCombinedProteomesByGroupResults.collect().flatten().collate(50))
+    // JB: Comment this out as it isn't used anywhere and causing errors when running
+    //splitBySizeResults = splitBySize(splitCombinedProteomesByGroupResults.collect().flatten().collate(50))
 
     // Creating Core + Peripheral Gene Trees
     //createGeneTrees(splitBySizeResults.small)

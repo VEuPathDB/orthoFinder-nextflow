@@ -4,7 +4,7 @@ include {bestRepsSelfDiamond; combineProteomes;
 	 listToPairwiseComparisons;
 	 moveUnambiguousAminoAcidSequencesFirst; orthoFinderSetup;
 	 speciesFileToList; diamond;
-	 makeDiamondResultsFile; splitBySize;
+	 makeDiamondResultsFile; //splitBySize;
 	 splitOrthologGroupsPerSpecies; makeOrthogroupDiamondFile;
 	 runMash; splitProteomeByGroup;
 } from './shared.nf'
@@ -435,7 +435,8 @@ workflow residualWorkflow {
     residualProteomesByGroup = splitProteomeByGroup(residualFasta.collect(), residualGroupsFile.groups.splitText( by: 10000, file: true ))
 
     // Creating Residual Group Fasta Channels By Size
-    splitBySizeResults = splitBySize(residualProteomesByGroup.collect().flatten().collate(50))
+    // JB: Comment this out as it isn't used anywhere and causing errors when running
+    //splitBySizeResults = splitBySize(residualProteomesByGroup.collect().flatten().collate(50))
 
     // Create only large gene trees
     //createGeneTrees(splitBySizeResults.small)    
