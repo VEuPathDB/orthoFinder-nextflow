@@ -411,7 +411,7 @@ workflow residualWorkflow {
     speciesNames = speciesFileToList(setup.speciesMapping, 1);
 
     // make tuple object for processing pairwise combinations of species
-    speciesPairsAsTuple = listToPairwiseComparisons(speciesIds, 250);
+    speciesPairsAsTuple = listToPairwiseComparisons(speciesIds, 500);
 
     // for batches of pairwise comparisons,
     // grab sim file from mapped cache if it exists, otherwise run diamond
