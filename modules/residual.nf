@@ -291,7 +291,7 @@ process combineGroupFiles {
 
 
 process makeFullDiamondDatabaseWithGroups {
-  container = 'veupathdb/orthofinder:1.8.0'
+  container = 'veupathdb/orthofinder:1.9.1'
 
   publishDir "$params.outputDir", mode: "copy"
 

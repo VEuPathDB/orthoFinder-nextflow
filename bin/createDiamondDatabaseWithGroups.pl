@@ -21,6 +21,7 @@ my %seqToGroup;
 # For each line in groups file
 while (my $line = <$data>) {
     chomp $line;
+    $line =~ s/\r$//;
     my ($groupId,$allSequencesString) = split(/:\s/, $line);
     my (@allSequences) = split(/\s/, $allSequencesString);
     foreach my $seq (@allSequences) {
@@ -37,10 +38,11 @@ open(my $pro, '<', $proteome) || die "Could not open file $proteome: $!";
 
 while (my $line = <$pro>) {
     chomp $line;
+    $line =~ s/\r$//;
     if ($line =~ /^>(\S*)(.*)/) {
         my $seqId = $1;
         my $header = $2;
-        if ($seqToGroup{$seqId}) {
+        if (exists $seqToGroup{$seqId}) {
             print OUT ">$seqId\t$seqToGroup{$seqId}\t$header\n";
         }
         else {
@@ -48,11 +50,23 @@ while (my $line = <$pro>) {
             $fixedId =~ s/:RNA/_RNA/g;
             $fixedId =~ s/:mRNA/_mRNA/g;
             $fixedId =~ s/:pseudo/_pseudo/g;	    
-            if ($seqToGroup{$fixedId}) {
+            if (exists $seqToGroup{$fixedId}) {
                 print OUT ">$seqId\t$seqToGroup{$fixedId}\t$header\n";
             }
             else {
-                die "$fixedId not found in group assignments. seqId is $seqId\n";
+                $fixedId =~ s/XS_temp/XS:temp/g;	    
+                if (exists $seqToGroup{$fixedId}) {
+                    print OUT ">$seqId\t$seqToGroup{$fixedId}\t$header\n";
+                }
+                else {
+                    $fixedId =~ s/XS:temp/XS_temp/g;	    
+                    if (exists $seqToGroup{$fixedId}) {
+                        print OUT ">$seqId\t$seqToGroup{$fixedId}\t$header\n";
+                    }
+                    else {
+                        die "$fixedId not found in group assignments. seqId is $seqId\n";
+                    }
+                }
             }
         }
     }
