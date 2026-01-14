@@ -42,8 +42,6 @@ while (my $line = <$data>) {
         my $groupId = $1;
         my @seqArray = split(/\s+/, $2);
         foreach my $seq (@seqArray) {
-            #$seq =~ s/_RNA/:RNA/g;
-            #$seq =~ s/_mRNA/:mRNA/g;
             $seq =~ s/_pseudo/:pseudo/g;
             $seqToGroup{$seq} = $groupId;
             push @{$groupsHash{$groupId}}, $seq;
@@ -70,7 +68,6 @@ my $currentSeqId = "";
 while (my $line = <$pro>) {
     chomp $line;
     if ($line =~ /^>(\S+)/) {
-        print "$1\n";
         $currentSeqId = $1;
         $seqToSeq{$currentSeqId} = "";
     }
@@ -98,7 +95,14 @@ foreach my $groupId (sort keys %groupsHash) {
         if (exists $seqToSeq{$seqId}) {
             print $out ">$seqId\n$seqToSeq{$seqId}\n";
         } else {
-            print $log "Sequence $seqId not found in proteome for group $groupId\n";
+            $seqId =~ s/_RNA/:RNA/g;
+            $seqId =~ s/_mRNA/:mRNA/g;
+            if (exists $seqToSeq{$seqId}) {
+                print $out ">$seqId\n$seqToSeq{$seqId}\n";
+            }
+            else {
+                print $log "Sequence $seqId not found in proteome for group $groupId\n";
+            }
         }
     }
     close $out;
@@ -113,6 +117,7 @@ foreach my $group (keys %groupSizeHash) {
     my $written = @{$groupsHash{$group}};
     if ($written != $groupSizeHash{$group}) {
         print $log "Group $group incomplete: $written of $groupSizeHash{$group} sequences written\n";
+        die "Group $group incomplete: $written of $groupSizeHash{$group} sequences written\n";
     }
 }
 
