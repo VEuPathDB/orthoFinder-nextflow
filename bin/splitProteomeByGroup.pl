@@ -95,8 +95,8 @@ foreach my $groupId (sort keys %groupsHash) {
         if (exists $seqToSeq{$seqId}) {
             print $out ">$seqId\n$seqToSeq{$seqId}\n";
         } else {
+	    $seqId =~ s/_mRNA/:mRNA/g;
             $seqId =~ s/_RNA/:RNA/g;
-            $seqId =~ s/_mRNA/:mRNA/g;
             if (exists $seqToSeq{$seqId}) {
                 print $out ">$seqId\n$seqToSeq{$seqId}\n";
             }
