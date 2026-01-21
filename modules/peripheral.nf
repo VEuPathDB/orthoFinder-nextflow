@@ -19,19 +19,21 @@ include { residualWorkflow } from './residual.nf'
  * @param inputFasta:  The fasta file containing all of the peripheral sequences
  * @return fastaDir A compressed directory of proteomes fastas
 */
-process createCompressedFastaDir {
+process createCompressedResidualFastaDir {
   container = 'veupathdb/orthofinder:1.8.0'
+
+  publishDir "$params.outputDir/", mode: "copy"
 
   input:
     path inputFasta
     path 'proteomes'
 
   output:
-    path 'fastas.tar.gz', emit: fastaDir
+    path 'residualFastas.tar.gz', emit: fastaDir
     stdout emit: complete
 
   script:
-    template 'createCompressedFastaDir.bash'
+    template 'createCompressedResidualFastaDir.bash'
 }
 
 
@@ -312,6 +314,8 @@ process findBestRepresentatives {
 process makeCoreBestRepresentativesFasta {
   container = 'veupathdb/orthofinder:1.8.0'
 
+  publishDir "$params.outputDir/", mode: "copy"
+
   input:
     path bestRepresentatives
     path proteome
@@ -477,10 +481,7 @@ workflow peripheralWorkflow {
     // Make core best representative fasta tile with group number as defline
     bestRepresentativeFasta = makeCoreBestRepresentativesFasta(bestRepresentatives,uncompressAndMakeCoreFastaResults.combinedProteomesFasta)
 
-    // Residual Processing
-
     // Split residual proteome into one fasta per organism and compress. Needed input for orthofinder. Needs peripheralProteomes to be able to split sequences up by organism as deflines are inconsistent
-    compressedFastaDir = createCompressedFastaDir(residualFasta, peripheralProteomeDir)
+    createCompressedResidualFastaDir(residualFasta, peripheralProteomeDir)
 
-    residualWorkflow(compressedFastaDir.fastaDir, bestRepresentativeFasta, combinedProteome, makeGroupsFileResults.collect(), "residual")
 }

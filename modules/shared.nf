@@ -208,6 +208,8 @@ process makeOrthogroupDiamondFile {
 process makeDiamondResultsFile {
   container = 'veupathdb/orthofinder:1.8.0'
 
+  publishDir "$params.outputDir/", mode: "copy"
+
   input:
     path blasts
 
@@ -317,6 +319,8 @@ process splitProteomeByGroup {
 */
 process combineProteomes {
   container = 'veupathdb/orthofinder:1.8.0'
+
+  publishDir "$params.outputDir", mode: "copy"
 
   input:
     path '1.fasta'
