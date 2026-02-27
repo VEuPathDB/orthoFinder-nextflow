@@ -7,7 +7,7 @@ include {splitOrthologGroupsPerSpecies; makeOrthogroupDiamondFile;
 * combine species residual singletons file.
 */
 process makeFullResidualSingletonsFile {
-  container = 'veupathdb/orthofinder:1.8.0'
+  container = 'veupathdb/orthofinder:1.9.2'
 
   input:
     path singletonFiles
@@ -23,7 +23,7 @@ process makeFullResidualSingletonsFile {
 
 
 process reformatResidualGroupsFile {
-  container = 'veupathdb/orthofinder:1.8.0'
+  container = 'veupathdb/orthofinder:1.9.2'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -45,7 +45,7 @@ process reformatResidualGroupsFile {
 *  for each group, determine which residual sequence has the lowest average evalue
 */
 process findResidualBestRepresentatives {
-  container = 'veupathdb/orthofinder:1.8.0'
+  container = 'veupathdb/orthofinder:1.9.2'
 
   input:
     path groupData
@@ -87,7 +87,7 @@ process removeEmptyGroups {
 *  grab all best representative sequences.  use the group id as the defline
 */
 process makeResidualBestRepresentativesFasta {
-  container = 'veupathdb/orthofinder:1.8.0'
+  container = 'veupathdb/orthofinder:1.9.2'
 
   publishDir "$params.outputDir/", mode: "copy"
 
@@ -107,7 +107,7 @@ process makeResidualBestRepresentativesFasta {
 *  Translate best rep file to hold actual sequenceIds, not OF internal ids
 */
 process translateBestRepsFile {
-  container = 'veupathdb/orthofinder:1.8.0'
+  container = 'veupathdb/orthofinder:1.9.2'
 
   publishDir "$params.outputDir/", mode: "copy", saveAs: { filename -> "residualBestReps.txt" }
 
@@ -133,7 +133,7 @@ process translateBestRepsFile {
  * @return A file that lists all of the groups that do not have a file present
 */
 process checkForMissingGroups {
-  container = 'veupathdb/orthofinder:1.8.0'
+  container = 'veupathdb/orthofinder:1.9.2'
 
   input:
     path allDiamondSimilarities
@@ -151,7 +151,7 @@ process checkForMissingGroups {
 }
 
 process calculateResidualGroupStats {
-  container = 'veupathdb/orthofinder:1.8.0'
+  container = 'veupathdb/orthofinder:1.9.2'
 
   input:
     path bestRepresentatives
@@ -168,7 +168,7 @@ process calculateResidualGroupStats {
 
 
 process  createIntraResidualGroupBlastFile {
-  container = 'veupathdb/orthofinder:1.8.0'
+  container = 'veupathdb/orthofinder:1.9.2'
 
   publishDir "$params.outputDir/", mode: "copy"
 
