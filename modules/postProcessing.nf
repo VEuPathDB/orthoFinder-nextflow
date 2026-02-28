@@ -165,10 +165,10 @@ workflow postProcessingWorkflow {
                                                                coreBestRepsFasta)
 
     // As we get new residual groups we need to compare core best reps
-    coreBestRepsSubset = coreBestRepsFasta.splitFasta(by:1000, file:true)
+    bestRepsSubset = coreAndResidualBestRepFasta.splitFasta(by:1000, file:true)
 
     // run diamond for best representatives to find similar ortholog groups
-    bestRepsSelfDiamond(coreBestRepsSubset,coreAndResidualBestRepFasta).collectFile(name: 'similar_groups.tsv',
+    bestRepsSelfDiamond(bestRepsSubset,coreAndResidualBestRepFasta).collectFile(name: 'similar_groups.tsv',
                                                                                     storeDir: params.outputDir)
 
     fullOrthoProteome = combineProteomes(params.coreAndPeripheralProteome,params.residualFasta)
