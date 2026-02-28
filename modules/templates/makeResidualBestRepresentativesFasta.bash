@@ -2,20 +2,15 @@
 
 set -euo pipefail
 
-FASTA=proteome.fasta
 SEQIDS=sequenceIds.txt
 
-OUTPUT=bestReps.fasta
+samtools faidx $residualFasta
 
-cat $orthofinderWorkingDir/*.fa >\$FASTA
-
-samtools faidx \$FASTA
-
-cut -f 2 $bestRepresentatives >\$SEQIDS
+cut -f 2 $bestRepresentatives > \$SEQIDS
 
 # this will get fasta for all seq ids
 
-samtools faidx -r \$SEQIDS \$FASTA | makeBestRepresentativesFasta.pl --bestReps $bestRepresentatives --outputFile \$OUTPUT
+samtools faidx -r \$SEQIDS $residualFasta | makeBestRepresentativesFasta.pl --bestReps $bestRepresentatives --outputFile bestReps.fasta
 
 echo "Done"
 

@@ -8,6 +8,8 @@ nextflow.enable.dsl=2
 include { coreWorkflow; } from './modules/core.nf'
 include { peripheralWorkflow } from './modules/peripheral.nf'
 include { residualWorkflow;} from './modules/residual.nf'
+include { postResidualWorkflow;} from './modules/postResidual.nf'
+include { postProcessingWorkflow;} from './modules/postProcessing.nf'
 
 //---------------------------------------------------------------
 // core
@@ -44,6 +46,30 @@ workflow peripheralEntry {
 
   peripheralWorkflow(inputFile)
    
+}
+
+//---------------------------------------------------------------
+// residual
+//---------------------------------------------------------------
+
+workflow residualEntry {
+  residualWorkflow(params.residualFastaDir)
+}
+
+//---------------------------------------------------------------
+// postResidual
+//---------------------------------------------------------------
+
+workflow postResidualEntry {
+  postResidualWorkflow(Channel.fromPath(params.groupsFile))
+}
+
+//---------------------------------------------------------------
+// postProcessing
+//---------------------------------------------------------------
+
+workflow postProcessingEntry {
+  postProcessingWorkflow(Channel.fromPath(params.coreBestRepsFasta))
 }
 
 //---------------------------------------------------------------

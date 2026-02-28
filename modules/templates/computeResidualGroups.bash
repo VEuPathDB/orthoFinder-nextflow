@@ -7,3 +7,5 @@ ln -s $orthofinderWorkingDir/* ./
 orthofinder -a 5 -b . -og
 
 ln -s OrthoFinder/Results* ./Results
+
+cp Results/Orthogroups/Orthogroups.txt .
