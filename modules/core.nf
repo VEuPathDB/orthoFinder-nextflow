@@ -25,7 +25,7 @@ include {bestRepsSelfDiamond as coreBestRepsToCoreDiamond;
  * @return outputDir contains a directory of Blast*.txt files with mapped ids
  */
 process mapCachedBlasts {
-    container = 'veupathdb/orthofinder:1.9.3'
+    container 'veupathdb/orthofinder:1.9.3'
 
     input:
     path previousDiamondCacheDirectory

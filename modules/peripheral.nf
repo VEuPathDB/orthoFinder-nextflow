@@ -68,7 +68,7 @@ process createDatabase {
  * @return fasta The peripheral organism proteome
 */
 process peripheralDiamond {
-  container = 'veupathdb/diamondsimilarity:1.0.0'
+  container 'veupathdb/diamondsimilarity:1.0.0'
 
   publishDir "$params.outputDir/newPeripheralDiamondCache", mode: "copy", pattern: "*.out"
 

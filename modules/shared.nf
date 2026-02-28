@@ -103,7 +103,7 @@ process orthoFinderSetup {
 * @return Blast*.txt is the resulting file (either from cache or new)
 */
 process diamond {
-  container = 'veupathdb/diamondsimilarity:1.0.0'
+  container 'veupathdb/diamondsimilarity:1.0.0'
 
   publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "Blast*.txt"
 
@@ -223,7 +223,7 @@ process makeDiamondResultsFile {
 }
 
 process bestRepsSelfDiamond {
-  container = 'veupathdb/diamondsimilarity:1.0.0'
+  container 'veupathdb/diamondsimilarity:1.0.0'
 
   input:
     path bestRepSubset
