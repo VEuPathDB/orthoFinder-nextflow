@@ -237,7 +237,7 @@ process combinePeripheralAndCoreSimilarities {
  *  Splits blast peripheral diamond similarities by group.
  *
  * @param blastFile: Pairwise blast results between peripheral sequences and the core sequences
- * @param groupsFile: Core and periphearl groups file
+ * @param groupsFile: Core and peripheral groups file
  * @return final Pairwise blast result files per group containing all results involving core and peripheral sequences to sequences in the group which they were assigned
 */
 process makePeripheralOrthogroupDiamondFiles {
@@ -409,8 +409,8 @@ workflow peripheralWorkflow {
     residualAndPeripheralFastas = makeResidualAndPeripheralFastas(groupsAndSimilarities.groups,
                                                                   groupsAndSimilarities.fasta)
 
-    residualFasta = residualAndPeripheralFastas.residualFasta.collectFile(name: 'residual.fasta', storeDir: params.outputDir);
-    peripheralFasta = residualAndPeripheralFastas.peripheralFasta.collectFile(name: 'peripheral.fasta', storeDir: params.outputDir);
+    residualFasta = residualAndPeripheralFastas.residualFasta.collectFile(name: 'residuals.fasta', storeDir: params.outputDir);
+    peripheralFasta = residualAndPeripheralFastas.peripheralFasta.collectFile(name: 'peripherals.fasta', storeDir: params.outputDir);
 
     // Combine core and peripheral proteomes into a singular file
     combinedProteome = combineProteomes(uncompressAndMakeCoreFastaResults.combinedProteomesFasta,
