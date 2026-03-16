@@ -109,8 +109,6 @@ process makeResidualBestRepresentativesFasta {
 process translateBestRepsFile {
   container = 'veupathdb/orthofinder:1.9.3'
 
-  publishDir "$params.outputDir/", mode: "copy", saveAs: { filename -> "residualBestReps.txt" }
-
   input:
     path sequenceMapping
     path bestReps
@@ -121,6 +119,29 @@ process translateBestRepsFile {
 
   script:
     template 'translateBestRepsFile.bash'
+}
+
+
+/**
+ * For groups with no intra-group diamond similarity data, pick the first sequence
+ * from the groups file as the best representative.
+ */
+process addFirstSeqForGroupsWithNoBestRep {
+
+  publishDir "$params.outputDir/", mode: "copy", saveAs: { filename -> "residualBestReps.txt" }
+
+  input:
+    path groupsFile
+    path bestReps
+
+  output:
+    path 'completeBestReps.txt'
+
+  script:
+    """
+    awk 'NR==FNR{found[\$1]=1; next} {split(\$0, a, ": "); group=a[1]; split(a[2], seqs, " "); if(!(group in found)) print group"\\t"seqs[1]}' $bestReps $groupsFile > missingReps.txt
+    cat $bestReps missingReps.txt > completeBestReps.txt
+    """
 }
 
 
@@ -243,11 +264,15 @@ workflow postResidualWorkflow {
                                                    combinedBestRepresentatives,
 			                           "residual")
 
-    createIntraResidualGroupBlastFile(diamondSimilaritiesPerGroup.collect(), params.sequenceMapping, translatedBestRepsFile)
-    
+    // add first sequence as best rep for any group that had no intra-group blast hits
+    completeBestRepsFile = addFirstSeqForGroupsWithNoBestRep(residualGroupsFile.groups,
+                                                             translatedBestRepsFile)
+
+    createIntraResidualGroupBlastFile(diamondSimilaritiesPerGroup.collect(), params.sequenceMapping, completeBestRepsFile)
+
 
     // fasta file with all seqs for best representative sequence wirh defline as group id
-    bestRepresentativeFasta = makeResidualBestRepresentativesFasta(translatedBestRepsFile,
+    bestRepresentativeFasta = makeResidualBestRepresentativesFasta(completeBestRepsFile,
                                                                    params.residualFasta)
 
     missingGroups = checkForMissingGroups(allDiamondSimilarities.flatten().collect(),

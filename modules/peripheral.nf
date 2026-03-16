@@ -126,8 +126,6 @@ process assignGroups {
 process makeResidualAndPeripheralFastas {
   container = 'veupathdb/orthofinder:1.9.3'
 
-  publishDir params.outputDir, mode: "copy"
-  
   input:
     path groups
     path seqFile
@@ -411,8 +409,8 @@ workflow peripheralWorkflow {
     residualAndPeripheralFastas = makeResidualAndPeripheralFastas(groupsAndSimilarities.groups,
                                                                   groupsAndSimilarities.fasta)
 
-    residualFasta = residualAndPeripheralFastas.residualFasta.collectFile(name: 'residual.fasta');
-    peripheralFasta = residualAndPeripheralFastas.peripheralFasta.collectFile(name: 'peripheral.fasta');
+    residualFasta = residualAndPeripheralFastas.residualFasta.collectFile(name: 'residual.fasta', storeDir: params.outputDir);
+    peripheralFasta = residualAndPeripheralFastas.peripheralFasta.collectFile(name: 'peripheral.fasta', storeDir: params.outputDir);
 
     // Combine core and peripheral proteomes into a singular file
     combinedProteome = combineProteomes(uncompressAndMakeCoreFastaResults.combinedProteomesFasta,
