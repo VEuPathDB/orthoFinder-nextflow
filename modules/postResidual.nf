@@ -1,6 +1,31 @@
 include {splitOrthologGroupsPerSpecies; makeOrthogroupDiamondFile;
-	 splitProteomeByGroup; speciesFileToList;
+         speciesFileToList;
 } from './shared.nf'
+
+
+/**
+ * Split the combined core and peripheral proteome by group
+ *
+ * @param proteome: The full combined core and peripheral proteome
+ * @param groups: The full groups file
+ * @param outdated: The outdated organism file  
+ * @return fasta A fasta file per group
+*/
+process splitProteomeByGroup {
+  container = 'veupathdb/orthofinder:1.9.3'
+
+  publishDir "$params.outputDir/residualGroupFastas", mode: "copy"
+
+  input:
+    path proteome
+    path groups
+
+  output:
+    path '*.fasta'
+
+  script:
+    template 'splitProteomeByGroup.bash'
+}
 
 
 /**

@@ -7,7 +7,7 @@ include { calculateGroupStats; calculateGroupStats as calculateCoreGroupStats;
 	  collectDiamondSimilaritesPerGroup; //splitBySize;
 	  createGeneTrees; createGeneTrees as createLargeGeneTrees;
           runMash; runMash as runCoreMash;
-	  splitProteomeByGroup; combineProteomes;
+	  combineProteomes;
         } from './shared.nf'
 include { residualWorkflow } from './residual.nf'
 
@@ -374,6 +374,32 @@ process checkForMissingCoreGroups {
     checkForMissingGroups.pl $allDiamondSimilarities $buildVersion $groupsFile
     """
 }
+
+
+/**
+ * Split the combined core and peripheral proteome by group
+ *
+ * @param proteome: The full combined core and peripheral proteome
+ * @param groups: The full groups file
+ * @param outdated: The outdated organism file  
+ * @return fasta A fasta file per group
+*/
+process splitProteomeByGroup {
+  container = 'veupathdb/orthofinder:1.9.3'
+
+  publishDir "$params.outputDir/groupFastas", mode: "copy"
+
+  input:
+    path proteome
+    path groups
+
+  output:
+    path '*.fasta'
+
+  script:
+    template 'splitProteomeByGroup.bash'
+}
+
 
 workflow peripheralWorkflow { 
   take:
