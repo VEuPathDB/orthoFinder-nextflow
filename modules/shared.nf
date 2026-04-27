@@ -238,30 +238,6 @@ process bestRepsSelfDiamond {
 
 
 /**
- * Create a gene tree per group
- *
- * @param fasta: A group fasta file from the keepSeqIdsFromDeflines process  
- * @return tree Output group tree file
-*/
-process createGeneTrees {
-  container = 'veupathdb/orthofinder:1.9.3'
-
-  publishDir "$params.outputDir/geneTrees", mode: "copy", pattern: "*.tree"
-  publishDir "$params.outputDir/groupAlignments", mode: "copy", pattern: "*.alignment"
-
-  input:
-    path fasta
-
-  output:
-    path '*.tree', optional: true
-    path '*.alignment', optional: true
-
-  script:
-    template 'createGeneTrees.bash'
-}
-
-
-/**
  *  Runs mash to generate group statistics
  *
  * @param fasta: A collection of group fasta files

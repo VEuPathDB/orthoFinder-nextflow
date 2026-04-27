@@ -1,2 +1,0 @@
-0: ahos.fasta
-1: apis.fasta

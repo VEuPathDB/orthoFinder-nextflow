@@ -10,6 +10,9 @@ include { peripheralWorkflow } from './modules/peripheral.nf'
 include { residualWorkflow;} from './modules/residual.nf'
 include { postResidualWorkflow;} from './modules/postResidual.nf'
 include { postProcessingWorkflow;} from './modules/postProcessing.nf'
+include { updatePeripheralWorkflow } from './modules/updatePeripheral.nf'
+include { updateResidualWorkflow } from './modules/updateResidual.nf'
+include { postUpdateWorkflow } from './modules/postUpdate.nf'
 
 //---------------------------------------------------------------
 // core
@@ -70,6 +73,37 @@ workflow postResidualEntry {
 
 workflow postProcessingEntry {
   postProcessingWorkflow(Channel.fromPath(params.coreBestRepsFasta))
+}
+
+//---------------------------------------------------------------
+// updatePeripheral
+//---------------------------------------------------------------
+
+workflow updatePeripheralEntry {
+  if(params.newPeripheralProteomes) {
+    inputFile = Channel.fromPath(params.newPeripheralProteomes)
+  }
+  else {
+    throw new Exception("Missing params.newPeripheralProteomes")
+  }
+
+  updatePeripheralWorkflow(inputFile)
+}
+
+//---------------------------------------------------------------
+// updateResidual
+//---------------------------------------------------------------
+
+workflow updateResidualEntry {
+  updateResidualWorkflow(params.newResidualFastaDir)
+}
+
+//---------------------------------------------------------------
+// postUpdate
+//---------------------------------------------------------------
+
+workflow postUpdateEntry {
+  postUpdateWorkflow(Channel.fromPath(params.coreBestRepsFasta))
 }
 
 //---------------------------------------------------------------

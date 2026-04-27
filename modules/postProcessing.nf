@@ -194,9 +194,9 @@ workflow postProcessingWorkflow {
         params.coreAndPeripheralProteome
     )
 
-    createFastGeneTrees(
-        residualFiltered.fastas.mix(coreFiltered.filtered)
-            .collect().flatten().collate(1000)
-    )
+    //createFastGeneTrees(
+    //    residualFiltered.fastas.mix(coreFiltered.filtered)
+    //        .collect().flatten().collate(1000)
+    //)
 }
 

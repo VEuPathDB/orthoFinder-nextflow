@@ -5,7 +5,7 @@ include {bestRepsSelfDiamond as coreBestRepsToCoreDiamond;
          bestRepsSelfDiamond as residualBestRepsToCoreAndResidualDiamond;
          bestRepsSelfDiamond as coreBestRepsToResidualDiamond;
          collectDiamondSimilaritesPerGroup;
-	 createGeneTrees; listToPairwiseComparisons;
+	 listToPairwiseComparisons;
 	 moveUnambiguousAminoAcidSequencesFirst; orthoFinderSetup;
 	 speciesFileToList; diamond;
 	 makeDiamondResultsFile; splitOrthologGroupsPerSpecies;

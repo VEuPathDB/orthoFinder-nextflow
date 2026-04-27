@@ -5,7 +5,6 @@ nextflow.enable.dsl=2
 include { calculateGroupStats; calculateGroupStats as calculateCoreGroupStats;
           uncompressFastas; uncompressFastas as uncompressPeripheralFastas;
 	  collectDiamondSimilaritesPerGroup; //splitBySize;
-	  createGeneTrees; createGeneTrees as createLargeGeneTrees;
           runMash; runMash as runCoreMash;
 	  combineProteomes;
         } from './shared.nf'
@@ -497,10 +496,6 @@ workflow peripheralWorkflow {
     // Creating Core + Peripheral Group Fasta Channels By Size
     // JB: Comment this out as it isn't used anywhere and causing errors when running
     //splitBySizeResults = splitBySize(splitCombinedProteomesByGroupResults.collect().flatten().collate(50))
-
-    // Creating Core + Peripheral Gene Trees
-    //createGeneTrees(splitBySizeResults.small)
-    //createLargeGeneTrees(splitBySizeResults.large.collect().flatten())
 
     // Make core best representative fasta tile with group number as defline
     bestRepresentativeFasta = makeCoreBestRepresentativesFasta(bestRepresentatives,uncompressAndMakeCoreFastaResults.combinedProteomesFasta)
