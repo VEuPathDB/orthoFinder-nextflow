@@ -82,6 +82,8 @@ system('date');
 # -------------------------
 # 3) Process one group at a time
 # -------------------------
+my %writtenCount;
+
 print "Processing groups\n";
 system('date');
 foreach my $groupId (sort keys %groupsHash) {
@@ -91,16 +93,19 @@ foreach my $groupId (sort keys %groupsHash) {
         print $log "Cannot open $filename: $!\n";
         next;
     };
+    $writtenCount{$groupId} = 0;
     foreach my $seqId (@{$groupsHash{$groupId}}) {
         if (exists $seqToSeq{$seqId}) {
             print $out ">$seqId\n$seqToSeq{$seqId}\n";
+            $writtenCount{$groupId}++;
         } else {
-	    $seqId =~ s/_mRNA/:mRNA/g;
-            $seqId =~ s/_RNA/:RNA/g;
-            if (exists $seqToSeq{$seqId}) {
-                print $out ">$seqId\n$seqToSeq{$seqId}\n";
-            }
-            else {
+            my $convertedId = $seqId;
+            $convertedId =~ s/_mRNA/:mRNA/g;
+            $convertedId =~ s/_RNA/:RNA/g;
+            if (exists $seqToSeq{$convertedId}) {
+                print $out ">$convertedId\n$seqToSeq{$convertedId}\n";
+                $writtenCount{$groupId}++;
+            } else {
                 print $log "Sequence $seqId not found in proteome for group $groupId\n";
             }
         }
@@ -113,13 +118,16 @@ system('date');
 # -------------------------
 # 4) Completeness check
 # -------------------------
-foreach my $group (keys %groupSizeHash) {
-    my $written = @{$groupsHash{$group}};
-    if ($written != $groupSizeHash{$group}) {
-        print $log "Group $group incomplete: $written of $groupSizeHash{$group} sequences written\n";
-        die "Group $group incomplete: $written of $groupSizeHash{$group} sequences written\n";
+my $allComplete = 1;
+foreach my $group (sort keys %groupSizeHash) {
+    my $written   = $writtenCount{$group} // 0;
+    my $expected  = $groupSizeHash{$group};
+    if ($written != $expected) {
+        print $log "Group $group incomplete: $written of $expected sequences written\n";
+        $allComplete = 0;
     }
 }
+die "ERROR: One or more group FASTAs are incomplete. See bad_headers.log for details.\n" unless $allComplete;
 
 close $log;
 print "Processing complete. See bad_headers.log for warnings.\n";
