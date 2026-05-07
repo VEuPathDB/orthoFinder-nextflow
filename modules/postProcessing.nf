@@ -185,14 +185,14 @@ workflow postProcessingWorkflow {
     residualGroupFastas = Channel.fromPath("${params.residualGroupFastas}/*.fasta")
 
     // Residual: keep only groups with 3 <= count < 1000; skip >= 1000
-    residualFiltered = filterResidualGroups(residualGroupFastas.collate(10000))
+    //residualFiltered = filterResidualGroups(residualGroupFastas.collate(10000))
 
     // Core+peripheral: pass through if 3 <= count < 1000; if >= 1000, filter to
     // core sequences only and keep if the filtered result is 3 <= count < 1000
-    coreFiltered = filterForCoreSequences(
-        coreGroupFastas.collate(1000),
-        params.coreAndPeripheralProteome
-    )
+    //coreFiltered = filterForCoreSequences(
+    //    coreGroupFastas.collate(1000),
+    //    params.coreAndPeripheralProteome
+    //)
 
     //createFastGeneTrees(
     //    residualFiltered.fastas.mix(coreFiltered.filtered)
