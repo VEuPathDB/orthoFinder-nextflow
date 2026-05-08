@@ -378,6 +378,99 @@ flowchart TD
     p101 --> p102
 ```
 
+---
+
+## Workflow Synopsis
+
+### Overview
+
+This is a multi-stage Nextflow pipeline for protein ortholog group inference, built around the OrthoFinder MCL clustering algorithm. It is designed to handle large-scale comparative genomics data by splitting proteomes into "core" (high-confidence) and "peripheral" (lower-quality/partial) sets, clustering them progressively, and supporting incremental updates without reprocessing unchanged data.
+
+---
+
+### Phase 1: Full Discovery Pipeline
+
+The full pipeline runs in five stages:
+
+**1. Core** (`modules/core.nf`)
+The foundation of the entire workflow. Core proteomes — the highest-quality reference organisms — are processed through DIAMOND all-vs-all pairwise similarity searches, then clustered into ortholog groups by OrthoFinder's MCL algorithm. Per-group DIAMOND similarity files and a best-representative FASTA are produced for downstream use. A DIAMOND similarity cache is maintained so that unchanged organisms don't need to be re-searched in future runs. Singletons (proteins with no homologs) are assigned unique group IDs.
+
+**2. Peripheral** (`modules/peripheral.nf`)
+Peripheral proteomes are BLASTed against the core best-representative sequences. Each peripheral protein is assigned to the core group whose representative has the lowest e-value hit. Proteins that don't meet assignment thresholds are partitioned off as **residuals**. The result is an expanded groups file combining all core and peripheral sequences, plus per-group FASTAs and updated similarity files that include peripheral-to-core scores.
+
+**3. Residual** (`modules/residual.nf`)
+The residual sequences — those peripheral proteins that could not be assigned to any core group — are clustered independently using the same OrthoFinder MCL pipeline used in core. This catches distant homology relationships that couldn't be anchored to an existing group.
+
+**4. Post-Residual** (`modules/postResidual.nf`)
+Residual groups are reformatted with a distinguishing "R" prefix (e.g., `OGR7r1_*`) and processed to identify best representatives and compute group statistics. Per-group FASTAs and a best-reps FASTA are published.
+
+**5. Post-Processing** (`modules/postProcessing.nf`)
+The final merge stage. Core+peripheral and residual outputs are unified into a single groups file, proteome FASTA, and DIAMOND database with group IDs embedded in sequence deflines. A self-DIAMOND search across all best representatives identifies similar groups. Groups are filtered by size (3 ≤ n < 1000 sequences) for downstream tree inference.
+
+---
+
+### Phase 2: Incremental Update Pipeline
+
+When the **core sequences have not changed**, the expensive core clustering step can be skipped entirely. Only new peripheral organisms need to be processed, using three update-specific modules:
+
+**6. Update-Peripheral** (`modules/updatePeripheral.nf`)
+New peripheral proteomes are run through the same DIAMOND-vs-core + group-assignment logic as the original peripheral workflow. New sequences are appended to the existing core+peripheral groups file rather than re-clustering from scratch. Sequences that don't assign to any core group become **new residuals**, packaged for the next stage. Best representatives are not recomputed — existing representatives are reused and statistics are recalculated on top of them, conserving compute.
+
+**7. Update-Residual** (`modules/updateResidual.nf`)
+New residuals from the update-peripheral stage are clustered with OrthoFinder into new residual groups, assigned a new sub-version ID (e.g., `OGR7r2_*`). These new groups are then **appended** to the existing residual groups file rather than replacing it. Existing residual groups (`OGR7r1_*`) are fully preserved — only genuinely new residual proteins are processed through the expensive clustering step.
+
+**8. Post-Update** (`modules/postUpdate.nf`)
+Mirrors post-processing for the update cycle. Existing and new residual best-rep FASTAs are merged, all proteomes and group files are unified, and final outputs (full groups file, full proteome, DIAMOND database) are produced with the same structure as the full pipeline's post-processing stage.
+
+---
+
+### Data Flow
+
+```
+Full Pipeline:
+  Core Proteomes
+      |
+  [core] ──────────────────────────────────> reformattedGroups.txt
+      |                                       groupDiamondResults/
+  Peripheral Proteomes                        diamondCache/
+      |
+  [peripheral] ────────────────────────────> GroupsFile.txt (core+peripheral)
+      |                                       groupFastas/
+  residualFastas.tar.gz                       coreBestReps.fasta
+      |
+  [residual] ──────────────────────────────> Orthogroups.txt
+      |
+  [postResidual] ──────────────────────────> reformattedGroups.txt (OGR7r1_*)
+      |                                       bestReps.fasta
+  [postProcessing] ────────────────────────> fullGroupFile.txt
+                                              fullProteome.fasta
+                                              ortho{version}db.dmnd
+
+Update Pipeline (core unchanged):
+  New Peripheral Proteomes
+      |
+  [updatePeripheral] ──────────────────────> GroupsFile.txt (appended)
+      |                                       groupFastas/ (updated)
+  residualFastas.tar.gz (new residuals only)
+      |
+  [updateResidual] ────────────────────────> updatedResidualGroups.txt
+      |                                         (OGR7r1_* preserved + OGR7r2_* new)
+  [postUpdate] ────────────────────────────> fullGroupFile.txt
+                                              fullProteome.fasta
+                                              ortho{version}db.dmnd
+```
+
+---
+
+### Key Design Principles
+
+- **Caching at every boundary**: DIAMOND results are cached by organism pair; the cache is invalidated selectively for updated organisms, preserving all other results.
+- **Append, don't rebuild**: Both update workflows append to existing outputs rather than re-clustering, making incremental updates proportional to new data rather than total data size.
+- **Shared process library**: `modules/shared.nf` provides reusable processes (DIAMOND, OrthoFinder setup, FASTA splitting, best-rep selection) imported by multiple workflows.
+- **Version-tagged group IDs**: Groups carry a build version in their ID (e.g., `OG7_*`, `OGR7r1_*`, `OGR7r2_*`), enabling tracking of which build introduced each group.
+
+---
+
 **<p align=center>Explanation of Config File Parameters</p>**
 
 | core | peripheral | Parameter | Value | Description |
