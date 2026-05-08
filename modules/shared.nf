@@ -105,7 +105,10 @@ process orthoFinderSetup {
 process diamond {
   container 'veupathdb/diamondsimilarity:1.0.0'
 
-  publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "Blast*.txt"
+  // Publish flat Blast*.txt files (preserving cache format) by stripping the batch dir prefix
+  publishDir "$params.outputDir/diamondCache", mode: "copy",
+             pattern: "blastBatch_*/Blast*.txt",
+             saveAs: { fn -> fn.replaceAll(~/^blastBatch_[^\/]+\//, "") }
 
   input:
     tuple val(target), val(queries)
@@ -114,7 +117,7 @@ process diamond {
     val outputList
 
   output:
-    path 'Blast*.txt', emit: blast
+    path "blastBatch_${target}", emit: blast
 
   script:
     template 'diamond.bash'
@@ -218,7 +221,11 @@ process makeDiamondResultsFile {
 
   script:
     """
-    for file in Blast*; do cat \$file >> blastsFile.txt; done
+    for dir in blastBatch_*/; do
+      for file in "\${dir}"Blast*.txt; do
+        cat "\$file" >> blastsFile.txt
+      done
+    done
     """
 }
 
