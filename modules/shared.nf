@@ -117,7 +117,7 @@ process diamond {
     val outputList
 
   output:
-    path "blastBatch_${target}", emit: blast
+    path "blastBatch_${target}_${queries[0]}", emit: blast
 
   script:
     template 'diamond.bash'
