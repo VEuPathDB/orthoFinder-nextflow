@@ -49,4 +49,18 @@ with open('SequenceIDs.txt') as f:
 
 with open('SequenceIDs.txt', 'w') as f:
     f.writelines(lines)
+
+# Strip full deflines from SequenceIDs.txt — keep only "internal_id: seq_id"
+lines = []
+with open('SequenceIDs.txt') as f:
+    for line in f:
+        parts = line.rstrip('\n').split(': ', 1)
+        if len(parts) == 2:
+            internal_id, defline = parts
+            seq_id = defline.split()[0] if defline.split() else defline
+            lines.append(internal_id + ': ' + seq_id + '\n')
+        else:
+            lines.append(line)
+with open('SequenceIDs.txt', 'w') as f:
+    f.writelines(lines)
 PYEOF
