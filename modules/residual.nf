@@ -45,11 +45,30 @@ process computeResidualGroups {
   output:
     path 'Orthogroups.txt', emit: orthologgroups
     path 'Results', emit: results
-    path 'SequenceIDs.txt'
+    path 'SequenceIDs.txt', emit: sequenceMapping
     path 'SpeciesIDs.txt'
 
   script:
     template 'computeResidualGroups.bash'
+}
+
+
+process fixResidualOrthologIds {
+  container = 'veupathdb/orthofinder:1.9.3'
+
+  publishDir "$params.outputDir/", mode: "copy"
+
+  input:
+    path 'Orthogroups.txt'
+    path 'SequenceIDs.txt'
+    path residualFasta
+
+  output:
+    path 'Orthogroups.txt', emit: orthologgroups
+    path 'SequenceIDs.txt', emit: sequenceMapping
+
+  script:
+    template 'fixResidualOrthologIds.bash'
 }
 
 
@@ -105,5 +124,11 @@ workflow residualWorkflow {
     diamondResultsFile = makeDiamondResultsFile(collectedDiamondResults)
 
     orthofinderGroupResults = computeResidualGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
+
+    fixResidualOrthologIds(
+        orthofinderGroupResults.orthologgroups,
+        orthofinderGroupResults.sequenceMapping,
+        residualFasta
+    )
 }
 
