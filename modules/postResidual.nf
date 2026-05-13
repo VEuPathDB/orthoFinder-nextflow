@@ -243,8 +243,10 @@ workflow postResidualWorkflow {
     residualProteomesByGroup = splitProteomeByGroup(params.residualFasta, residualGroupsFile.groups.splitText( by: 10000, file: true ))
 
     // get lists of species names and internal ids
-    speciesFile = Channel.fromPath( params.speciesMapping )
-    sequenceFile = Channel.fromPath( params.sequenceMapping )
+    // .first() converts queue channels to value channels so they are replicated
+    // to all 699 splitOrthologGroupsPerSpecies instances instead of consumed once
+    speciesFile = Channel.fromPath( params.speciesMapping ).first()
+    sequenceFile = Channel.fromPath( params.sequenceMapping ).first()
 
     speciesIdsList = speciesFileToList(speciesFile, 0);
     speciesNames = speciesFileToList(speciesFile, 1);
@@ -253,7 +255,7 @@ workflow postResidualWorkflow {
     speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(),
                                                       speciesFile,
                                                       sequenceFile,
-                                                      groupsFile.collect(),
+                                                      groupsFile.first(),
                                                       params.buildVersion,
                                                       params.residualBuildVersion,
                                                       "residual");
