@@ -68,10 +68,7 @@ process makeFullDiamondDatabaseWithGroups {
     path '*.dmnd'
 
   script:
-    """
-    createDiamondDatabaseWithGroups.pl --groups $fullGroupFile --proteome $fullProteome
-    diamond makedb --in fastaWithGroups.fasta --db ortho${buildVersion}db.dmnd
-    """
+    template 'makeFullDiamondDatabaseWithGroups.bash'
 }
 
 
