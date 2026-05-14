@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+from itertools import combinations
 
 proteome_fasta = sys.argv[1]
 group_file = sys.argv[2]
@@ -11,12 +12,18 @@ with open(proteome_fasta) as f:
         if line.startswith('>'):
             fasta_ids.add(line[1:].split()[0])
 
-def try_fix_id(seq_id):
+def find_fasta_id(seq_id):
     if seq_id in fasta_ids:
         return seq_id
-    for i, c in enumerate(seq_id):
-        if c == '_':
-            candidate = seq_id[:i] + ':' + seq_id[i+1:]
+    # Try replacing increasing numbers of '_' with ':' until a fasta match is found.
+    # Handles cases where OrthoFinder replaced multiple ':' with '_'.
+    underscore_positions = [i for i, c in enumerate(seq_id) if c == '_']
+    for n in range(1, len(underscore_positions) + 1):
+        for positions in combinations(underscore_positions, n):
+            chars = list(seq_id)
+            for pos in positions:
+                chars[pos] = ':'
+            candidate = ''.join(chars)
             if candidate in fasta_ids:
                 return candidate
     return seq_id
@@ -27,7 +34,7 @@ with open(group_file) as f:
         parts = line.rstrip().split(': ', 1)
         if len(parts) == 2:
             group_id, seq_ids_str = parts
-            fixed_ids = [try_fix_id(s) for s in seq_ids_str.split()]
+            fixed_ids = [find_fasta_id(s) for s in seq_ids_str.split()]
             lines.append(group_id + ': ' + ' '.join(fixed_ids) + '\n')
         else:
             lines.append(line)
