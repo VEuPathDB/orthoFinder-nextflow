@@ -25,29 +25,51 @@ include { splitProteomeByGroup;
 
 
 /**
- * Appends newly created residual groups to the existing reformatted residual
- * groups file so downstream consumers see all groups in one place.
+ * Adds the existing residuals fasta into the new-residuals tar so OrthoFinder
+ * sees all residual sequences together and assigns them all to the new version.
  *
- * @param existingGroups: Reformatted residual groups from a previous postResidual run
- * @param newGroups: Reformatted residual groups produced by this update run
- * @return updatedResidualGroups.txt  Combined groups file with old and new entries
+ * @param newResidualFastasTar  tar.gz of per-organism fasta files for new residuals
+ * @param existingResidualsFasta  combined residuals.fasta from the previous run
+ * @return combinedResiduals.tar.gz  tar with existing residuals added as one extra file
  */
-process appendNewResidualGroups {
+process addExistingResidualsToFastasDir {
+  container = 'veupathdb/orthofinder:1.9.3'
+
+  input:
+    path newResidualFastasTar
+    path 'existingResiduals.fasta'
+
+  output:
+    path 'combinedResiduals.tar.gz'
+
+  script:
+    """
+    tar -xzf $newResidualFastasTar
+    tarDir=\$(tar -tzf $newResidualFastasTar | head -1 | cut -d/ -f1)
+    cp existingResiduals.fasta \${tarDir}/existingResiduals.fasta
+    tar -czf combinedResiduals.tar.gz \${tarDir}
+    """
+}
+
+
+/**
+ * Publishes the reformatted residual groups as updatedResidualGroups.txt so
+ * downstream cache and mapping steps find it at the expected path.
+ */
+process publishAsUpdatedResidualGroups {
   container = 'veupathdb/orthofinder:1.9.3'
 
   publishDir "$params.outputDir", mode: "copy"
 
   input:
-    path existingGroups
-    path 'newGroups.txt'
+    path 'reformattedGroups.txt'
 
   output:
     path 'updatedResidualGroups.txt'
 
   script:
     """
-    cp $existingGroups updatedResidualGroups.txt
-    cat newGroups.txt >> updatedResidualGroups.txt
+    cp reformattedGroups.txt updatedResidualGroups.txt
     """
 }
 
@@ -55,10 +77,15 @@ process appendNewResidualGroups {
 workflow updateResidualWorkflow {
   take:
     newResidualFastaDir
+    existingResidualFasta
 
   main:
-    // Prepare new residual proteomes for OrthoFinder (same steps as residual workflow)
-    proteomesForOrthofinder = moveUnambiguousAminoAcidSequencesFirst(newResidualFastaDir).collect()
+    // Combine existing residuals with new-organism residuals so OrthoFinder
+    // re-groups everything under the new residualBuildVersion prefix.
+    combinedFastaDir = addExistingResidualsToFastasDir(newResidualFastaDir, existingResidualFasta)
+
+    // Prepare combined residual proteomes for OrthoFinder
+    proteomesForOrthofinder = moveUnambiguousAminoAcidSequencesFirst(combinedFastaDir).collect()
 
     // Combine all new residual proteins into a single fasta
     newResidualFasta = createResidualFasta(proteomesForOrthofinder)
@@ -172,7 +199,7 @@ workflow updateResidualWorkflow {
         missingGroups
     ).collectFile(name: "new_residual_stats.txt", storeDir: params.outputDir + "/groupStats")
 
-    // Append new residual groups to the existing reformatted residual groups file.
-    // The combined file contains OGR7r1_* (existing) and OGR7r2_* (new) entries.
-    appendNewResidualGroups(params.existingResidualGroupsFile, newResidualGroupsFile.groups)
+    // Publish the complete new residual groups (all OGR${buildVersion}r${newResidualBuildVersion}_*)
+    // as updatedResidualGroups.txt, fully replacing the previous residual groups.
+    publishAsUpdatedResidualGroups(newResidualGroupsFile.groups)
 }

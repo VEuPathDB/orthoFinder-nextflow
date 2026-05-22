@@ -95,7 +95,10 @@ workflow updatePeripheralEntry {
 //---------------------------------------------------------------
 
 workflow updateResidualEntry {
-  updateResidualWorkflow(params.newResidualFastaDir)
+  updateResidualWorkflow(
+    params.newResidualFastaDir,
+    Channel.fromPath(params.existingResidualFasta)
+  )
 }
 
 //---------------------------------------------------------------
