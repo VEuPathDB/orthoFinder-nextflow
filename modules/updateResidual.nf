@@ -46,7 +46,16 @@ process addExistingResidualsToFastasDir {
     """
     tar -xzf $newResidualFastasTar
     tarDir=\$(tar -tzf $newResidualFastasTar | head -1 | cut -d/ -f1)
-    cp existingResiduals.fasta \${tarDir}/existingResiduals.fasta
+
+    # Collect sequence IDs already present in the new per-organism residual fastas
+    grep "^>" \${tarDir}/*.fasta 2>/dev/null | sed 's/^.*>//' | awk '{print \$1}' | sort > newIds.txt
+
+    # Add existingResiduals.fasta with those IDs excluded to avoid duplicates
+    # when an organism is re-processed and its residuals appear in both sources
+    awk 'BEGIN{ while((getline line < "newIds.txt") > 0) skip[line]=1 }
+         /^>/ { id=substr(\$0,2); split(id,a," "); keep=!(a[1] in skip) }
+         keep { print }' existingResiduals.fasta > \${tarDir}/existingResiduals.fasta
+
     tar -czf combinedResiduals.tar.gz \${tarDir}
     """
 }
