@@ -56,6 +56,9 @@ process addExistingResidualsToFastasDir {
          /^>/ { id=substr(\$0,2); split(id,a," "); keep=!(a[1] in skip) }
          keep { print }' existingResiduals.fasta > \${tarDir}/existingResiduals.fasta
 
+    # Don't include an empty file — OrthoFinder errors on empty fastas
+    [ -s "\${tarDir}/existingResiduals.fasta" ] || rm "\${tarDir}/existingResiduals.fasta"
+
     tar -czf combinedResiduals.tar.gz \${tarDir}
     """
 }
