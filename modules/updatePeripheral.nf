@@ -15,6 +15,7 @@ include { createDatabase;
           combinePeripheralAndCoreSimilarities;
           checkForMissingGroups;
           createCompressedResidualFastaDir;
+          createIntraGroupBlastFile;
           splitProteomeByGroup;
         } from './peripheral.nf'
 
@@ -142,6 +143,9 @@ workflow updatePeripheralWorkflow {
     // Recalculate group stats using the existing best representatives.
     // Best reps are intentionally NOT recalculated for an update run.
     existingBestReps = Channel.fromPath(params.existingBestReps)
+
+    createIntraGroupBlastFile(allSimilarities, params.coreTranslateSequenceFile, existingBestReps)
+
     calculateGroupStats(
         existingBestReps,
         allSimilarities,
