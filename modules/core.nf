@@ -127,6 +127,9 @@ process makeCoreOrthogroupDiamondFile {
 
 /**
 * write groups file for use in peripheral wf or to be loaded into relational db
+*
+* @param proteomes: the pre-orthofinder proteome fastas (real, unmangled sequence
+*   IDs) used as ground truth to reconcile any IDs orthofinder corrupted
 */
 process reformatGroupsFile {
   container = 'veupathdb/orthofinder:1.9.3'
@@ -138,6 +141,7 @@ process reformatGroupsFile {
     path translatedSingletons
     val buildVersion
     val coreOrResidual
+    path proteomes
 
   output:
     path 'reformattedGroups.txt'
@@ -214,5 +218,6 @@ workflow coreWorkflow {
     reformatGroupsFile(orthofinderGroupResults.orthologgroups,
                        translatedSingletonsFile,
                        params.buildVersion,
-                       coreOrResidual)
+                       coreOrResidual,
+                       proteomesForOrthofinder)
 }

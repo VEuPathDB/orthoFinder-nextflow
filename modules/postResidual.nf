@@ -47,6 +47,10 @@ process makeFullResidualSingletonsFile {
 
 
 
+/**
+* @param residualFasta: the pre-orthofinder residual proteome fasta (real, unmangled
+*   sequence IDs) used as ground truth to reconcile any IDs orthofinder corrupted
+*/
 process reformatResidualGroupsFile {
   container = 'veupathdb/orthofinder:1.9.3'
 
@@ -56,6 +60,7 @@ process reformatResidualGroupsFile {
     path groupsFile
     val buildVersion
     val residualBuildVersion
+    path residualFasta
 
   output:
     path 'reformattedGroups.txt', emit: groups
@@ -238,7 +243,7 @@ workflow postResidualWorkflow {
   main:
 
     // Final output format of residual groups. Adding R for residual, and build version.
-    residualGroupsFile = reformatResidualGroupsFile(groupsFile, params.buildVersion, params.residualBuildVersion)
+    residualGroupsFile = reformatResidualGroupsFile(groupsFile, params.buildVersion, params.residualBuildVersion, params.residualFasta)
 
     residualProteomesByGroup = splitProteomeByGroup(params.residualFasta, residualGroupsFile.groups.splitText( by: 10000, file: true ))
 
