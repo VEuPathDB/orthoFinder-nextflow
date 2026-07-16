@@ -39,15 +39,18 @@ for real_id in fasta_ids:
 
 fixed = 0
 unresolved = set()
+matched_real_ids = set()
 
 
 def fix_id(seq_id):
     global fixed
     if seq_id in fasta_ids:
+        matched_real_ids.add(seq_id)
         return seq_id
     key = normalize(seq_id)
     if key in normalized_index and key not in ambiguous_keys:
         fixed += 1
+        matched_real_ids.add(normalized_index[key])
         return normalized_index[key]
     unresolved.add(seq_id)
     return seq_id
@@ -106,3 +109,19 @@ if unresolved:
         f"assignment.\n"
     )
     sys.exit(1)
+
+# SequenceIDs.txt is OrthoFinder's own complete manifest of every sequence it was
+# given (singleton or not), so this is the correct point to verify OrthoFinder
+# didn't silently drop a residual protein entirely. Checking full-membership-file
+# coverage instead (Orthogroups.txt) would false-positive on every legitimate
+# singleton, since OrthoFinder excludes singletons from Orthogroups.txt by design.
+missing = fasta_ids - matched_real_ids
+if missing:
+    preview = ', '.join(list(missing)[:5])
+    sys.stderr.write(
+        f"fixResidualOrthologIds: ERROR {len(missing):,} real proteome ID(s) from "
+        f"{residual_fasta} do not appear anywhere in SequenceIDs.txt (e.g. {preview}). "
+        f"OrthoFinder appears to have silently dropped these sequences.\n"
+    )
+    sys.exit(1)
+sys.stderr.write(f"fixResidualOrthologIds: full coverage confirmed -- all {len(fasta_ids):,} proteome ID(s) accounted for in SequenceIDs.txt\n")

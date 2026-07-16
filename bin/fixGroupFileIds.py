@@ -14,12 +14,20 @@ direction is needed.
 import sys
 import glob
 
-if len(sys.argv) < 3:
-    sys.stderr.write("Usage: fixGroupFileIds.py <proteome_fasta_or_glob> [...] <group_file>\n")
+argv = sys.argv[1:]
+require_full_coverage = False
+if argv and argv[0] == '--require-full-coverage':
+    require_full_coverage = True
+    argv = argv[1:]
+
+if len(argv) < 2:
+    sys.stderr.write(
+        "Usage: fixGroupFileIds.py [--require-full-coverage] <proteome_fasta_or_glob> [...] <group_file>\n"
+    )
     sys.exit(1)
 
-proteome_args = sys.argv[1:-1]
-group_file = sys.argv[-1]
+proteome_args = argv[:-1]
+group_file = argv[-1]
 
 
 def normalize(seq_id):
@@ -48,15 +56,18 @@ for real_id in real_ids:
 
 fixed = 0
 unresolved = []
+matched_real_ids = set()
 
 
 def resolve(seq_id):
     global fixed
     if seq_id in real_ids:
+        matched_real_ids.add(seq_id)
         return seq_id
     key = normalize(seq_id)
     if key in normalized_index and key not in ambiguous_keys:
         fixed += 1
+        matched_real_ids.add(normalized_index[key])
         return normalized_index[key]
     unresolved.append(seq_id)
     return seq_id
@@ -86,3 +97,15 @@ if unresolved:
         f"(e.g. {preview}). Every sequence must resolve to a group assignment.\n"
     )
     sys.exit(1)
+
+if require_full_coverage:
+    missing = real_ids - matched_real_ids
+    if missing:
+        preview = ', '.join(list(missing)[:5])
+        sys.stderr.write(
+            f"fixGroupFileIds: ERROR {len(missing):,} real proteome ID(s) do not appear "
+            f"anywhere in {group_file} (e.g. {preview}). Every sequence must have a group "
+            f"assignment.\n"
+        )
+        sys.exit(1)
+    sys.stderr.write(f"fixGroupFileIds: full coverage confirmed -- all {len(real_ids):,} proteome ID(s) accounted for\n")

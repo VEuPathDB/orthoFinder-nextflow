@@ -2,6 +2,6 @@
 
 set -euo pipefail
 
-fixGroupFileIds.py $fullProteome $fullGroupFile
+fixGroupFileIds.py --require-full-coverage $fullProteome $fullGroupFile
 createDiamondDatabaseWithGroups.pl --groups fixedGroupFile.txt --proteome $fullProteome
 diamond makedb --in fastaWithGroups.fasta --db ortho${buildVersion}db.dmnd
