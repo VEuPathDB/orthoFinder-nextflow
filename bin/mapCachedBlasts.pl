@@ -111,6 +111,7 @@ close NEW;
 # Creating a hash object to hold the cached species mapping information
 open(CACHE, $cachedSpeciesMapping) or die "cannot open file $cachedSpeciesMapping for reading: $!";
 my %speciesMap;
+my @unexpectedlyChanged;
 while(<CACHE>) {
     chomp;
     my ($organismId, $organismName) = split(/: /, $_);
@@ -132,15 +133,28 @@ while(<CACHE>) {
         next;
     }
 
-    # Step to make sure the organism sequence ids are indeed identical to last run. Should always be true if the organism wasn't identified as outdated in the outdated file
+    # Verify the organism's sequence ids are indeed identical to the last run. This should
+    # always be true for an organism not listed in the outdated organisms file -- if it
+    # isn't, that organism's proteome changed without being flagged as outdated, and its
+    # cached diamond results can no longer be trusted. Collect these and hard fail below
+    # rather than silently reusing mismatched cache data.
     if(&organismIsOutdated($organismId, $newOrganismId, $cachedSequenceMapping, $newSequenceMapping)) {
-        print STDERR "WARN:  Unexpected skipping of organism $organismName\n";
+        push(@unexpectedlyChanged, $organismName);
+        next;
     }
 
     # if we made it here, we can do the species mapping. Object holds new species mapping
     $speciesMap{$organismId} = $newOrganismId;
 }
 close CACHE;
+
+if(@unexpectedlyChanged) {
+    die "ERROR: the following organism(s) have different sequence IDs between the cached run "
+      . "and this run, but are not listed in the outdated organisms file ($outdated). Their "
+      . "proteomes appear to have changed -- add them to the outdated organisms file so their "
+      . "cached diamond results are not incorrectly reused:\n"
+      . join("\n", @unexpectedlyChanged) . "\n";
+}
 
 # Get array of cache blast files
 my @cachedBlastFiles = glob "$diamondCacheDir/Blast*.txt";
@@ -214,9 +228,10 @@ sub organismIsOutdated {
 
     # Example 1_0: Original Sequence Defline
 
-    # Retrieve the sequence ids from the cache, and the new sequence ids.
-    my $cachedSeqIds = `grep ${cachedOrganismId}_ ${cachedSequenceMapping} |cut -f 2 -d ' '`;
-    my $newSeqIds = `grep ${newOrganismId}_ ${newSequenceMapping} |cut -f 2 -d ' '`;
+    # Retrieve the sequence ids from the cache, and the new sequence ids. Anchored to the
+    # start of the line so organism 5 doesn't also match lines for organism 15, 25, etc.
+    my $cachedSeqIds = `grep "^${cachedOrganismId}_" ${cachedSequenceMapping} |cut -f 2 -d ' '`;
+    my $newSeqIds = `grep "^${newOrganismId}_" ${newSequenceMapping} |cut -f 2 -d ' '`;
 
     # These should always be identical if the organism wasn't identified as outdated in the outdated organisms file
     if($cachedSeqIds eq $newSeqIds) {
