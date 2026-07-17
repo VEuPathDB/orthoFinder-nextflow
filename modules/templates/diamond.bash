@@ -8,7 +8,7 @@ for query in ${queries.join(' ')}; do
     BLAST_FILE=$mappedBlastCache/Blast\${query}_${target}.txt
     if [ -f "\$BLAST_FILE" ]; then
         echo "Taking from Cache for \$BLAST_FILE"
-        ln -s \$BLAST_FILE blastBatch_${target}_${queries[0]}/
+        ln -s "\$PWD/\$BLAST_FILE" blastBatch_${target}_${queries[0]}/
     else
         echo "Running Diamond to generate Blast\${query}_${target}.txt"
         diamond blastp --ignore-warnings \
@@ -22,3 +22,7 @@ for query in ${queries.join(' ')}; do
 		--quiet
     fi
 done
+
+# Flat copies (dereferencing any cache-hit symlinks) at the task root for publishDir --
+# see the comment on this process's publishDir in shared.nf for why.
+cp -L blastBatch_${target}_${queries[0]}/Blast*.txt .

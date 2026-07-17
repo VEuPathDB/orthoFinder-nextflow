@@ -105,10 +105,11 @@ process orthoFinderSetup {
 process diamond {
   container 'veupathdb/diamondsimilarity:1.0.0'
 
-  // Publish flat Blast*.txt files (preserving cache format) by stripping the batch dir prefix
-  publishDir "$params.outputDir/diamondCache", mode: "copy",
-             pattern: "blastBatch_*/Blast*.txt",
-             saveAs: { fn -> fn.replaceAll(~/^blastBatch_[^\/]+\//, "") }
+  // Publish flat Blast*.txt files (preserving cache format). These are also copied to
+  // the task's root dir (see diamond.bash) because Nextflow won't publish files via a
+  // nested-glob output when those same files are also part of a whole-directory output
+  // (blastBatch_*, which downstream processes need to keep consuming as a directory).
+  publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "Blast*.txt"
 
   input:
     tuple val(target), val(queries)
@@ -118,6 +119,7 @@ process diamond {
 
   output:
     path "blastBatch_${target}_${queries[0]}", emit: blast
+    path "Blast*.txt"
 
   script:
     template 'diamond.bash'
