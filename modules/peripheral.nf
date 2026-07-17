@@ -38,7 +38,7 @@ process createCompressedResidualFastaDir {
 
 
 /**
- * Creates a diamond database from the core best representatives
+ * Creates a diamond database from the core sequences
  *
  * @param newdbfasta: An input fasta containing the core best representative sequences  
  * @return newdb.dmnd A diamond database to be used in diamond jobs
@@ -122,6 +122,7 @@ process assignGroups {
  * @param param: The peripheral organism proteome
  * @return residualFasta A fasta file containing the residual sequences (sequences that have not been assigned to a group)
  * @return peripheralFasta A fasta file containing the peripheral (non-residual) sequences
+ * @return organismCounts A single-line tsv: organism, count assigned to a core group, count residual, total
 */
 process makeResidualAndPeripheralFastas {
   container = 'veupathdb/orthofinder:1.9.3'
@@ -129,10 +130,11 @@ process makeResidualAndPeripheralFastas {
   input:
     path groups
     path seqFile
-        
+
   output:
     path 'residuals.fasta', emit: residualFasta
     path 'peripherals.fasta', emit: peripheralFasta
+    path 'organismGroupCounts.tsv', emit: organismCounts
 
   script:
     template 'makeResidualAndPeripheralFastas.bash'
@@ -437,6 +439,13 @@ workflow peripheralWorkflow {
 
     residualFasta = residualAndPeripheralFastas.residualFasta.collectFile(name: 'residuals.fasta', storeDir: params.outputDir);
     peripheralFasta = residualAndPeripheralFastas.peripheralFasta.collectFile(name: 'peripherals.fasta', storeDir: params.outputDir);
+
+    // per-organism counts of proteins assigned to a core group vs left residual
+    organismGroupCounts = residualAndPeripheralFastas.organismCounts.collectFile(
+        name: 'organismGroupCounts.tsv',
+        storeDir: params.outputDir,
+        seed: "organism\tcoreAssignedCount\tresidualCount\ttotalCount\n"
+    );
 
     // Combine core and peripheral proteomes into a singular file
     combinedProteome = combineProteomes(uncompressAndMakeCoreFastaResults.combinedProteomesFasta,
