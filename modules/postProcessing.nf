@@ -165,7 +165,10 @@ workflow postProcessingWorkflow {
     bestRepsSubset = coreAndResidualBestRepFasta.splitFasta(by:1000, file:true)
 
     // run diamond for best representatives to find similar ortholog groups
-    bestRepsSelfDiamond(bestRepsSubset,coreAndResidualBestRepFasta).collectFile(name: 'similar_groups.tsv',
+    // coreAndResidualBestRepFasta must be .collect()'d into a value channel here --
+    // otherwise Nextflow zips it lock-step against the N-item bestRepsSubset channel
+    // and bestRepsSelfDiamond only ever runs once, for the first batch.
+    bestRepsSelfDiamond(bestRepsSubset,coreAndResidualBestRepFasta.collect()).collectFile(name: 'similar_groups.tsv',
                                                                                     storeDir: params.outputDir)
 
     fullOrthoProteome = combineProteomes(params.coreAndPeripheralProteome,params.residualFasta)
