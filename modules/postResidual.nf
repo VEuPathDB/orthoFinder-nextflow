@@ -313,7 +313,7 @@ workflow postResidualWorkflow {
     					  residualGroupsFile.groups).collect()
 
     // Calculate residual group stats
-    calculateResidualGroupStats(combinedBestRepresentatives, allDiamondSimilarities, residualGroupsFile.groups, missingGroups).collectFile(name: "residual_stats.txt", storeDir: params.outputDir + "/groupStats")
+    calculateResidualGroupStats(completeBestRepsFile, allDiamondSimilarities, residualGroupsFile.groups, missingGroups).collectFile(name: "residual_stats.txt", storeDir: params.outputDir + "/groupStats")
 
 }
 
