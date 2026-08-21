@@ -4,8 +4,10 @@ nextflow.enable.dsl=2
 include { uncompressFastas as uncompressChangedFastas;
           makeResidualAndPeripheralFastas as splitAssignedAndResidual;
           combineProteomes;
+          calculateGroupStats as calculatePeripheralStatsForTouched;
+          calculateGroupStats as calculateCoreStatsForTouched;
         } from './shared.nf'
-include { createCompressedResidualFastaDir; makeCoreBestRepresentativesFasta } from './peripheral.nf'
+include { createCompressedResidualFastaDir; makeCoreBestRepresentativesFasta; createIntraGroupBlastFile } from './peripheral.nf'
 include { residualWorkflow } from './residual.nf'
 include { makeResidualBestRepresentativesFasta } from './postResidual.nf'
 
@@ -183,10 +185,94 @@ process findBestRepresentativesForTouchedGroups {
     path groupFile
 
   output:
-    path 'touchedBestReps.txt'
+    path 'touchedBestReps.txt', emit: bestReps
+    path 'missingTouchedGroups.txt', emit: missingGroups
 
   script:
     template 'findBestRepresentativesForTouchedGroups.bash'
+}
+
+
+/**
+ * Which organisms went through the core nextflow build (vs. peripheral) --
+ * the core cache's own SpeciesIDs.txt is exactly that set. Needed to compute
+ * the "core-only" group stats variant for touched groups.
+ */
+process extractCoreOrganisms {
+  input:
+    path coreSpeciesIds
+
+  output:
+    path 'coreOrganisms.txt'
+
+  script:
+    template 'extractCoreOrganisms.bash'
+}
+
+
+/**
+ * Filter one touched group's self-diamond .sim file down to core-organism-only
+ * pairs, for the "core-only" group stats variant.
+ */
+process filterSimByCoreOrganisms {
+  input:
+    path simFile
+    path proteinToOrganism
+    path coreOrganisms
+
+  output:
+    path '*.sim'
+
+  script:
+    template 'filterSimByCoreOrganisms.bash'
+}
+
+
+process makeEmptyFile {
+  output:
+    path 'empty.txt'
+
+  script:
+    template 'makeEmptyFile.bash'
+}
+
+
+/**
+ * A touched group can have core+peripheral pairwise data but zero core-only
+ * pairs (e.g. it now has only one core-organism member) -- so the "missing
+ * groups" set for the core-only stats variant has to be recomputed against
+ * the core-filtered .sim files specifically, not reused from the unfiltered set.
+ */
+process findMissingCoreSimGroups {
+  input:
+    path coreSimFiles
+    path touchedGroups
+
+  output:
+    path 'missingCoreTouchedGroups.txt'
+
+  script:
+    template 'findMissingCoreSimGroups.bash'
+}
+
+
+/**
+ * Generic merge for any tab-delimited, group-ID-keyed file: drop cached rows
+ * for touched groups, append the freshly-recomputed touched-group rows.
+ * Reused for both group stats (one row per group) and intra-group blast
+ * values (many rows per group).
+ */
+process mergeByGroupId {
+  input:
+    path cached
+    path touchedGroups
+    path fresh
+
+  output:
+    path 'merged.txt'
+
+  script:
+    template 'mergeByGroupId.bash'
 }
 
 
@@ -215,6 +301,10 @@ workflow incrementalWorkflow {
     previousFullProteome     // cached combined core+peripheral+residual proteome fasta from the previous run
     cachedCoreBestReps       // cached best representative per core+peripheral group
     cachedResidualBestReps   // cached best representative per residual group
+    coreSpeciesIds           // cached core-only SpeciesIDs.txt (from the core nextflow build)
+    cachedCoreStats          // cached core-only group stats
+    cachedPeripheralStats    // cached core+peripheral group stats
+    cachedIntraGroupBlastFile // cached intra-group blast values
 
   main:
     // Organism identity for everything reprocessed this run -- extends the
@@ -260,16 +350,55 @@ workflow incrementalWorkflow {
                                                  uncompressed.combinedProteomesFasta,
                                                  previousFullProteome)
 
-    touchedGroupSims = selfDiamondGroup(touchedGroupFastas.flatten(), params.orthoFinderDiamondOutputFields)
+    touchedGroupSimsList = selfDiamondGroup(touchedGroupFastas.flatten(), params.orthoFinderDiamondOutputFields)
+    touchedGroupSims = touchedGroupSimsList.collect()
 
-    touchedBestReps = findBestRepresentativesForTouchedGroups(touchedGroupSims.collect(),
-                                                               touchedGroups,
-                                                               updatedStableGroups)
+    touchedBestRepsResults = findBestRepresentativesForTouchedGroups(touchedGroupSims,
+                                                                     touchedGroups,
+                                                                     updatedStableGroups)
 
-    mergedBestReps = mergeBestReps(cachedCoreBestReps, cachedResidualBestReps, touchedBestReps)
+    mergedBestReps = mergeBestReps(cachedCoreBestReps, cachedResidualBestReps, touchedBestRepsResults.bestReps)
 
     makeCoreBestRepresentativesFasta(mergedBestReps.core, currentFullProteome)
     makeResidualBestRepresentativesFasta(mergedBestReps.residual, currentFullProteome)
+
+    // Group stats and intra-group blast values, recomputed for touched groups
+    // only (using the same fresh self-diamond data just computed above for
+    // best-rep selection) and merged with the cached values for every other
+    // group -- same "touched-only recompute, merge with cache" pattern as
+    // best-rep selection, so this never requires recomputing similarity for
+    // the whole core+peripheral group set.
+    touchedPeripheralStats = calculatePeripheralStatsForTouched(touchedBestRepsResults.bestReps,
+                                                                 touchedGroupSims,
+                                                                 updatedStableGroups,
+                                                                 makeEmptyFile(),
+                                                                 touchedBestRepsResults.missingGroups,
+                                                                 true)
+
+    coreOrganisms = extractCoreOrganisms(coreSpeciesIds)
+
+    touchedCoreSims = filterSimByCoreOrganisms(touchedGroupSimsList,
+                                               uncompressed.proteinToOrganism.first(),
+                                               coreOrganisms.first()).collect()
+
+    missingCoreTouchedGroups = findMissingCoreSimGroups(touchedCoreSims, touchedGroups)
+
+    touchedCoreStats = calculateCoreStatsForTouched(touchedBestRepsResults.bestReps,
+                                                     touchedCoreSims,
+                                                     updatedStableGroups,
+                                                     makeEmptyFile(),
+                                                     missingCoreTouchedGroups,
+                                                     true)
+
+    mergedPeripheralStats = mergeByGroupId(cachedPeripheralStats, touchedGroups, touchedPeripheralStats)
+    mergedPeripheralStats.collectFile(name: 'peripheral_stats.txt', storeDir: params.outputDir + '/groupStats')
+
+    mergedCoreStats = mergeByGroupId(cachedCoreStats, touchedGroups, touchedCoreStats)
+    mergedCoreStats.collectFile(name: 'core_stats.txt', storeDir: params.outputDir + '/groupStats')
+
+    touchedIntraGroupBlastFile = createIntraGroupBlastFile(touchedGroupSims, makeEmptyFile(), touchedBestRepsResults.bestReps)
+    mergedIntraGroupBlastFile = mergeByGroupId(cachedIntraGroupBlastFile, touchedGroups, touchedIntraGroupBlastFile)
+    mergedIntraGroupBlastFile.collectFile(name: 'intraGroupBlastFile.tsv', storeDir: params.outputDir)
 
     // Only the true leftovers (X) go through OrthoFinder clustering, via the
     // existing, unmodified residual workflow -- a small set instead of the
