@@ -10,6 +10,7 @@ include { peripheralWorkflow } from './modules/peripheral.nf'
 include { residualWorkflow;} from './modules/residual.nf'
 include { postResidualWorkflow;} from './modules/postResidual.nf'
 include { postProcessingWorkflow;} from './modules/postProcessing.nf'
+include { incrementalWorkflow;} from './modules/incremental.nf'
 
 //---------------------------------------------------------------
 // core
@@ -70,6 +71,24 @@ workflow postResidualEntry {
 
 workflow postProcessingEntry {
   postProcessingWorkflow(Channel.fromPath(params.coreBestRepsFasta))
+}
+
+//---------------------------------------------------------------
+// incremental (core unchanged: reassign changed/removed/new peripheral
+// organisms into existing core/residual groups, and cluster only the
+// leftover unassigned sequences via the existing residual workflow --
+// avoids a full peripheral+residual rebuild when core hasn't changed)
+//---------------------------------------------------------------
+
+workflow incrementalEntry {
+  if(params.changedOrNewProteomes) {
+    inputFile = Channel.fromPath(params.changedOrNewProteomes)
+  }
+  else {
+    throw new Exception("Missing params.changedOrNewProteomes")
+  }
+
+  incrementalWorkflow(inputFile)
 }
 
 //---------------------------------------------------------------

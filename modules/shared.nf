@@ -78,6 +78,7 @@ process orthoFinderSetup {
   container = 'veupathdb/orthofinder:1.9.3'
 
   publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "*.txt"
+  publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "*.tsv"
 
   input:
     path 'fastas'
@@ -87,6 +88,7 @@ process orthoFinderSetup {
     path 'WorkingDirectory', emit: orthofinderWorkingDir, type: 'dir'
     path 'SpeciesIDs.txt', emit: speciesMapping
     path 'SequenceIDs.txt', emit: sequenceMapping
+    path 'proteinToOrganism.tsv', emit: proteinToOrganism
 
   script:
     template 'orthoFinder.bash'
@@ -153,6 +155,7 @@ process uncompressFastas {
     path 'hold', emit: proteomeDir
     path 'hold/*.fasta', emit: proteomes
     path 'output.fasta', emit: combinedProteomesFasta
+    path 'proteinToOrganism.tsv', emit: proteinToOrganism
 
   script:
     template 'uncompressFastas.bash'

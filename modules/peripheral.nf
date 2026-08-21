@@ -415,6 +415,14 @@ workflow peripheralWorkflow {
 
     peripheralProteomeDir = uncompressAndMakePeripheralFastaResults.proteomeDir.collect()
 
+    // Combined protein-id -> organism-abbrev map for every core + peripheral sequence
+    // processed this run. Persisted (via the cache steps on the ApiCommonWorkflow side)
+    // so a future incremental run can filter cached groups by organism without relying
+    // on sequence IDs themselves encoding organism (only true for UniProt-sourced proteomes).
+    proteinToOrganismMap = uncompressAndMakeCoreFastaResults.proteinToOrganism
+        .concat(uncompressAndMakePeripheralFastaResults.proteinToOrganism)
+        .collectFile(name: 'proteinToOrganism.tsv', storeDir: params.outputDir)
+
     // Create a diamond database from a fasta file of the core sequences
     database = createDatabase(uncompressAndMakeCoreFastaResults.combinedProteomesFasta)
 
