@@ -40,17 +40,24 @@ One organism abbreviation per line -- organisms to drop.
 
 Combined, filtered group file (both OG and OGR groups), same format as input.
 
+=item droppedMembersOutput
+
+One group ID per line, for every group that lost at least one member during
+filtering (i.e. every group whose best representative may now be stale and
+needs recomputing).
+
 =back
 
 =cut
 
-my ($fullGroupFile, $residualGroupFile, $proteinToOrganism, $outdatedOrganisms, $output);
+my ($fullGroupFile, $residualGroupFile, $proteinToOrganism, $outdatedOrganisms, $output, $droppedMembersOutput);
 
 &GetOptions("fullGroupFile=s" => \$fullGroupFile,
             "residualGroupFile=s" => \$residualGroupFile,
             "proteinToOrganism=s" => \$proteinToOrganism,
             "outdatedOrganisms=s" => \$outdatedOrganisms,
-            "output=s" => \$output);
+            "output=s" => \$output,
+            "droppedMembersOutput=s" => \$droppedMembersOutput);
 
 open(my $mapFh, '<', $proteinToOrganism) || die "Could not open file $proteinToOrganism: $!";
 my %proteinOrganism;
@@ -71,6 +78,7 @@ while (my $line = <$outdatedFh>) {
 close($outdatedFh);
 
 open(my $outFh, '>', $output) || die "Could not open file $output for writing: $!";
+open(my $droppedFh, '>', $droppedMembersOutput) || die "Could not open file $droppedMembersOutput for writing: $!";
 
 foreach my $groupFile ($fullGroupFile, $residualGroupFile) {
     open(my $grpFh, '<', $groupFile) || die "Could not open file $groupFile: $!";
@@ -94,6 +102,10 @@ foreach my $groupFile ($fullGroupFile, $residualGroupFile) {
                 }
             } @seqArray;
 
+            if (@stableSeqs != @seqArray) {
+                print $droppedFh "$groupId\n";
+            }
+
             if (@stableSeqs) {
                 print $outFh "$groupId: " . join(" ", @stableSeqs) . "\n";
             }
@@ -105,3 +117,4 @@ foreach my $groupFile ($fullGroupFile, $residualGroupFile) {
     close($grpFh);
 }
 close($outFh);
+close($droppedFh);

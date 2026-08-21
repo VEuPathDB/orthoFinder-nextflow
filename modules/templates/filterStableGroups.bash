@@ -6,4 +6,5 @@ filterStableGroups.pl --fullGroupFile $fullGroupFile \
                       --residualGroupFile $residualGroupFile \
                       --proteinToOrganism $proteinToOrganism \
                       --outdatedOrganisms $outdatedOrganisms \
-                      --output stableGroups.txt
+                      --output stableGroups.txt \
+                      --droppedMembersOutput droppedMemberGroups.txt

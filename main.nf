@@ -88,7 +88,20 @@ workflow incrementalEntry {
     throw new Exception("Missing params.changedOrNewProteomes")
   }
 
-  incrementalWorkflow(inputFile)
+  if(!params.previousFullProteome) {
+    throw new Exception("Missing params.previousFullProteome")
+  }
+  if(!params.cachedCoreBestReps) {
+    throw new Exception("Missing params.cachedCoreBestReps")
+  }
+  if(!params.cachedResidualBestReps) {
+    throw new Exception("Missing params.cachedResidualBestReps")
+  }
+
+  incrementalWorkflow(inputFile,
+                      Channel.fromPath(params.previousFullProteome),
+                      Channel.fromPath(params.cachedCoreBestReps),
+                      Channel.fromPath(params.cachedResidualBestReps))
 }
 
 //---------------------------------------------------------------

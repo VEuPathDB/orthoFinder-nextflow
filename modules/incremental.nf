@@ -3,9 +3,11 @@ nextflow.enable.dsl=2
 
 include { uncompressFastas as uncompressChangedFastas;
           makeResidualAndPeripheralFastas as splitAssignedAndResidual;
+          combineProteomes;
         } from './shared.nf'
-include { createCompressedResidualFastaDir } from './peripheral.nf'
+include { createCompressedResidualFastaDir; makeCoreBestRepresentativesFasta } from './peripheral.nf'
 include { residualWorkflow } from './residual.nf'
+include { makeResidualBestRepresentativesFasta } from './postResidual.nf'
 
 
 /**
@@ -19,6 +21,7 @@ include { residualWorkflow } from './residual.nf'
  * @param proteinToOrganism: persisted protein-id -> organism-abbrev map (cached)
  * @param outdatedOrganisms: organisms to drop
  * @return stableGroups combined, filtered core+residual groups file
+ * @return droppedMemberGroups groups that lost >=1 member (need a new best rep)
  */
 process filterStableGroups {
   container = 'veupathdb/orthofinder:1.9.3'
@@ -33,6 +36,7 @@ process filterStableGroups {
 
   output:
     path 'stableGroups.txt', emit: stableGroups
+    path 'droppedMemberGroups.txt', emit: droppedMemberGroups
 
   script:
     template 'filterStableGroups.bash'
@@ -105,9 +109,112 @@ process mergeAssignedIntoStableGroups {
 }
 
 
+/**
+ * A group is "touched" -- and needs its best representative recomputed --
+ * if it lost a member (filterStableGroups) or gained one (newAssignments).
+ * Untouched groups keep their cached best representative unchanged.
+ */
+process identifyTouchedGroups {
+  input:
+    path droppedMemberGroups
+    path newAssignments
+
+  output:
+    path 'touchedGroups.txt'
+
+  script:
+    template 'identifyTouchedGroups.bash'
+}
+
+
+/**
+ * Write one small fasta per touched group containing just its current
+ * members, pulled from either this run's changed/new proteomes or the
+ * previous run's cached full proteome (for members that didn't change).
+ */
+process splitTouchedGroupFastas {
+  container = 'veupathdb/orthofinder:1.9.3'
+
+  input:
+    path groupFile
+    path touchedGroups
+    path currentProteome
+    path previousFullProteome
+
+  output:
+    path 'touchedGroupFastas/*.fasta'
+
+  script:
+    template 'splitTouchedGroupFastas.bash'
+}
+
+
+/**
+ * Self-diamond one touched group's (small) member set to get fresh
+ * intra-group pairwise similarity -- far cheaper than recomputing this for
+ * every group, since only touched groups need it.
+ */
+process selfDiamondGroup {
+  container 'veupathdb/diamondsimilarity:1.0.0'
+
+  input:
+    path groupFasta
+    val outputList
+
+  output:
+    path '*.sim'
+
+  script:
+    template 'selfDiamondGroup.bash'
+}
+
+
+/**
+ * Pick a best representative per touched group from the fresh self-diamond
+ * results, falling back to the sole member for any touched group that ended
+ * up a singleton (no pairwise data at all).
+ */
+process findBestRepresentativesForTouchedGroups {
+  container = 'veupathdb/orthofinder:1.9.3'
+
+  input:
+    path simFiles
+    path touchedGroups
+    path groupFile
+
+  output:
+    path 'touchedBestReps.txt'
+
+  script:
+    template 'findBestRepresentativesForTouchedGroups.bash'
+}
+
+
+/**
+ * Merge freshly-recomputed touched-group representatives into the previous
+ * run's cached best-representative mapping, split back into core/residual.
+ */
+process mergeBestReps {
+  input:
+    path cachedCoreBestReps
+    path cachedResidualBestReps
+    path touchedBestReps
+
+  output:
+    path 'mergedCoreBestReps.txt', emit: core
+    path 'mergedResidualBestReps.txt', emit: residual
+
+  script:
+    template 'mergeBestReps.bash'
+}
+
+
 workflow incrementalWorkflow {
   take:
     changedOrNewProteomeDir  // tarball of changed/removed/new-organism proteomes, one fasta per organism
+    previousFullProteome     // cached combined core+peripheral+residual proteome fasta from the previous run
+    cachedCoreBestReps       // cached best representative per core+peripheral group
+    cachedResidualBestReps   // cached best representative per residual group
 
   main:
     // Organism identity for everything reprocessed this run -- extends the
@@ -134,11 +241,35 @@ workflow incrementalWorkflow {
 
     unassignedFasta = split.residuals.collectFile(name: 'unassigned.fasta', storeDir: params.outputDir)
 
-    groupAssignments = assignResults.groups.collectFile(name: 'newAssignments.txt')
+    groupAssignments = assignResults.groups.collectFile(name: 'newAssignments.txt', storeDir: params.outputDir)
 
-    mergeAssignedIntoStableGroups(stable.stableGroups, groupAssignments)
+    updatedStableGroups = mergeAssignedIntoStableGroups(stable.stableGroups, groupAssignments)
 
     uncompressed.proteinToOrganism.collectFile(name: 'proteinToOrganism.tsv', storeDir: params.outputDir)
+
+    // Recompute best representatives only for groups whose membership actually
+    // changed (lost or gained a member); every other group keeps its cached
+    // representative unchanged -- avoids recomputing intra-group similarity
+    // for the whole core+peripheral+residual group set every run.
+    touchedGroups = identifyTouchedGroups(stable.droppedMemberGroups, groupAssignments)
+
+    currentFullProteome = combineProteomes(previousFullProteome, uncompressed.combinedProteomesFasta)
+
+    touchedGroupFastas = splitTouchedGroupFastas(updatedStableGroups,
+                                                 touchedGroups,
+                                                 uncompressed.combinedProteomesFasta,
+                                                 previousFullProteome)
+
+    touchedGroupSims = selfDiamondGroup(touchedGroupFastas.flatten(), params.orthoFinderDiamondOutputFields)
+
+    touchedBestReps = findBestRepresentativesForTouchedGroups(touchedGroupSims.collect(),
+                                                               touchedGroups,
+                                                               updatedStableGroups)
+
+    mergedBestReps = mergeBestReps(cachedCoreBestReps, cachedResidualBestReps, touchedBestReps)
+
+    makeCoreBestRepresentativesFasta(mergedBestReps.core, currentFullProteome)
+    makeResidualBestRepresentativesFasta(mergedBestReps.residual, currentFullProteome)
 
     // Only the true leftovers (X) go through OrthoFinder clustering, via the
     // existing, unmodified residual workflow -- a small set instead of the
