@@ -74,7 +74,6 @@ while (my $line = <$grpFh>) {
 }
 close($grpFh);
 
-my %fh;
 foreach my $proteome (@proteomes) {
     open(my $fastaFh, '<', $proteome) || die "Could not open file $proteome: $!";
 
@@ -87,15 +86,12 @@ foreach my $proteome (@proteomes) {
 
         next unless $currentGroup;
 
-        unless ($fh{$currentGroup}) {
-            open(my $out, '>', "$outputDir/$currentGroup.fasta") || die "Could not open $outputDir/$currentGroup.fasta for writing: $!";
-            $fh{$currentGroup} = $out;
-        }
-        print { $fh{$currentGroup} } $line;
+        # Open/append/close per line rather than holding one handle open per
+        # touched group -- a real incremental build can touch thousands of
+        # groups at once, which blows past the OS's open-file-descriptor limit.
+        open(my $out, '>>', "$outputDir/$currentGroup.fasta") || die "Could not open $outputDir/$currentGroup.fasta for writing: $!";
+        print $out $line;
+        close($out);
     }
     close($fastaFh);
-}
-
-foreach my $out (values %fh) {
-    close($out);
 }

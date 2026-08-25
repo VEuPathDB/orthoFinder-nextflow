@@ -347,6 +347,33 @@ process splitBySize {
     """
 }
 
+process makeEmptyFile {
+  output:
+    path 'empty.txt'
+
+  script:
+    template 'makeEmptyFile.bash'
+}
+
+/**
+ * Generic merge for any tab-delimited, group-ID-keyed file: drop cached rows
+ * for touched groups, append the freshly-recomputed touched-group rows.
+ * Reused for both group stats (one row per group) and intra-group blast
+ * values (many rows per group).
+ */
+process mergeByGroupId {
+  input:
+    path cached, stageAs: 'cached.txt'
+    path touchedGroups
+    path fresh, stageAs: 'fresh.txt'
+
+  output:
+    path 'merged.txt'
+
+  script:
+    template 'mergeByGroupId.bash'
+}
+
 process calculateGroupStats {
   container = 'veupathdb/orthofinder:1.9.3'
 

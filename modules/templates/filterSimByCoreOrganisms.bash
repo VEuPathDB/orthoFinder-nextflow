@@ -8,7 +8,14 @@ set -euo pipefail
 # never mixed in the same directory as the unfiltered originals.
 outputName=\$(basename $simFile)
 
-filterSimByCoreOrganisms.pl --simFile $simFile \
+# The staged input is a symlink to the cached original -- copy it aside and
+# remove the symlink first, so writing the output under the same name
+# doesn't try to overwrite a read-only symlink target.
+inputCopy=\$(mktemp)
+cp $simFile \$inputCopy
+rm -f $simFile
+
+filterSimByCoreOrganisms.pl --simFile \$inputCopy \
                             --proteinToOrganism $proteinToOrganism \
                             --coreOrganisms $coreOrganisms \
                             --output \$outputName

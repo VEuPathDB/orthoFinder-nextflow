@@ -2,14 +2,27 @@
 nextflow.enable.dsl=2
 
 include { uncompressFastas as uncompressChangedFastas;
-          makeResidualAndPeripheralFastas as splitAssignedAndResidual;
           combineProteomes;
           calculateGroupStats as calculatePeripheralStatsForTouched;
           calculateGroupStats as calculateCoreStatsForTouched;
+          makeEmptyFile as makeEmptyFileForPeripheralStats;
+          makeEmptyFile as makeEmptyFileForCoreStats;
+          makeEmptyFile as makeEmptyFileForIntraGroupBlast;
+          makeEmptyFile as makeEmptyFileForIntraResidualGroupBlast;
+          mergeByGroupId as mergePeripheralStatsByGroupId;
+          mergeByGroupId as mergeCoreStatsByGroupId;
+          mergeByGroupId as mergeIntraGroupBlastByGroupId;
+          mergeByGroupId as mergeResidualStatsByGroupId;
+          mergeByGroupId as mergeIntraResidualGroupBlastByGroupId;
         } from './shared.nf'
-include { createCompressedResidualFastaDir; makeCoreBestRepresentativesFasta; createIntraGroupBlastFile } from './peripheral.nf'
+include { makeResidualAndPeripheralFastas as splitAssignedAndResidual;
+          createCompressedResidualFastaDir; makeCoreBestRepresentativesFasta; createIntraGroupBlastFile
+        } from './peripheral.nf'
 include { residualWorkflow } from './residual.nf'
-include { makeResidualBestRepresentativesFasta } from './postResidual.nf'
+include { makeResidualBestRepresentativesFasta;
+          calculateResidualGroupStats as calculateResidualStatsForTouched;
+          createIntraResidualGroupBlastFile as createIntraResidualGroupBlastFileForTouched;
+        } from './postResidual.nf'
 
 
 /**
@@ -221,19 +234,10 @@ process filterSimByCoreOrganisms {
     path coreOrganisms
 
   output:
-    path '*.sim'
+    path '*.sim', includeInputs: true
 
   script:
     template 'filterSimByCoreOrganisms.bash'
-}
-
-
-process makeEmptyFile {
-  output:
-    path 'empty.txt'
-
-  script:
-    template 'makeEmptyFile.bash'
 }
 
 
@@ -257,26 +261,6 @@ process findMissingCoreSimGroups {
 
 
 /**
- * Generic merge for any tab-delimited, group-ID-keyed file: drop cached rows
- * for touched groups, append the freshly-recomputed touched-group rows.
- * Reused for both group stats (one row per group) and intra-group blast
- * values (many rows per group).
- */
-process mergeByGroupId {
-  input:
-    path cached
-    path touchedGroups
-    path fresh
-
-  output:
-    path 'merged.txt'
-
-  script:
-    template 'mergeByGroupId.bash'
-}
-
-
-/**
  * Merge freshly-recomputed touched-group representatives into the previous
  * run's cached best-representative mapping, split back into core/residual.
  */
@@ -295,6 +279,25 @@ process mergeBestReps {
 }
 
 
+/**
+ * Split the touched groups' freshly-computed best-representative rows by
+ * group type -- core/peripheral (OG) stats/blast-value computation must never
+ * see residual (OGR) rows and vice versa, since each type has its own
+ * separate cached file and its own separate DB loader.
+ */
+process splitTouchedBestRepsByType {
+  input:
+    path touchedBestReps
+
+  output:
+    path 'touchedCoreBestReps.txt', emit: core
+    path 'touchedResidualBestReps.txt', emit: residual
+
+  script:
+    template 'splitTouchedBestRepsByType.bash'
+}
+
+
 workflow incrementalWorkflow {
   take:
     changedOrNewProteomeDir  // tarball of changed/removed/new-organism proteomes, one fasta per organism
@@ -304,7 +307,9 @@ workflow incrementalWorkflow {
     coreSpeciesIds           // cached core-only SpeciesIDs.txt (from the core nextflow build)
     cachedCoreStats          // cached core-only group stats
     cachedPeripheralStats    // cached core+peripheral group stats
-    cachedIntraGroupBlastFile // cached intra-group blast values
+    cachedIntraGroupBlastFile // cached intra-group (core+peripheral) blast values
+    cachedResidualStats      // cached residual group stats
+    cachedIntraResidualGroupBlastFile // cached intra-residual-group blast values
 
   main:
     // Organism identity for everything reprocessed this run -- extends the
@@ -329,7 +334,7 @@ workflow incrementalWorkflow {
     // peripheralWorkflow already uses.
     split = splitAssignedAndResidual(assignResults.groups, assignResults.fasta)
 
-    unassignedFasta = split.residuals.collectFile(name: 'unassigned.fasta', storeDir: params.outputDir)
+    unassignedFasta = split.residualFasta.collectFile(name: 'unassigned.fasta', storeDir: params.outputDir)
 
     groupAssignments = assignResults.groups.collectFile(name: 'newAssignments.txt', storeDir: params.outputDir)
 
@@ -362,16 +367,23 @@ workflow incrementalWorkflow {
     makeCoreBestRepresentativesFasta(mergedBestReps.core, currentFullProteome)
     makeResidualBestRepresentativesFasta(mergedBestReps.residual, currentFullProteome)
 
+    // A touched group can be core/peripheral (OG) or residual (OGR) -- core
+    // and residual stats/blast-value files are separate caches with separate
+    // DB loaders, so every "touched-only recompute" below must be scoped to
+    // the right type or it either contaminates the wrong file or silently
+    // never updates the right one.
+    touchedRepsByType = splitTouchedBestRepsByType(touchedBestRepsResults.bestReps)
+
     // Group stats and intra-group blast values, recomputed for touched groups
     // only (using the same fresh self-diamond data just computed above for
     // best-rep selection) and merged with the cached values for every other
     // group -- same "touched-only recompute, merge with cache" pattern as
     // best-rep selection, so this never requires recomputing similarity for
     // the whole core+peripheral group set.
-    touchedPeripheralStats = calculatePeripheralStatsForTouched(touchedBestRepsResults.bestReps,
+    touchedPeripheralStats = calculatePeripheralStatsForTouched(touchedRepsByType.core,
                                                                  touchedGroupSims,
                                                                  updatedStableGroups,
-                                                                 makeEmptyFile(),
+                                                                 makeEmptyFileForPeripheralStats(),
                                                                  touchedBestRepsResults.missingGroups,
                                                                  true)
 
@@ -383,22 +395,41 @@ workflow incrementalWorkflow {
 
     missingCoreTouchedGroups = findMissingCoreSimGroups(touchedCoreSims, touchedGroups)
 
-    touchedCoreStats = calculateCoreStatsForTouched(touchedBestRepsResults.bestReps,
+    touchedCoreStats = calculateCoreStatsForTouched(touchedRepsByType.core,
                                                      touchedCoreSims,
                                                      updatedStableGroups,
-                                                     makeEmptyFile(),
+                                                     makeEmptyFileForCoreStats(),
                                                      missingCoreTouchedGroups,
                                                      true)
 
-    mergedPeripheralStats = mergeByGroupId(cachedPeripheralStats, touchedGroups, touchedPeripheralStats)
+    mergedPeripheralStats = mergePeripheralStatsByGroupId(cachedPeripheralStats, touchedGroups, touchedPeripheralStats)
     mergedPeripheralStats.collectFile(name: 'peripheral_stats.txt', storeDir: params.outputDir + '/groupStats')
 
-    mergedCoreStats = mergeByGroupId(cachedCoreStats, touchedGroups, touchedCoreStats)
+    mergedCoreStats = mergeCoreStatsByGroupId(cachedCoreStats, touchedGroups, touchedCoreStats)
     mergedCoreStats.collectFile(name: 'core_stats.txt', storeDir: params.outputDir + '/groupStats')
 
-    touchedIntraGroupBlastFile = createIntraGroupBlastFile(touchedGroupSims, makeEmptyFile(), touchedBestRepsResults.bestReps)
-    mergedIntraGroupBlastFile = mergeByGroupId(cachedIntraGroupBlastFile, touchedGroups, touchedIntraGroupBlastFile)
+    touchedIntraGroupBlastFile = createIntraGroupBlastFile(touchedGroupSims, makeEmptyFileForIntraGroupBlast(), touchedRepsByType.core)
+    mergedIntraGroupBlastFile = mergeIntraGroupBlastByGroupId(cachedIntraGroupBlastFile, touchedGroups, touchedIntraGroupBlastFile)
     mergedIntraGroupBlastFile.collectFile(name: 'intraGroupBlastFile.tsv', storeDir: params.outputDir)
+
+    // Same "touched-only recompute, merge with cache" treatment for the
+    // residual side -- covers pre-existing residual groups that gained a
+    // member this run (brand-new residual groups formed from the leftover
+    // unassigned (X) sequences get their own stats from the chained
+    // postResidualEntry run below, and are combined with this file's output
+    // downstream in the ApiCommonWorkflow XML).
+    touchedResidualStats = calculateResidualStatsForTouched(touchedRepsByType.residual,
+                                                             touchedGroupSims,
+                                                             updatedStableGroups,
+                                                             touchedBestRepsResults.missingGroups)
+    mergedResidualStats = mergeResidualStatsByGroupId(cachedResidualStats, touchedGroups, touchedResidualStats)
+    mergedResidualStats.collectFile(name: 'mergedResidualStats.txt', storeDir: params.outputDir)
+
+    touchedIntraResidualGroupBlastFile = createIntraResidualGroupBlastFileForTouched(touchedGroupSims,
+                                                                                     makeEmptyFileForIntraResidualGroupBlast(),
+                                                                                     touchedRepsByType.residual)
+    mergedIntraResidualGroupBlastFile = mergeIntraResidualGroupBlastByGroupId(cachedIntraResidualGroupBlastFile, touchedGroups, touchedIntraResidualGroupBlastFile)
+    mergedIntraResidualGroupBlastFile.collectFile(name: 'mergedIntraResidualGroupBlastFile.tsv', storeDir: params.outputDir)
 
     // Only the true leftovers (X) go through OrthoFinder clustering, via the
     // existing, unmodified residual workflow -- a small set instead of the

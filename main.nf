@@ -109,6 +109,12 @@ workflow incrementalEntry {
   if(!params.cachedIntraGroupBlastFile) {
     throw new Exception("Missing params.cachedIntraGroupBlastFile")
   }
+  if(!params.cachedResidualStats) {
+    throw new Exception("Missing params.cachedResidualStats")
+  }
+  if(!params.cachedIntraResidualGroupBlastFile) {
+    throw new Exception("Missing params.cachedIntraResidualGroupBlastFile")
+  }
 
   incrementalWorkflow(inputFile,
                       Channel.fromPath(params.previousFullProteome),
@@ -117,7 +123,9 @@ workflow incrementalEntry {
                       Channel.fromPath(params.coreSpeciesIds),
                       Channel.fromPath(params.cachedCoreStats),
                       Channel.fromPath(params.cachedPeripheralStats),
-                      Channel.fromPath(params.cachedIntraGroupBlastFile))
+                      Channel.fromPath(params.cachedIntraGroupBlastFile),
+                      Channel.fromPath(params.cachedResidualStats),
+                      Channel.fromPath(params.cachedIntraResidualGroupBlastFile))
 }
 
 //---------------------------------------------------------------
