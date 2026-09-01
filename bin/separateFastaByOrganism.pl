@@ -63,16 +63,21 @@ foreach my $file (@files) {
     $organismAbbrev =~ s/${proteomeDir}\///g;
     $organismAbbrev =~ s/\.fasta//g;
 
+    my $outputFile = "$outputDir/$organismAbbrev.fasta";
+
     open(my $sequences, '<', $file) || die "Could not open file $file: $!";
-    open(my $organismFasta, '>', "$outputDir/$organismAbbrev.fasta") || die "Could not open file $outputDir/$organismAbbrev.fasta: $!";
+    open(my $organismFasta, '>', $outputFile) || die "Could not open file $outputFile: $!";
+
+    my $wroteAnySequence = 0;
 
     while (my $line = <$sequences>) {
     # If it is a def line
 	if ($line =~ /^>(\S+)/) {
 	    # If the sequence is residual
-            if($residualSequenceHash{$1} == 1) {
+            if($residualSequenceHash{$1}) {
 	        print $organismFasta "$line";
                 $isResidual = 1;
+                $wroteAnySequence = 1;
 	    }
 	    else {
                 $isResidual = 0;
@@ -86,4 +91,14 @@ foreach my $file (@files) {
 	    }
         }
     }
+
+    close($sequences);
+    close($organismFasta);
+
+    # OrthoFinder can't handle a 0-sequence fasta sitting in its input directory --
+    # it misreads "no amino acids found" as "this must be nucleotide data" and hard
+    # fails. An organism with zero residual/leftover sequences this run (e.g. every
+    # one of its sequences was successfully reassigned to an existing stable group)
+    # should simply not appear as an input species at all.
+    unlink($outputFile) unless $wroteAnySequence;
 }
