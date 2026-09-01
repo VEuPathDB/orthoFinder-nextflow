@@ -165,15 +165,19 @@ process splitTouchedGroupFastas {
 
 
 /**
- * Self-diamond one touched group's (small) member set to get fresh
- * intra-group pairwise similarity -- far cheaper than recomputing this for
- * every group, since only touched groups need it.
+ * Self-diamond touched groups' (small) member sets to get fresh intra-group
+ * pairwise similarity -- far cheaper than recomputing this for every group,
+ * since only touched groups need it. Runs a batch of groups (one diamond
+ * makedb+blastp per group, looped) in a single task rather than submitting
+ * one cluster job per group -- with thousands of touched groups on an
+ * incremental run, one-task-per-group badly oversubscribes the scheduler
+ * relative to how many nodes are actually available.
  */
 process selfDiamondGroup {
   container 'veupathdb/diamondsimilarity:1.0.0'
 
   input:
-    path groupFasta
+    path groupFastas
     val outputList
 
   output:
@@ -355,7 +359,7 @@ workflow incrementalWorkflow {
                                                  uncompressed.combinedProteomesFasta,
                                                  previousFullProteome)
 
-    touchedGroupSimsList = selfDiamondGroup(touchedGroupFastas.flatten(), params.orthoFinderDiamondOutputFields)
+    touchedGroupSimsList = selfDiamondGroup(touchedGroupFastas.flatten().collate(100), params.orthoFinderDiamondOutputFields).flatten()
     touchedGroupSims = touchedGroupSimsList.collect()
 
     touchedBestRepsResults = findBestRepresentativesForTouchedGroups(touchedGroupSims,
