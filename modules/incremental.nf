@@ -228,12 +228,14 @@ process extractCoreOrganisms {
 
 
 /**
- * Filter one touched group's self-diamond .sim file down to core-organism-only
- * pairs, for the "core-only" group stats variant.
+ * Filter touched groups' self-diamond .sim files down to core-organism-only
+ * pairs, for the "core-only" group stats variant. Runs a batch per task for
+ * the same reason selfDiamondGroup does -- one task per touched group badly
+ * oversubscribes the scheduler when there are thousands of them.
  */
 process filterSimByCoreOrganisms {
   input:
-    path simFile
+    path simFiles
     path proteinToOrganism
     path coreOrganisms
 
@@ -393,9 +395,9 @@ workflow incrementalWorkflow {
 
     coreOrganisms = extractCoreOrganisms(coreSpeciesIds)
 
-    touchedCoreSims = filterSimByCoreOrganisms(touchedGroupSimsList,
+    touchedCoreSims = filterSimByCoreOrganisms(touchedGroupSimsList.collate(100),
                                                uncompressed.proteinToOrganism.first(),
-                                               coreOrganisms.first()).collect()
+                                               coreOrganisms.first()).flatten().collect()
 
     missingCoreTouchedGroups = findMissingCoreSimGroups(touchedCoreSims, touchedGroups)
 
