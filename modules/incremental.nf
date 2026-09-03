@@ -321,6 +321,13 @@ workflow incrementalWorkflow {
 
     unassignedFasta = split.residualFasta.collectFile(name: 'unassigned.fasta', storeDir: params.outputDir)
 
+    // Peripheral-cache counterpart of unassigned.fasta above: sequences that
+    // *did* match an existing stable group this run. Not read by any loader
+    // (same as the full-rebuild path's own peripherals.fasta), but published
+    // so the persistent-cache-update step has a fresh copy to offer, same as
+    // residuals.fasta.
+    assignedFasta = split.peripheralFasta.collectFile(name: 'peripherals.fasta', storeDir: params.outputDir)
+
     groupAssignments = assignResults.groups.collectFile(name: 'newAssignments.txt', storeDir: params.outputDir)
 
     updatedStableGroups = mergeAssignedIntoStableGroups(stable.stableGroups, groupAssignments)
