@@ -4,13 +4,10 @@ nextflow.enable.dsl=2
 include { uncompressFastas as uncompressChangedFastas;
           combineProteomes;
           calculateGroupStats as calculatePeripheralStatsForTouched;
-          calculateGroupStats as calculateCoreStatsForTouched;
           makeEmptyFile as makeEmptyFileForPeripheralStats;
-          makeEmptyFile as makeEmptyFileForCoreStats;
           makeEmptyFile as makeEmptyFileForIntraGroupBlast;
           makeEmptyFile as makeEmptyFileForIntraResidualGroupBlast;
           mergeByGroupId as mergePeripheralStatsByGroupId;
-          mergeByGroupId as mergeCoreStatsByGroupId;
           mergeByGroupId as mergeIntraGroupBlastByGroupId;
           mergeByGroupId as mergeResidualStatsByGroupId;
           mergeByGroupId as mergeIntraResidualGroupBlastByGroupId;
@@ -211,62 +208,6 @@ process findBestRepresentativesForTouchedGroups {
 
 
 /**
- * Which organisms went through the core nextflow build (vs. peripheral) --
- * the core cache's own SpeciesIDs.txt is exactly that set. Needed to compute
- * the "core-only" group stats variant for touched groups.
- */
-process extractCoreOrganisms {
-  input:
-    path coreSpeciesIds
-
-  output:
-    path 'coreOrganisms.txt'
-
-  script:
-    template 'extractCoreOrganisms.bash'
-}
-
-
-/**
- * Filter touched groups' self-diamond .sim files down to core-organism-only
- * pairs, for the "core-only" group stats variant. Runs a batch per task for
- * the same reason selfDiamondGroup does -- one task per touched group badly
- * oversubscribes the scheduler when there are thousands of them.
- */
-process filterSimByCoreOrganisms {
-  input:
-    path simFiles
-    path proteinToOrganism
-    path coreOrganisms
-
-  output:
-    path '*.sim', includeInputs: true
-
-  script:
-    template 'filterSimByCoreOrganisms.bash'
-}
-
-
-/**
- * A touched group can have core+peripheral pairwise data but zero core-only
- * pairs (e.g. it now has only one core-organism member) -- so the "missing
- * groups" set for the core-only stats variant has to be recomputed against
- * the core-filtered .sim files specifically, not reused from the unfiltered set.
- */
-process findMissingCoreSimGroups {
-  input:
-    path coreSimFiles
-    path touchedGroups
-
-  output:
-    path 'missingCoreTouchedGroups.txt'
-
-  script:
-    template 'findMissingCoreSimGroups.bash'
-}
-
-
-/**
  * Merge freshly-recomputed touched-group representatives into the previous
  * run's cached best-representative mapping, split back into core/residual.
  *
@@ -323,8 +264,7 @@ workflow incrementalWorkflow {
     previousFullProteome     // cached combined core+peripheral+residual proteome fasta from the previous run
     cachedCoreBestReps       // cached best representative per core+peripheral group
     cachedResidualBestReps   // cached best representative per residual group
-    coreSpeciesIds           // cached core-only SpeciesIDs.txt (from the core nextflow build)
-    cachedCoreStats          // cached core-only group stats
+    cachedCoreStats          // cached core-only group stats, carried through unchanged (see below)
     cachedPeripheralStats    // cached core+peripheral group stats
     cachedIntraGroupBlastFile // cached intra-group (core+peripheral) blast values
     cachedResidualStats      // cached residual group stats
@@ -406,26 +346,21 @@ workflow incrementalWorkflow {
                                                                  touchedBestRepsResults.missingGroups,
                                                                  true)
 
-    coreOrganisms = extractCoreOrganisms(coreSpeciesIds)
-
-    touchedCoreSims = filterSimByCoreOrganisms(touchedGroupSimsList.collate(100),
-                                               uncompressed.proteinToOrganism.first(),
-                                               coreOrganisms.first()).flatten().collect()
-
-    missingCoreTouchedGroups = findMissingCoreSimGroups(touchedCoreSims, touchedGroups)
-
-    touchedCoreStats = calculateCoreStatsForTouched(touchedRepsByType.core,
-                                                     touchedCoreSims,
-                                                     updatedStableGroups,
-                                                     makeEmptyFileForCoreStats(),
-                                                     missingCoreTouchedGroups,
-                                                     true)
-
     mergedPeripheralStats = mergePeripheralStatsByGroupId(cachedPeripheralStats, touchedGroups, touchedPeripheralStats)
     mergedPeripheralStats.collectFile(name: 'peripheral_stats.txt', storeDir: params.outputDir + '/groupStats')
 
-    mergedCoreStats = mergeCoreStatsByGroupId(cachedCoreStats, touchedGroups, touchedCoreStats)
-    mergedCoreStats.collectFile(name: 'core_stats.txt', storeDir: params.outputDir + '/groupStats')
+    // core_stats.txt is core-organism-only (proteinSubset=C), and core organisms
+    // can never appear in outdated.txt on this path -- that's the precondition
+    // for the incremental path running at all (checkOrthoFinderRebuildMode only
+    // allows it when core is unchanged). filterStableGroups.pl's member-dropping
+    // is driven entirely by outdated.txt, so no group's core membership can ever
+    // change here, and every OG-prefixed group has >=1 core member by
+    // construction (it originated from the core-only OrthoFinder run) -- so it
+    // always has a cached core_stats.txt row that never needs adding or
+    // removing either. The cached file is therefore already correct for every
+    // group, touched or not; just carry it through unchanged rather than
+    // recomputing something that's provably invariant on this path.
+    cachedCoreStats.collectFile(name: 'core_stats.txt', storeDir: params.outputDir + '/groupStats')
 
     touchedIntraGroupBlastFile = createIntraGroupBlastFile(touchedGroupSims, makeEmptyFileForIntraGroupBlast(), touchedRepsByType.core)
     mergedIntraGroupBlastFile = mergeIntraGroupBlastByGroupId(cachedIntraGroupBlastFile, touchedGroups, touchedIntraGroupBlastFile)

@@ -97,9 +97,6 @@ workflow incrementalEntry {
   if(!params.cachedResidualBestReps) {
     throw new Exception("Missing params.cachedResidualBestReps")
   }
-  if(!params.coreSpeciesIds) {
-    throw new Exception("Missing params.coreSpeciesIds")
-  }
   if(!params.cachedCoreStats) {
     throw new Exception("Missing params.cachedCoreStats")
   }
@@ -120,7 +117,6 @@ workflow incrementalEntry {
                       Channel.fromPath(params.previousFullProteome),
                       Channel.fromPath(params.cachedCoreBestReps),
                       Channel.fromPath(params.cachedResidualBestReps),
-                      Channel.fromPath(params.coreSpeciesIds),
                       Channel.fromPath(params.cachedCoreStats),
                       Channel.fromPath(params.cachedPeripheralStats),
                       Channel.fromPath(params.cachedIntraGroupBlastFile),
