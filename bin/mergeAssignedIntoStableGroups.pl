@@ -68,7 +68,12 @@ while (my $line = <$stableFh>) {
 
         my @allSeqs = split(/\s+/, $seqString);
         if ($newSeqsByGroup{$groupId}) {
-            push(@allSeqs, @{$newSeqsByGroup{$groupId}});
+            # A reassigned sequence's best diamond hit is very often back into
+            # a group it already belonged to (e.g. its own content didn't
+            # meaningfully change) -- skip re-adding it rather than duplicating
+            # it in the group's member list.
+            my %alreadyInGroup = map { $_ => 1 } @allSeqs;
+            push(@allSeqs, grep { !$alreadyInGroup{$_}++ } @{$newSeqsByGroup{$groupId}});
         }
 
         print $outFh "$groupId: " . join(" ", @allSeqs) . "\n";
