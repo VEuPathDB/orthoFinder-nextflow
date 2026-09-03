@@ -80,6 +80,13 @@ close($outdatedFh);
 open(my $outFh, '>', $output) || die "Could not open file $output for writing: $!";
 open(my $droppedFh, '>', $droppedMembersOutput) || die "Could not open file $droppedMembersOutput for writing: $!";
 
+# fullGroupFile is core+peripheral+residual combined (postProcessing's
+# combineGroupFiles concatenates the residual file onto it), so every residual
+# group also shows up in residualGroupFile -- skip a group ID the second time
+# it's seen rather than emitting it (and, if it also gained a new member this
+# run, that member) twice.
+my %seenGroup;
+
 foreach my $groupFile ($fullGroupFile, $residualGroupFile) {
     open(my $grpFh, '<', $groupFile) || die "Could not open file $groupFile: $!";
 
@@ -89,6 +96,7 @@ foreach my $groupFile ($fullGroupFile, $residualGroupFile) {
 
         if ($line =~ /^(\S+):\s(.+)/) {
             my ($groupId, $seqString) = ($1, $2);
+            next if $seenGroup{$groupId}++;
             my @seqArray = split(/\s+/, $seqString);
 
             my @stableSeqs = grep {
