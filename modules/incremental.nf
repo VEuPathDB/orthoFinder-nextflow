@@ -270,14 +270,19 @@ process findMissingCoreSimGroups {
  * Merge freshly-recomputed touched-group representatives into the previous
  * run's cached best-representative mapping, split back into core/residual.
  *
- * mergedCoreBestReps.txt is published here (residual's own fasta gets built
- * from mergedResidualBestReps.txt further downstream instead) because it's
- * the comprehensive, mapping-format ("groupId\tseqId") equivalent of the
- * persistent cache's coreBestReps.txt -- nothing else in this run produces
- * that shape; coreBestReps.fasta is a derived fasta, not the mapping itself.
+ * Both outputs are published, mapping-format ("groupId\tseqId") equivalents
+ * of the persistent cache's coreBestReps.txt/residualBestReps.txt -- nothing
+ * else in this run produces that shape (coreBestReps.fasta/bestReps.fasta
+ * are derived fastas, not the mappings themselves). Like residual_stats.txt/
+ * intraResidualGroupBlastFile.tsv, mergedResidualBestReps.txt only covers
+ * touched *pre-existing* residual groups, not the brand-new ones from this
+ * run's leftover clustering (those only exist in postResidualEntryResults/
+ * residualBestReps.txt) -- combining the two is the persistent-cache-update
+ * step's job, same as the existing concatenateIncrementalResidualStats/
+ * concatenateIncrementalIntraResidualGroupBlastFile pattern.
  */
 process mergeBestReps {
-  publishDir "$params.outputDir/", mode: "copy", pattern: "mergedCoreBestReps.txt"
+  publishDir "$params.outputDir/", mode: "copy", pattern: "merged{Core,Residual}BestReps.txt"
 
   input:
     path cachedCoreBestReps
