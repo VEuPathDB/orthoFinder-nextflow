@@ -269,8 +269,16 @@ process findMissingCoreSimGroups {
 /**
  * Merge freshly-recomputed touched-group representatives into the previous
  * run's cached best-representative mapping, split back into core/residual.
+ *
+ * mergedCoreBestReps.txt is published here (residual's own fasta gets built
+ * from mergedResidualBestReps.txt further downstream instead) because it's
+ * the comprehensive, mapping-format ("groupId\tseqId") equivalent of the
+ * persistent cache's coreBestReps.txt -- nothing else in this run produces
+ * that shape; coreBestReps.fasta is a derived fasta, not the mapping itself.
  */
 process mergeBestReps {
+  publishDir "$params.outputDir/", mode: "copy", pattern: "mergedCoreBestReps.txt"
+
   input:
     path cachedCoreBestReps
     path cachedResidualBestReps
