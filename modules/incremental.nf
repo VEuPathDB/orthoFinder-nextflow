@@ -56,6 +56,32 @@ process filterStableGroups {
 
 
 /**
+ * Drop an outdated organism's stale entries from the cached previous-run
+ * proteome before it gets combined with this run's current proteomes.
+ *
+ * combineProteomes is a plain concatenation with no dedup -- without this
+ * step, a reprocessed organism's old sequence IDs would sit alongside its
+ * current ones in fullProteome.fasta/ortho<buildVersion>db.dmnd forever,
+ * and a future incremental run's diamond best-hit search could return one
+ * of those stale, no-longer-valid IDs as its answer.
+ */
+process filterPreviousProteomeByOutdatedOrganisms {
+  container = 'veupathdb/orthofinder:1.9.3'
+
+  input:
+    path previousFullProteome
+    path proteinToOrganism
+    path outdatedOrganisms
+
+  output:
+    path 'filteredPreviousProteome.fasta'
+
+  script:
+    template 'filterProteomeByOutdatedOrganisms.bash'
+}
+
+
+/**
  * Diamond-search changed/removed/new-organism sequences against the cached,
  * pre-built full-proteome diamond database from the previous run -- no
  * database rebuild needed, since that cached .dmnd already indexes every
@@ -307,7 +333,14 @@ workflow incrementalWorkflow {
     // for the whole core+peripheral+residual group set every run.
     touchedGroups = identifyTouchedGroups(stable.droppedMemberGroups, groupAssignments)
 
-    currentFullProteome = combineProteomes(previousFullProteome, uncompressed.combinedProteomesFasta)
+    // Strip a reprocessed organism's stale entries out of the cached
+    // proteome first, so combining it with this run's current proteomes
+    // replaces that organism's content instead of accumulating both.
+    filteredPreviousProteome = filterPreviousProteomeByOutdatedOrganisms(previousFullProteome,
+                                                                         params.proteinToOrganism,
+                                                                         params.outdatedOrganisms)
+
+    currentFullProteome = combineProteomes(filteredPreviousProteome, uncompressed.combinedProteomesFasta)
 
     touchedGroupFastas = splitTouchedGroupFastas(updatedStableGroups,
                                                  touchedGroups,
