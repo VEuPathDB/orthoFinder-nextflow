@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-filterProteomeByOutdatedOrganisms.pl --proteome $proteome \
+filterProteomeByOutdatedOrganisms.pl --proteome $previousFullProteome \
                                      --proteinToOrganism $proteinToOrganism \
                                      --outdatedOrganisms $outdatedOrganisms \
                                      --output filteredPreviousProteome.fasta
