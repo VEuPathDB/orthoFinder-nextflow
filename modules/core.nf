@@ -140,6 +140,7 @@ process reformatGroupsFile {
     path groupsFile
     path translatedSingletons
     val buildVersion
+    val subVersion
     val coreOrResidual
     path proteomes
 
@@ -215,9 +216,13 @@ workflow coreWorkflow {
 
     translatedSingletonsFile = translateSingletonsFile(singletonsFull,setup.sequenceMapping)
 
+    // Core groups are only ever created by a full rebuild -- the incremental path never
+    // creates new core/peripheral groups, only reuses/renumbers existing ones (via a
+    // separate rename pass) -- so this is always a fresh r1 baseline.
     reformatGroupsFile(orthofinderGroupResults.orthologgroups,
                        translatedSingletonsFile,
                        params.buildVersion,
+                       1,
                        coreOrResidual,
                        proteomesForOrthofinder)
 }

@@ -61,6 +61,7 @@ process reformatResidualGroupsFile {
     val buildVersion
     val residualBuildVersion
     path residualFasta
+    val residualGroupNumberOffset
 
   output:
     path 'reformattedGroups.txt', emit: groups
@@ -243,7 +244,11 @@ workflow postResidualWorkflow {
   main:
 
     // Final output format of residual groups. Adding R for residual, and build version.
-    residualGroupsFile = reformatResidualGroupsFile(groupsFile, params.buildVersion, params.residualBuildVersion, params.residualFasta)
+    // residualGroupNumberOffset defaults to 0 (see nextflow.config's postResidual profile)
+    // for the full-rebuild path, where nothing yet exists to collide with; the incremental
+    // path overrides it with the highest OGR number any earlier run has already used, so
+    // brand-new residual groups here never reuse a number.
+    residualGroupsFile = reformatResidualGroupsFile(groupsFile, params.buildVersion, params.residualBuildVersion, params.residualFasta, params.residualGroupNumberOffset)
 
     residualProteomesByGroup = splitProteomeByGroup(params.residualFasta, residualGroupsFile.groups.splitText( by: 10000, file: true ))
 

@@ -153,6 +153,10 @@ process mergeAssignedIntoStableGroups {
  * Untouched groups keep their cached best representative unchanged.
  */
 process identifyTouchedGroups {
+  // Published so ApiCommonWorkflow's late group-ID rename pass (after this whole
+  // nextflow run completes) can compute which groups' IDs need their subVersion bumped.
+  publishDir "$params.outputDir", mode: "copy"
+
   input:
     path droppedMemberGroups
     path newAssignments
