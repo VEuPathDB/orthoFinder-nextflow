@@ -25,7 +25,7 @@ include {bestRepsSelfDiamond as coreBestRepsToCoreDiamond;
  * @return outputDir contains a directory of Blast*.txt files with mapped ids
  */
 process mapCachedBlasts {
-    container 'veupathdb/orthofinder:1.9.3'
+    container 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
     input:
     path previousDiamondCacheDirectory
@@ -51,7 +51,7 @@ process mapCachedBlasts {
 */
 
 process computeGroups {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   input:
     path blasts
@@ -71,7 +71,7 @@ process computeGroups {
 * the last row in the orthologgroups file.  the resulting id will also include the version
 */
 process makeFullSingletonsFile {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   input:
     path singletonFiles
@@ -90,7 +90,7 @@ process makeFullSingletonsFile {
 * write singleton files with original seq ids in place of internal ids
 */
 process translateSingletonsFile {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   input:
     path singletonsFile
@@ -109,7 +109,7 @@ process translateSingletonsFile {
 * @return orthogroupblasts (sim files per group)
 */
 process makeCoreOrthogroupDiamondFile {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   publishDir "$params.outputDir/groupDiamondResults", mode: "copy"
 
@@ -132,7 +132,7 @@ process makeCoreOrthogroupDiamondFile {
 *   IDs) used as ground truth to reconcile any IDs orthofinder corrupted
 */
 process reformatGroupsFile {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   publishDir "$params.outputDir", mode: "copy"
 

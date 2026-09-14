@@ -36,7 +36,7 @@ include { makeResidualBestRepresentativesFasta;
  * @return droppedMemberGroups groups that lost >=1 member (need a new best rep)
  */
 process filterStableGroups {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -66,7 +66,7 @@ process filterStableGroups {
  * of those stale, no-longer-valid IDs as its answer.
  */
 process filterPreviousProteomeByOutdatedOrganisms {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   input:
     path previousFullProteome
@@ -111,7 +111,7 @@ process incrementalDiamond {
  * sequence with no hit at all.
  */
 process assignToStableGroups {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   input:
     path diamondInput
@@ -131,7 +131,7 @@ process assignToStableGroups {
  * Merge newly-assigned sequences into the filtered stable groups file.
  */
 process mergeAssignedIntoStableGroups {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -175,7 +175,7 @@ process identifyTouchedGroups {
  * previous run's cached full proteome (for members that didn't change).
  */
 process splitTouchedGroupFastas {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   input:
     path groupFile
@@ -221,7 +221,7 @@ process selfDiamondGroup {
  * up a singleton (no pairwise data at all).
  */
 process findBestRepresentativesForTouchedGroups {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   input:
     path simFiles

@@ -50,7 +50,7 @@ def speciesFileToList(speciesMapping, index) {
  *
  */
 process moveUnambiguousAminoAcidSequencesFirst {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   input:
     path proteomes
@@ -75,7 +75,7 @@ process moveUnambiguousAminoAcidSequencesFirst {
  * @return SequenceIDs.txt file contains mappings from orthofinder primary keys to gene/protein ids
  */
 process orthoFinderSetup {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "*.txt"
   publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "*.tsv"
@@ -129,7 +129,7 @@ process diamond {
 
 
 process publishOFResults {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
   
   publishDir "$params.outputDir", mode: "copy"
 
@@ -146,7 +146,7 @@ process publishOFResults {
 
 
 process uncompressFastas {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   input:
     path inputDir
@@ -173,7 +173,7 @@ process uncompressFastas {
 * @return singletons
 */
 process splitOrthologGroupsPerSpecies {
-    container = 'veupathdb/orthofinder:1.9.3'
+    container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
     input:
     val species
@@ -198,7 +198,7 @@ process splitOrthologGroupsPerSpecies {
 * @return orthogroupblasts (sim files per group)
 */
 process makeOrthogroupDiamondFile {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   input:
     path blastFile
@@ -214,7 +214,7 @@ process makeOrthogroupDiamondFile {
 
 
 process makeDiamondResultsFile {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   publishDir "$params.outputDir/", mode: "copy"
 
@@ -256,7 +256,7 @@ process bestRepsSelfDiamond {
  * @return tree Output group tree file
 */
 process createGeneTrees {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   publishDir "$params.outputDir/geneTrees", mode: "copy", pattern: "*.tree"
   publishDir "$params.outputDir/groupAlignments", mode: "copy", pattern: "*.alignment"
@@ -281,7 +281,7 @@ process createGeneTrees {
  * @return A mash result file for every group to their best representative
 */
 process runMash {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   input:
     path fasta
@@ -305,7 +305,7 @@ process runMash {
  * @return fullProteome The combined proteome fasta
 */
 process combineProteomes {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -322,7 +322,7 @@ process combineProteomes {
 
 
 process splitBySize {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   input:
     path fasta
@@ -375,7 +375,7 @@ process mergeByGroupId {
 }
 
 process calculateGroupStats {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
 
   input:
     path bestRepresentatives
