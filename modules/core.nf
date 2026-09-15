@@ -77,6 +77,7 @@ process makeFullSingletonsFile {
     path singletonFiles
     path orthogroups
     val buildVersion
+    val subVersion
 
   output:
     path 'singletonsFull.dat'
@@ -212,7 +213,9 @@ workflow coreWorkflow {
     // make a collection of singletons files (one for each species)
     singletonFiles = speciesOrthologs.singletons.collect()
 
-    singletonsFull = makeFullSingletonsFile(singletonFiles, orthofinderGroupResults.orthologgroups, params.buildVersion).collectFile()
+    // Same as reformatGroupsFile below: core singletons are only ever created by a full
+    // rebuild, so this is always a fresh r1 baseline too.
+    singletonsFull = makeFullSingletonsFile(singletonFiles, orthofinderGroupResults.orthologgroups, params.buildVersion, 1).collectFile()
 
     translatedSingletonsFile = translateSingletonsFile(singletonsFull,setup.sequenceMapping)
 
