@@ -5,7 +5,7 @@ include {listToPairwiseComparisons; makeDiamondResultsFile;
 
 
 process createResidualFasta {
-  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
+  container = 'rdemko2332/orthofinder:latest'
 
   publishDir "$params.outputDir/", mode: "copy"
 
@@ -34,7 +34,7 @@ process createResidualFasta {
 */
 
 process computeResidualGroups {
-  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
+  container = 'rdemko2332/orthofinder:latest'
 
   publishDir "$params.outputDir/", mode: "copy"
 
@@ -54,7 +54,7 @@ process computeResidualGroups {
 
 
 process fixResidualOrthologIds {
-  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
+  container = 'rdemko2332/orthofinder:latest'
 
   publishDir "$params.outputDir/", mode: "copy"
 
@@ -73,7 +73,7 @@ process fixResidualOrthologIds {
 
 
 process createEmptyDir {
-  container = 'veupathdb/orthofinder:branch-incremental-orthofinder-build'
+  container = 'rdemko2332/orthofinder:latest'
 
   input:
     path speciesMapping
