@@ -13,7 +13,7 @@ sequences into the filtered stable groups file produced by
 filterStableGroups.pl. Identical merge logic, but (like
 filterStableGroups.pl/assignToStableGroupsOrResidual.pl) accepts both core
 ("OG...") and residual ("OGR...") group IDs, where makeGroupsFile.pl only
-recognizes core ("OG\d+_\d+") IDs.
+recognizes core ("OG\d+(?:r\d+)?_\d+") IDs.
 
 =head1 Input Parameters
 

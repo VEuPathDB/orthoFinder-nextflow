@@ -54,8 +54,11 @@ while (my $line = <$missing>) {
     # Save full missing group ID for later
     my $missingGroup = $line;
     
-    # Reformat to OrthoFinder HOG formatting
-    $line =~ s/OG\d+_/N0\.HOG/g;
+    # Reformat to OrthoFinder HOG formatting. r(subVersion) is optional here too:
+    # OG<buildVersion>r<subVersion>_<N> (current) or bare OG<buildVersion>_<N>
+    # (predates the subVersion scheme) -- either way, strip the whole prefix
+    # back down to N0.HOG so it matches N0.tsv's own native IDs.
+    $line =~ s/OG\d+(?:r\d+)?_/N0\.HOG/g;
     
     # Retrieve the group information from N0.tsv
     my $groupLine = `grep "$line" $groupMapping`;

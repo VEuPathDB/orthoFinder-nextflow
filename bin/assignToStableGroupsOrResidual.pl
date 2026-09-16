@@ -13,7 +13,7 @@ changed/removed/new-organism sequence to whichever stable group (core OR
 residual) its single best Diamond hit belongs to. Identical best-hit logic to
 assignGroupsForPeripherals.pl, but reads a combined stable-groups file that
 may contain both core ("OG...") and residual ("OGR...") group IDs, where
-assignGroupsForPeripherals.pl only recognizes core ("OG\d+_\d+") IDs. A
+assignGroupsForPeripherals.pl only recognizes core ("OG\d+(?:r\d+)?_\d+") IDs. A
 sequence with no hit (or whose only hit(s) fell in a filtered-out/outdated
 group) is simply absent from the output, exactly as in the original script --
 callers determine "unassigned" (X) the same way peripheralWorkflow already

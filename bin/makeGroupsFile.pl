@@ -72,8 +72,10 @@ close $peripheral;
 while (my $line = <$core>) {
     chomp $line;
 
-    # Check for correct file format and retrieve groupID and sequences
-    if ($line =~ /^(OG\d+_\d+):\s(.+)/) {
+    # Check for correct file format and retrieve groupID and sequences.
+    # r(subVersion) is optional: OG<buildVersion>r<subVersion>_<N> (current) or
+    # bare OG<buildVersion>_<N> (predates the subVersion scheme).
+    if ($line =~ /^(OG\d+(?:r\d+)?_\d+):\s(.+)/) {
 
 	# Get the groupID
 	my $groupId = $1;
