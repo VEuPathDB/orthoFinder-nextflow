@@ -26,7 +26,13 @@ my $lastGroupFile = $inputDir . "/" . $lastGroup . ".sim";
 open(OUT,">missingGroups.txt")  or die "Couldn't open missingGroups.txt: $!";
 
 # Creating group prefix. Will be combined with number to create full group name.
-my $groupPrefix = "OG${buildVersion}_";
+# Derived from $lastGroup (already parsed above) rather than reconstructed
+# from $buildVersion alone, so it naturally carries whatever r{subVersion}
+# component (or lack of one, for groups predating the subVersion scheme)
+# the group file's IDs actually use. Reconstructing "OG${buildVersion}_" here
+# instead would never match real r{subVersion}-suffixed .sim filenames like
+# OG7r1_0000000.sim, and the until loops below would never terminate.
+(my $groupPrefix = $lastGroup) =~ s/_\d+$/_/;
 
 # Int holder for counting.
 my $currentGroupInt = 0;
