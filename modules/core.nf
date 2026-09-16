@@ -196,13 +196,17 @@ workflow coreWorkflow {
     orthofinderGroupResults = computeGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
     
     //make one file per species containing all ortholog groups for that species
+    // Core groups are only ever created by a full rebuild (see reformatGroupsFile's
+    // call below), so this is always a fresh r1 baseline here too -- the literal 1
+    // matches reformatGroupsFile/makeFullSingletonsFile's subVersion argument.
     speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(),
                                                      setup.speciesMapping.collect(),
                                                      setup.sequenceMapping.collect(),
                                                      orthofinderGroupResults.orthologgroups.collect(),
                                                      params.buildVersion,
 						     "na",
-						     coreOrResidual);
+						     coreOrResidual,
+						     1);
 
     // per species, make One file all diamond similarities for that group
     diamondSimilaritiesPerGroup = makeCoreOrthogroupDiamondFile(diamondResultsFile.collect(),

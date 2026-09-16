@@ -169,6 +169,7 @@ process uncompressFastas {
 * @param sequenceMapping is the NEW Sequence mapping from orthofinder setup step (current run)
 * @param orthologgroups
 * @param buildVersion
+* @param subVersion core groups' subVersion component ("na" when coreOrResidual is "residual")
 * @return orthologs
 * @return singletons
 */
@@ -183,6 +184,7 @@ process splitOrthologGroupsPerSpecies {
     val buildVersion
     val residualBuildVersion
     val coreOrResidual
+    val subVersion
 
     output:
     path '*.orthologs', emit: orthologs

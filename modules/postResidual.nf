@@ -262,13 +262,16 @@ workflow postResidualWorkflow {
     speciesNames = speciesFileToList(speciesFile, 1);
 
     // make one file per species containing all ortholog groups for that species
+    // subVersion isn't used by the "residual" branch (it uses residualBuildVersion
+    // instead) -- "na" mirrors how core's call above passes "na" for residualBuildVersion.
     speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(),
                                                       speciesFile,
                                                       sequenceFile,
                                                       groupsFile.first(),
                                                       params.buildVersion,
                                                       params.residualBuildVersion,
-                                                      "residual");
+                                                      "residual",
+                                                      "na");
 
     // per species, make One file all diamond similarities for that group
     diamondSimilaritiesPerGroup = makeOrthogroupDiamondFile(params.diamondResultsFile,

@@ -77,17 +77,18 @@ String indicating if step is being run for core or residual
 
 =cut
 
-my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $species, $singletonsFileSuffix, $orthologGroupsFileWithSingletons, $buildVersion, $coreOrResidual, $residualBuildVersion);
+my ($speciesMapping, $sequenceMapping, $outputFileSuffix, $orthologGroups, $species, $singletonsFileSuffix, $orthologGroupsFileWithSingletons, $buildVersion, $coreOrResidual, $residualBuildVersion, $subVersion);
 
 &GetOptions("species_mapping=s" => \$speciesMapping, # Species Mapping file Ex: 0: ahos.fasta
             "sequence_mapping=s" => \$sequenceMapping, # Sequence mapping file Ex: 0_0: ahos|F4B612 gene=F4B612 product=Uncharacterized protein
             "species=s" => \$species, # Species that we are currently splitting Ex: ahos.fasta
             "ortholog_groups=s" => \$orthologGroups, # N0.tsv file produced by orthofinder. Lists groupID and sequences in that group
             "output_file_suffix=s" => \$outputFileSuffix, # orthologs
-            "singletons_file_suffix=s" => \$singletonsFileSuffix, # singletons 
+            "singletons_file_suffix=s" => \$singletonsFileSuffix, # singletons
             "build_version=s" => \$buildVersion, # Integer indicating build. Is appended to group ids that are output
             "coreOrResidual=s" => \$coreOrResidual,
-    	    "residualBuildVersion=i" => \$residualBuildVersion 
+    	    "residualBuildVersion=s" => \$residualBuildVersion, # "na" when coreOrResidual is "core" -- =s (not =i) so that doesn't warn
+            "subVersion=s" => \$subVersion # Core groups' subVersion component ("na" when coreOrResidual is "residual")
            );
 
 my %speciesMap = &makeSpeciesMap($speciesMapping);
@@ -140,18 +141,13 @@ if ($coreOrResidual eq "core") {
 
     my $orthologGroup = $line[$ogIndex];
 
+    # We're already inside the outer "if ($coreOrResidual eq 'core')" block
+    # (this branch only ever runs for core groups -- residual groups use the
+    # separate "elsif ($coreOrResidual eq 'residual')" branch below, which
+    # reads Orthogroups.txt, not N0.tsv), so build the final core group ID
+    # with buildVersion AND subVersion: N0.HOG0000001 -> OG7r1_0000001.
+    $orthologGroup =~ s/^N0\.HOG(\d+)/OG${buildVersion}r${subVersion}_$1/;
 
-    if ($coreOrResidual eq "residual") {
-      print "residual1\n";
-      $orthologGroup =~ s/^N0\.HOG(\d+)/OG${buildVersion}r${residualBuildVersion}_$1/;
-    }
-    else {
-      print "core1\n";
-      # change the orthologGroup id to add some version
-      # replace "OG" with "OG${version}_"
-      $orthologGroup =~ s/^N0\.HOG(\d+)/OG${buildVersion}_$1/;
-    }
-      
     # Retrieve string of all sequences in orthogroup for this species
     my $speciesField =  $line[$speciesIndex];
 
