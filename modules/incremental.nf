@@ -259,6 +259,7 @@ process mergeBestReps {
     path cachedCoreBestReps
     path cachedResidualBestReps
     path touchedBestReps
+    path touchedGroups
 
   output:
     path 'mergedCoreBestReps.txt', emit: core
@@ -365,7 +366,7 @@ workflow incrementalWorkflow {
                                                                      touchedGroups,
                                                                      updatedStableGroups)
 
-    mergedBestReps = mergeBestReps(cachedCoreBestReps, cachedResidualBestReps, touchedBestRepsResults.bestReps)
+    mergedBestReps = mergeBestReps(cachedCoreBestReps, cachedResidualBestReps, touchedBestRepsResults.bestReps, touchedGroups)
 
     makeCoreBestRepresentativesFasta(mergedBestReps.core, currentFullProteome)
     makeResidualBestRepresentativesFasta(mergedBestReps.residual, currentFullProteome)
