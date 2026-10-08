@@ -192,13 +192,14 @@ process checkForMissingGroups {
     val buildVersion
     val residualBuildVersion
     path groupsFile
+    val offset
 
   output:
     path 'missingGroups.txt'
 
   script:
     """
-    checkForResidualMissingGroups.pl . $buildVersion $residualBuildVersion $groupsFile
+    checkForResidualMissingGroups.pl . $buildVersion $residualBuildVersion $groupsFile $offset
     """
 }
 
@@ -271,7 +272,8 @@ workflow postResidualWorkflow {
                                                       params.buildVersion,
                                                       params.residualBuildVersion,
                                                       "residual",
-                                                      "na");
+                                                      "na",
+                                                      params.residualGroupNumberOffset);
 
     // per species, make One file all diamond similarities for that group
     diamondSimilaritiesPerGroup = makeOrthogroupDiamondFile(params.diamondResultsFile,
@@ -318,7 +320,8 @@ workflow postResidualWorkflow {
     missingGroups = checkForMissingGroups(allDiamondSimilarities.flatten().collect(),
                                           params.buildVersion,
 					  params.residualBuildVersion,
-    					  residualGroupsFile.groups).collect()
+    					  residualGroupsFile.groups,
+					  params.residualGroupNumberOffset).collect()
 
     // Calculate residual group stats
     calculateResidualGroupStats(completeBestRepsFile, allDiamondSimilarities, residualGroupsFile.groups, missingGroups).collectFile(name: "residual_stats.txt", storeDir: params.outputDir + "/groupStats")

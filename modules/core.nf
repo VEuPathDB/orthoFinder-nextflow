@@ -206,7 +206,8 @@ workflow coreWorkflow {
                                                      params.buildVersion,
 						     "na",
 						     coreOrResidual,
-						     1);
+						     1,
+						     0);
 
     // per species, make One file all diamond similarities for that group
     diamondSimilaritiesPerGroup = makeCoreOrthogroupDiamondFile(diamondResultsFile.collect(),

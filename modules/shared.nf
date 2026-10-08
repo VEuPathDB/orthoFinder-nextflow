@@ -185,6 +185,7 @@ process splitOrthologGroupsPerSpecies {
     val residualBuildVersion
     val coreOrResidual
     val subVersion
+    val offset
 
     output:
     path '*.orthologs', emit: orthologs

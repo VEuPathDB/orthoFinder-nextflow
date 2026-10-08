@@ -11,5 +11,6 @@ splitOrthologGroupsPerSpecies --species_mapping $speciesMapping \
     --build_version $buildVersion \
     --coreOrResidual $coreOrResidual \
     --residualBuildVersion $residualBuildVersion \
-    --subVersion $subVersion
+    --subVersion $subVersion \
+    --offset $offset
 
