@@ -160,6 +160,7 @@ process identifyTouchedGroups {
   input:
     path droppedMemberGroups
     path newAssignments
+    path updatedStableGroups
 
   output:
     path 'touchedGroups.txt'
@@ -343,7 +344,7 @@ workflow incrementalWorkflow {
     // changed (lost or gained a member); every other group keeps its cached
     // representative unchanged -- avoids recomputing intra-group similarity
     // for the whole core+peripheral+residual group set every run.
-    touchedGroups = identifyTouchedGroups(stable.droppedMemberGroups, groupAssignments)
+    touchedGroups = identifyTouchedGroups(stable.droppedMemberGroups, groupAssignments, updatedStableGroups)
 
     // Strip a reprocessed organism's stale entries out of the cached
     // proteome first, so combining it with this run's current proteomes
