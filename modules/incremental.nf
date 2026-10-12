@@ -36,7 +36,7 @@ include { makeResidualBestRepresentativesFasta;
  * @return droppedMemberGroups groups that lost >=1 member (need a new best rep)
  */
 process filterStableGroups {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -66,7 +66,7 @@ process filterStableGroups {
  * of those stale, no-longer-valid IDs as its answer.
  */
 process filterPreviousProteomeByOutdatedOrganisms {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   input:
     path previousFullProteome
@@ -111,7 +111,7 @@ process incrementalDiamond {
  * sequence with no hit at all.
  */
 process assignToStableGroups {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   input:
     path diamondInput
@@ -131,7 +131,7 @@ process assignToStableGroups {
  * Merge newly-assigned sequences into the filtered stable groups file.
  */
 process mergeAssignedIntoStableGroups {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -176,7 +176,7 @@ process identifyTouchedGroups {
  * previous run's cached full proteome (for members that didn't change).
  */
 process splitTouchedGroupFastas {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   input:
     path groupFile
@@ -222,7 +222,7 @@ process selfDiamondGroup {
  * up a singleton (no pairwise data at all).
  */
 process findBestRepresentativesForTouchedGroups {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   input:
     path simFiles

@@ -50,7 +50,7 @@ def speciesFileToList(speciesMapping, index) {
  *
  */
 process moveUnambiguousAminoAcidSequencesFirst {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   input:
     path proteomes
@@ -75,7 +75,7 @@ process moveUnambiguousAminoAcidSequencesFirst {
  * @return SequenceIDs.txt file contains mappings from orthofinder primary keys to gene/protein ids
  */
 process orthoFinderSetup {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "*.txt"
   publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "*.tsv"
@@ -129,7 +129,7 @@ process diamond {
 
 
 process publishOFResults {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
   
   publishDir "$params.outputDir", mode: "copy"
 
@@ -146,7 +146,7 @@ process publishOFResults {
 
 
 process uncompressFastas {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   input:
     path inputDir
@@ -174,7 +174,7 @@ process uncompressFastas {
 * @return singletons
 */
 process splitOrthologGroupsPerSpecies {
-    container = 'rdemko2332/orthofinder:latest'
+    container = 'veupathdb/orthofinder:1.9.97'
 
     input:
     val species
@@ -201,7 +201,7 @@ process splitOrthologGroupsPerSpecies {
 * @return orthogroupblasts (sim files per group)
 */
 process makeOrthogroupDiamondFile {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   input:
     path blastFile
@@ -217,7 +217,7 @@ process makeOrthogroupDiamondFile {
 
 
 process makeDiamondResultsFile {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   publishDir "$params.outputDir/", mode: "copy"
 
@@ -259,7 +259,7 @@ process bestRepsSelfDiamond {
  * @return tree Output group tree file
 */
 process createGeneTrees {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   publishDir "$params.outputDir/geneTrees", mode: "copy", pattern: "*.tree"
   publishDir "$params.outputDir/groupAlignments", mode: "copy", pattern: "*.alignment"
@@ -284,7 +284,7 @@ process createGeneTrees {
  * @return A mash result file for every group to their best representative
 */
 process runMash {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   input:
     path fasta
@@ -308,7 +308,7 @@ process runMash {
  * @return fullProteome The combined proteome fasta
 */
 process combineProteomes {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -325,7 +325,7 @@ process combineProteomes {
 
 
 process splitBySize {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   input:
     path fasta
@@ -378,7 +378,7 @@ process mergeByGroupId {
 }
 
 process calculateGroupStats {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   input:
     path bestRepresentatives

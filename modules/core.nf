@@ -25,7 +25,7 @@ include {bestRepsSelfDiamond as coreBestRepsToCoreDiamond;
  * @return outputDir contains a directory of Blast*.txt files with mapped ids
  */
 process mapCachedBlasts {
-    container 'rdemko2332/orthofinder:latest'
+    container 'veupathdb/orthofinder:1.9.97'
 
     input:
     path previousDiamondCacheDirectory
@@ -51,7 +51,7 @@ process mapCachedBlasts {
 */
 
 process computeGroups {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   input:
     path blasts
@@ -71,7 +71,7 @@ process computeGroups {
 * the last row in the orthologgroups file.  the resulting id will also include the version
 */
 process makeFullSingletonsFile {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   input:
     path singletonFiles
@@ -91,7 +91,7 @@ process makeFullSingletonsFile {
 * write singleton files with original seq ids in place of internal ids
 */
 process translateSingletonsFile {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   input:
     path singletonsFile
@@ -110,7 +110,7 @@ process translateSingletonsFile {
 * @return orthogroupblasts (sim files per group)
 */
 process makeCoreOrthogroupDiamondFile {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   publishDir "$params.outputDir/groupDiamondResults", mode: "copy"
 
@@ -133,7 +133,7 @@ process makeCoreOrthogroupDiamondFile {
 *   IDs) used as ground truth to reconcile any IDs orthofinder corrupted
 */
 process reformatGroupsFile {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   publishDir "$params.outputDir", mode: "copy"
 

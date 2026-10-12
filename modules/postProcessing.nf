@@ -7,7 +7,7 @@ include {bestRepsSelfDiamond; combineProteomes;
 *
 */
 process mergeCoreAndResidualBestReps {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   publishDir "$params.outputDir/", mode: "copy"
 
@@ -35,7 +35,7 @@ process mergeCoreAndResidualBestReps {
  * @return fullGroupFile The combined group file
 */
 process combineGroupFiles {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -55,7 +55,7 @@ process combineGroupFiles {
 
 
 process makeFullDiamondDatabaseWithGroups {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -73,7 +73,7 @@ process makeFullDiamondDatabaseWithGroups {
 
 
 process previousGroups {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -94,7 +94,7 @@ process previousGroups {
 * Groups >= 1000 are skipped for residual (no core filtering applies).
 */
 process filterResidualGroups {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   input:
     path fasta
@@ -120,7 +120,7 @@ process filterResidualGroups {
 * Filter group fastas to only include core sequences, and remove groups with more than 1000 sequences
 */
 process filterForCoreSequences {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   input:
     path fasta
@@ -138,7 +138,7 @@ process filterForCoreSequences {
 * Create gene trees using fast mafft alignment and fasttree
 */
 process createFastGeneTrees {
-  container = 'rdemko2332/orthofinder:latest'
+  container = 'veupathdb/orthofinder:1.9.97'
 
   publishDir "$params.outputDir/geneTrees", mode: "copy"
 
