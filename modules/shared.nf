@@ -50,7 +50,7 @@ def speciesFileToList(speciesMapping, index) {
  *
  */
 process moveUnambiguousAminoAcidSequencesFirst {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   input:
     path proteomes
@@ -75,9 +75,10 @@ process moveUnambiguousAminoAcidSequencesFirst {
  * @return SequenceIDs.txt file contains mappings from orthofinder primary keys to gene/protein ids
  */
 process orthoFinderSetup {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "*.txt"
+  publishDir "$params.outputDir/diamondCache", mode: "copy", pattern: "*.tsv"
 
   input:
     path 'fastas'
@@ -87,6 +88,7 @@ process orthoFinderSetup {
     path 'WorkingDirectory', emit: orthofinderWorkingDir, type: 'dir'
     path 'SpeciesIDs.txt', emit: speciesMapping
     path 'SequenceIDs.txt', emit: sequenceMapping
+    path 'proteinToOrganism.tsv', emit: proteinToOrganism
 
   script:
     template 'orthoFinder.bash'
@@ -127,7 +129,7 @@ process diamond {
 
 
 process publishOFResults {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
   
   publishDir "$params.outputDir", mode: "copy"
 
@@ -144,7 +146,7 @@ process publishOFResults {
 
 
 process uncompressFastas {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   input:
     path inputDir
@@ -153,6 +155,7 @@ process uncompressFastas {
     path 'hold', emit: proteomeDir
     path 'hold/*.fasta', emit: proteomes
     path 'output.fasta', emit: combinedProteomesFasta
+    path 'proteinToOrganism.tsv', emit: proteinToOrganism
 
   script:
     template 'uncompressFastas.bash'
@@ -166,11 +169,12 @@ process uncompressFastas {
 * @param sequenceMapping is the NEW Sequence mapping from orthofinder setup step (current run)
 * @param orthologgroups
 * @param buildVersion
+* @param subVersion core groups' subVersion component ("na" when coreOrResidual is "residual")
 * @return orthologs
 * @return singletons
 */
 process splitOrthologGroupsPerSpecies {
-    container = 'veupathdb/orthofinder:1.9.3'
+    container = 'rdemko2332/orthofinder:latest'
 
     input:
     val species
@@ -180,6 +184,8 @@ process splitOrthologGroupsPerSpecies {
     val buildVersion
     val residualBuildVersion
     val coreOrResidual
+    val subVersion
+    val offset
 
     output:
     path '*.orthologs', emit: orthologs
@@ -195,7 +201,7 @@ process splitOrthologGroupsPerSpecies {
 * @return orthogroupblasts (sim files per group)
 */
 process makeOrthogroupDiamondFile {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   input:
     path blastFile
@@ -211,7 +217,7 @@ process makeOrthogroupDiamondFile {
 
 
 process makeDiamondResultsFile {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   publishDir "$params.outputDir/", mode: "copy"
 
@@ -253,7 +259,7 @@ process bestRepsSelfDiamond {
  * @return tree Output group tree file
 */
 process createGeneTrees {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   publishDir "$params.outputDir/geneTrees", mode: "copy", pattern: "*.tree"
   publishDir "$params.outputDir/groupAlignments", mode: "copy", pattern: "*.alignment"
@@ -278,7 +284,7 @@ process createGeneTrees {
  * @return A mash result file for every group to their best representative
 */
 process runMash {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   input:
     path fasta
@@ -302,7 +308,7 @@ process runMash {
  * @return fullProteome The combined proteome fasta
 */
 process combineProteomes {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -319,7 +325,7 @@ process combineProteomes {
 
 
 process splitBySize {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   input:
     path fasta
@@ -344,8 +350,35 @@ process splitBySize {
     """
 }
 
+process makeEmptyFile {
+  output:
+    path 'empty.txt'
+
+  script:
+    template 'makeEmptyFile.bash'
+}
+
+/**
+ * Generic merge for any tab-delimited, group-ID-keyed file: drop cached rows
+ * for touched groups, append the freshly-recomputed touched-group rows.
+ * Reused for both group stats (one row per group) and intra-group blast
+ * values (many rows per group).
+ */
+process mergeByGroupId {
+  input:
+    path cached, stageAs: 'cached.txt'
+    path touchedGroups
+    path fresh, stageAs: 'fresh.txt'
+
+  output:
+    path 'merged.txt'
+
+  script:
+    template 'mergeByGroupId.bash'
+}
+
 process calculateGroupStats {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   input:
     path bestRepresentatives

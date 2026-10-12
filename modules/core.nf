@@ -25,7 +25,7 @@ include {bestRepsSelfDiamond as coreBestRepsToCoreDiamond;
  * @return outputDir contains a directory of Blast*.txt files with mapped ids
  */
 process mapCachedBlasts {
-    container 'veupathdb/orthofinder:1.9.3'
+    container 'rdemko2332/orthofinder:latest'
 
     input:
     path previousDiamondCacheDirectory
@@ -51,7 +51,7 @@ process mapCachedBlasts {
 */
 
 process computeGroups {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   input:
     path blasts
@@ -71,12 +71,13 @@ process computeGroups {
 * the last row in the orthologgroups file.  the resulting id will also include the version
 */
 process makeFullSingletonsFile {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   input:
     path singletonFiles
     path orthogroups
     val buildVersion
+    val subVersion
 
   output:
     path 'singletonsFull.dat'
@@ -90,7 +91,7 @@ process makeFullSingletonsFile {
 * write singleton files with original seq ids in place of internal ids
 */
 process translateSingletonsFile {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   input:
     path singletonsFile
@@ -109,7 +110,7 @@ process translateSingletonsFile {
 * @return orthogroupblasts (sim files per group)
 */
 process makeCoreOrthogroupDiamondFile {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   publishDir "$params.outputDir/groupDiamondResults", mode: "copy"
 
@@ -132,7 +133,7 @@ process makeCoreOrthogroupDiamondFile {
 *   IDs) used as ground truth to reconcile any IDs orthofinder corrupted
 */
 process reformatGroupsFile {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -140,6 +141,7 @@ process reformatGroupsFile {
     path groupsFile
     path translatedSingletons
     val buildVersion
+    val subVersion
     val coreOrResidual
     path proteomes
 
@@ -194,13 +196,18 @@ workflow coreWorkflow {
     orthofinderGroupResults = computeGroups(collectedDiamondResults, setup.orthofinderWorkingDir)
     
     //make one file per species containing all ortholog groups for that species
+    // Core groups are only ever created by a full rebuild (see reformatGroupsFile's
+    // call below), so this is always a fresh r1 baseline here too -- the literal 1
+    // matches reformatGroupsFile/makeFullSingletonsFile's subVersion argument.
     speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(),
                                                      setup.speciesMapping.collect(),
                                                      setup.sequenceMapping.collect(),
                                                      orthofinderGroupResults.orthologgroups.collect(),
                                                      params.buildVersion,
 						     "na",
-						     coreOrResidual);
+						     coreOrResidual,
+						     1,
+						     0);
 
     // per species, make One file all diamond similarities for that group
     diamondSimilaritiesPerGroup = makeCoreOrthogroupDiamondFile(diamondResultsFile.collect(),
@@ -211,13 +218,19 @@ workflow coreWorkflow {
     // make a collection of singletons files (one for each species)
     singletonFiles = speciesOrthologs.singletons.collect()
 
-    singletonsFull = makeFullSingletonsFile(singletonFiles, orthofinderGroupResults.orthologgroups, params.buildVersion).collectFile()
+    // Same as reformatGroupsFile below: core singletons are only ever created by a full
+    // rebuild, so this is always a fresh r1 baseline too.
+    singletonsFull = makeFullSingletonsFile(singletonFiles, orthofinderGroupResults.orthologgroups, params.buildVersion, 1).collectFile()
 
     translatedSingletonsFile = translateSingletonsFile(singletonsFull,setup.sequenceMapping)
 
+    // Core groups are only ever created by a full rebuild -- the incremental path never
+    // creates new core/peripheral groups, only reuses/renumbers existing ones (via a
+    // separate rename pass) -- so this is always a fresh r1 baseline.
     reformatGroupsFile(orthofinderGroupResults.orthologgroups,
                        translatedSingletonsFile,
                        params.buildVersion,
+                       1,
                        coreOrResidual,
                        proteomesForOrthofinder)
 }

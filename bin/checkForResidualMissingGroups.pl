@@ -8,6 +8,12 @@ my $inputDir = $ARGV[0];
 my $buildVersion = $ARGV[1];
 my $residualBuildVersion = $ARGV[2];
 my $groupFile = $ARGV[3];
+# Highest OGR number any earlier run already used (0 for a full rebuild). .sim files are
+# named using splitOrthologGroupsPerSpecies's own group IDs, which are offset by this same
+# amount, so the scan below has to start counting from here too, not from 0 -- otherwise
+# every group on an incremental run (offset > 0) looks "missing" because the scan never
+# finds a .sim file at the unoffset numbers it's looking for.
+my $offset = $ARGV[4] || 0;
 
 my $lastGroup;
 open(my $data, '<', $groupFile);
@@ -32,7 +38,7 @@ open(OUT,">missingGroups.txt")  or die "Couldn't open missingGroups.txt: $!";
 my $groupPrefix = "OGR${buildVersion}r${residualBuildVersion}_";
 
 # Int holder for counting.
-my $currentGroupInt = 0;
+my $currentGroupInt = $offset;
 
 # Will take an int like 0 and return ${inputDir}/OGR${buildVersion}_0000000.sim;
 my $currentGroupFile = &reformatGroup($currentGroupInt, $groupPrefix, $inputDir);

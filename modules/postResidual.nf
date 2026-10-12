@@ -12,7 +12,7 @@ include {splitOrthologGroupsPerSpecies; makeOrthogroupDiamondFile;
  * @return fasta A fasta file per group
 */
 process splitProteomeByGroup {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   publishDir "$params.outputDir/residualGroupFastas", mode: "copy"
 
@@ -32,7 +32,7 @@ process splitProteomeByGroup {
 * combine species residual singletons file.
 */
 process makeFullResidualSingletonsFile {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   input:
     path singletonFiles
@@ -52,7 +52,7 @@ process makeFullResidualSingletonsFile {
 *   sequence IDs) used as ground truth to reconcile any IDs orthofinder corrupted
 */
 process reformatResidualGroupsFile {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   publishDir "$params.outputDir", mode: "copy"
 
@@ -61,6 +61,7 @@ process reformatResidualGroupsFile {
     val buildVersion
     val residualBuildVersion
     path residualFasta
+    val residualGroupNumberOffset
 
   output:
     path 'reformattedGroups.txt', emit: groups
@@ -75,7 +76,7 @@ process reformatResidualGroupsFile {
 *  for each group, determine which residual sequence has the lowest average evalue
 */
 process findResidualBestRepresentatives {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   input:
     path groupData
@@ -117,7 +118,7 @@ process removeEmptyGroups {
 *  grab all best representative sequences.  use the group id as the defline
 */
 process makeResidualBestRepresentativesFasta {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   publishDir "$params.outputDir/", mode: "copy"
 
@@ -137,7 +138,7 @@ process makeResidualBestRepresentativesFasta {
 *  Translate best rep file to hold actual sequenceIds, not OF internal ids
 */
 process translateBestRepsFile {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   input:
     path sequenceMapping
@@ -184,25 +185,26 @@ process addFirstSeqForGroupsWithNoBestRep {
  * @return A file that lists all of the groups that do not have a file present
 */
 process checkForMissingGroups {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   input:
     path allDiamondSimilarities
     val buildVersion
     val residualBuildVersion
     path groupsFile
+    val offset
 
   output:
     path 'missingGroups.txt'
 
   script:
     """
-    checkForResidualMissingGroups.pl . $buildVersion $residualBuildVersion $groupsFile
+    checkForResidualMissingGroups.pl . $buildVersion $residualBuildVersion $groupsFile $offset
     """
 }
 
 process calculateResidualGroupStats {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   input:
     path bestRepresentatives
@@ -219,7 +221,7 @@ process calculateResidualGroupStats {
 
 
 process  createIntraResidualGroupBlastFile {
-  container = 'veupathdb/orthofinder:1.9.3'
+  container = 'rdemko2332/orthofinder:latest'
 
   publishDir "$params.outputDir/", mode: "copy"
 
@@ -243,7 +245,11 @@ workflow postResidualWorkflow {
   main:
 
     // Final output format of residual groups. Adding R for residual, and build version.
-    residualGroupsFile = reformatResidualGroupsFile(groupsFile, params.buildVersion, params.residualBuildVersion, params.residualFasta)
+    // residualGroupNumberOffset defaults to 0 (see nextflow.config's postResidual profile)
+    // for the full-rebuild path, where nothing yet exists to collide with; the incremental
+    // path overrides it with the highest OGR number any earlier run has already used, so
+    // brand-new residual groups here never reuse a number.
+    residualGroupsFile = reformatResidualGroupsFile(groupsFile, params.buildVersion, params.residualBuildVersion, params.residualFasta, params.residualGroupNumberOffset)
 
     residualProteomesByGroup = splitProteomeByGroup(params.residualFasta, residualGroupsFile.groups.splitText( by: 10000, file: true ))
 
@@ -257,13 +263,17 @@ workflow postResidualWorkflow {
     speciesNames = speciesFileToList(speciesFile, 1);
 
     // make one file per species containing all ortholog groups for that species
+    // subVersion isn't used by the "residual" branch (it uses residualBuildVersion
+    // instead) -- "na" mirrors how core's call above passes "na" for residualBuildVersion.
     speciesOrthologs = splitOrthologGroupsPerSpecies(speciesNames.flatten(),
                                                       speciesFile,
                                                       sequenceFile,
                                                       groupsFile.first(),
                                                       params.buildVersion,
                                                       params.residualBuildVersion,
-                                                      "residual");
+                                                      "residual",
+                                                      "na",
+                                                      params.residualGroupNumberOffset);
 
     // per species, make One file all diamond similarities for that group
     diamondSimilaritiesPerGroup = makeOrthogroupDiamondFile(params.diamondResultsFile,
@@ -310,7 +320,8 @@ workflow postResidualWorkflow {
     missingGroups = checkForMissingGroups(allDiamondSimilarities.flatten().collect(),
                                           params.buildVersion,
 					  params.residualBuildVersion,
-    					  residualGroupsFile.groups).collect()
+    					  residualGroupsFile.groups,
+					  params.residualGroupNumberOffset).collect()
 
     // Calculate residual group stats
     calculateResidualGroupStats(completeBestRepsFile, allDiamondSimilarities, residualGroupsFile.groups, missingGroups).collectFile(name: "residual_stats.txt", storeDir: params.outputDir + "/groupStats")

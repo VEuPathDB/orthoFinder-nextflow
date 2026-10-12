@@ -43,7 +43,9 @@ my %seqToGroup;
 # For each line in groups file
 while (my $line = <$data>) {
     chomp $line;
-    if ($line =~ /^(OGR\d+_\d+):\s(.+)/) {
+    # r(subVersion) is optional: OGR<buildVersion>r<residualBuildVersion>_<N>
+    # (current) or bare OGR<buildVersion>_<N> (predates the subVersion scheme).
+    if ($line =~ /^(OGR\d+(?:r\d+)?_\d+):\s(.+)/) {
 	my $groupId = $1;
         my $seqLine = $2;
 	my @seqArray = split(/\s/, $seqLine);

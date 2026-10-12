@@ -10,5 +10,7 @@ splitOrthologGroupsPerSpecies --species_mapping $speciesMapping \
     --singletons_file_suffix "singletons" \
     --build_version $buildVersion \
     --coreOrResidual $coreOrResidual \
-    --residualBuildVersion $residualBuildVersion
+    --residualBuildVersion $residualBuildVersion \
+    --subVersion $subVersion \
+    --offset $offset
 

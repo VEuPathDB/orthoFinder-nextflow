@@ -56,7 +56,10 @@ while (my $line = <GRP>) {
     chomp $line;
 
     # Ensure correct file format and retrieve groupID and sequences.
-    if ($line =~ /^(OG\d+_\d+):\s(.+)/) {
+    # r(subVersion) is optional: a group ID may be either the current-format
+    # OG<buildVersion>r<subVersion>_<N> or, for anything predating the
+    # subVersion scheme, the bare OG<buildVersion>_<N>.
+    if ($line =~ /^(OG\d+(?:r\d+)?_\d+):\s(.+)/) {
         my $groupID = $1;
 
 	# Created an array to hold all sequences in this group.

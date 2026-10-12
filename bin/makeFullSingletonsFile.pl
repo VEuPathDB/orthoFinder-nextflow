@@ -38,6 +38,15 @@ An integer indicating the build version of the orthofinder runs
 
 =over 4
 
+=item subVersion
+
+An integer sub-release version ("r{N}" in the group ID) -- always 1 here, since this
+script only ever runs during a full rebuild, same as reformatGroupsFile.pl's subVersion.
+
+=back
+
+=over 4
+
 =item outputFile
 
 The path to the full singletons file
@@ -46,11 +55,12 @@ The path to the full singletons file
 
 =cut
 
-my ($fileSuffix,$lastGroup,$buildVersion,$outputFile);
+my ($fileSuffix,$lastGroup,$buildVersion,$subVersion,$outputFile);
 
 &GetOptions("fileSuffix=s"=> \$fileSuffix,
             "lastGroup=s"=> \$lastGroup,
             "buildVersion=s"=> \$buildVersion,
+            "subVersion=s"=> \$subVersion,
             "outputFile=s"=> \$outputFile);
 
 # Setting variables in case they ever change
@@ -82,7 +92,7 @@ foreach my $file(@singletonFiles) {
 	# Add zeros in front of group to keep consistent formatting
 	my $numberOfZerosToAddToStart = $groupIntDigits - $lengthOfLastGroupInteger;
 	my $zeroLine = "0" x $numberOfZerosToAddToStart;
-	print OUT "OG${buildVersion}_${zeroLine}${lastGroupInteger}\t$line\n";
+	print OUT "OG${buildVersion}r${subVersion}_${zeroLine}${lastGroupInteger}\t$line\n";
 
     }
 

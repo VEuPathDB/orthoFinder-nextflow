@@ -8,6 +8,10 @@ set -euo pipefail
 fixGroupFileIds.py $residualFasta $groupsFile
 mv fixedGroupFile.txt holdReformat.txt
 
-sed 's/^OG/OGR${buildVersion}r${residualBuildVersion}_/g' holdReformat.txt > reformattedGroups.txt
+offsetResidualGroupIds.pl --input holdReformat.txt \
+                          --buildVersion $buildVersion \
+                          --subVersion $residualBuildVersion \
+                          --offset $residualGroupNumberOffset \
+                          --output reformattedGroups.txt
 
 echo "$residualBuildVersion" > buildVersion.txt

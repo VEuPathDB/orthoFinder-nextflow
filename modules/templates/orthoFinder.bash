@@ -11,3 +11,5 @@ ln -s OrthoFinder/**/WorkingDirectory .
 
 cp WorkingDirectory/SpeciesIDs.txt .
 cp WorkingDirectory/SequenceIDs.txt .
+
+makeProteinToOrganismMap.pl --speciesIds SpeciesIDs.txt --sequenceIds SequenceIDs.txt --output proteinToOrganism.tsv

@@ -10,6 +10,7 @@ include { peripheralWorkflow } from './modules/peripheral.nf'
 include { residualWorkflow;} from './modules/residual.nf'
 include { postResidualWorkflow;} from './modules/postResidual.nf'
 include { postProcessingWorkflow;} from './modules/postProcessing.nf'
+include { incrementalWorkflow;} from './modules/incremental.nf'
 
 //---------------------------------------------------------------
 // core
@@ -70,6 +71,57 @@ workflow postResidualEntry {
 
 workflow postProcessingEntry {
   postProcessingWorkflow(Channel.fromPath(params.coreBestRepsFasta))
+}
+
+//---------------------------------------------------------------
+// incremental (core unchanged: reassign changed/removed/new peripheral
+// organisms into existing core/residual groups, and cluster only the
+// leftover unassigned sequences via the existing residual workflow --
+// avoids a full peripheral+residual rebuild when core hasn't changed)
+//---------------------------------------------------------------
+
+workflow incrementalEntry {
+  if(params.changedOrNewProteomes) {
+    inputFile = Channel.fromPath(params.changedOrNewProteomes)
+  }
+  else {
+    throw new Exception("Missing params.changedOrNewProteomes")
+  }
+
+  if(!params.previousFullProteome) {
+    throw new Exception("Missing params.previousFullProteome")
+  }
+  if(!params.cachedCoreBestReps) {
+    throw new Exception("Missing params.cachedCoreBestReps")
+  }
+  if(!params.cachedResidualBestReps) {
+    throw new Exception("Missing params.cachedResidualBestReps")
+  }
+  if(!params.cachedCoreStats) {
+    throw new Exception("Missing params.cachedCoreStats")
+  }
+  if(!params.cachedPeripheralStats) {
+    throw new Exception("Missing params.cachedPeripheralStats")
+  }
+  if(!params.cachedIntraGroupBlastFile) {
+    throw new Exception("Missing params.cachedIntraGroupBlastFile")
+  }
+  if(!params.cachedResidualStats) {
+    throw new Exception("Missing params.cachedResidualStats")
+  }
+  if(!params.cachedIntraResidualGroupBlastFile) {
+    throw new Exception("Missing params.cachedIntraResidualGroupBlastFile")
+  }
+
+  incrementalWorkflow(inputFile,
+                      Channel.fromPath(params.previousFullProteome),
+                      Channel.fromPath(params.cachedCoreBestReps),
+                      Channel.fromPath(params.cachedResidualBestReps),
+                      Channel.fromPath(params.cachedCoreStats),
+                      Channel.fromPath(params.cachedPeripheralStats),
+                      Channel.fromPath(params.cachedIntraGroupBlastFile),
+                      Channel.fromPath(params.cachedResidualStats),
+                      Channel.fromPath(params.cachedIntraResidualGroupBlastFile))
 }
 
 //---------------------------------------------------------------

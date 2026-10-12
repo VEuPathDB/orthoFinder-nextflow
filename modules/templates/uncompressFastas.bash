@@ -11,3 +11,5 @@ touch output.fasta
 for f in \$tarDir/*.fasta; do cat \$f >> output.fasta; done
 
 mv \$tarDir hold
+
+mapProteinsToOrganismFromFastaDir.pl --fastaDir hold --output proteinToOrganism.tsv
