@@ -14,28 +14,28 @@ VEuPathDB computes ortholog groups across the proteomes of all organisms in its 
 
 ## Requirements
 
-- [Nextflow](https://www.nextflow.io/) (DSL2)
+- [Nextflow](https://www.nextflow.io/) 26+ (DSL2, strict syntax)
 - [Docker](https://www.docker.com/) (enabled by default in every profile; the pipeline's image is built from `davidemms/orthofinder:2.5.5.2` with Diamond, Mash, MAFFT, and FastTree added)
 
 ## Usage
 
-Each stage is a separate `-entry` point with its own `-profile` of the same name. Stages are normally run in sequence, since each consumes the output of the one before it.
+Each stage is a separate named workflow with its own `-profile` of the same name. Stages are normally run in sequence, since each consumes the output of the one before it. Nextflow 26 dropped the `-entry` CLI option under strict syntax, so the stage is now selected with an ordinary `--entry` pipeline param instead, read by the single default `workflow {}` block in `main.nf` to dispatch to the matching named workflow.
 
 ```bash
-# core (also the default entry point)
-nextflow run VEuPathDB/orthoFinder-nextflow -r main -entry coreEntry -profile core -resume -C <config>
+# core (also the default entry point -- --entry may be omitted)
+nextflow run VEuPathDB/orthoFinder-nextflow -r main --entry coreEntry -profile core -resume -C <config>
 
 # peripheral
-nextflow run VEuPathDB/orthoFinder-nextflow -r main -entry peripheralEntry -profile peripheral -resume -C <config>
+nextflow run VEuPathDB/orthoFinder-nextflow -r main --entry peripheralEntry -profile peripheral -resume -C <config>
 
 # residual
-nextflow run VEuPathDB/orthoFinder-nextflow -r main -entry residualEntry -profile residual -resume -C <config>
+nextflow run VEuPathDB/orthoFinder-nextflow -r main --entry residualEntry -profile residual -resume -C <config>
 
 # postResidual
-nextflow run VEuPathDB/orthoFinder-nextflow -r main -entry postResidualEntry -profile postResidual -resume -C <config>
+nextflow run VEuPathDB/orthoFinder-nextflow -r main --entry postResidualEntry -profile postResidual -resume -C <config>
 
 # postProcessing
-nextflow run VEuPathDB/orthoFinder-nextflow -r main -entry postProcessingEntry -profile postProcessing -resume -C <config>
+nextflow run VEuPathDB/orthoFinder-nextflow -r main --entry postProcessingEntry -profile postProcessing -resume -C <config>
 ```
 
 ### Entry points

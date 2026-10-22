@@ -125,9 +125,30 @@ workflow incrementalEntry {
 }
 
 //---------------------------------------------------------------
-// DEFAULT - core
+// DISPATCH -- nextflow 26+ removed the CLI "-entry" option under
+// strict syntax, so the caller now passes --entry <name> as an
+// ordinary pipeline param instead, and this default workflow
+// dispatches to the matching named workflow above. Default (no
+// --entry given) stays core, matching the prior "-entry" default.
 //---------------------------------------------------------------
 
 workflow {
-    coreEntry();
+    if(params.entry == 'peripheralEntry') {
+        peripheralEntry()
+    }
+    else if(params.entry == 'residualEntry') {
+        residualEntry()
+    }
+    else if(params.entry == 'postResidualEntry') {
+        postResidualEntry()
+    }
+    else if(params.entry == 'postProcessingEntry') {
+        postProcessingEntry()
+    }
+    else if(params.entry == 'incrementalEntry') {
+        incrementalEntry()
+    }
+    else {
+        coreEntry()
+    }
 }
